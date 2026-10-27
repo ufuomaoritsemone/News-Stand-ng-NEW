@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AdminDashboard/AdminDashboard.csproj" />
+    <Project Path="src/NewsApi/NewsApi.csproj" />
+    <Project Path="src/NewsCategorizer.Trainer/NewsCategorizer.Trainer.csproj" />
+    <Project Path="src/NewsScraperService/NewsScraperService.csproj" />
+    <Project Path="src/NigerianNewsGrid.Client/NigerianNewsGrid.Client.csproj" />
+
+    <Project Path="src/TtsWorker/TtsWorker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NewsApi.StressTests/NewsApi.StressTests.csproj" />
+    <Project Path="tests/NewsApi.Tests/NewsApi.Tests.csproj" />
+    <Project Path="tests/NewsApiClient.Tests/NewsApiClient.Tests.csproj" />
+  </Folder>
+  <Project Path="NigerianNewGrid/NigerianNewGrid.csproj">
+    <Deploy Solution="Debug|*" />
+  </Project>
+</Solution>

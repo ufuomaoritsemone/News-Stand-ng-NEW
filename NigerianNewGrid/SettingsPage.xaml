@@ -1,0 +1,585 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:NigerianNewGrid.ViewModels"
+             x:Class="NigerianNewGrid.SettingsPage"
+             x:DataType="viewmodels:SettingsViewModel"
+             Title="Settings"
+             Background="{StaticResource SecondaryLightBrush}"
+             SafeAreaEdges="Container">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="0" Padding="20,16,20,32">
+
+            <!-- Header -->
+            <Label Text="Settings"
+                   FontFamily="LegacySerifBold"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}"
+                   Margin="0,0,0,4"
+                   SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="Customise your experience"
+                   FontFamily="LegacySansBook"
+                   FontSize="13"
+                   TextColor="{StaticResource Gray500}"
+                   Margin="0,0,0,24" />
+
+            <!-- Notifications & Alerts Section -->
+            <Label Text="NOTIFICATIONS &amp; TOPIC ALERTS"
+                   FontFamily="LegacySansBook"
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource Gray500}"
+                   Margin="0,0,0,8" />
+
+            <!-- Morning Briefing Card -->
+            <Border Padding="16"
+                    Background="{StaticResource WhiteBrush}"
+                    StrokeShape="RoundRectangle 16"
+                    StrokeThickness="1"
+                    Stroke="{StaticResource Gray100Brush}"
+                    Margin="0,0,0,14">
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                        <HorizontalStackLayout Grid.Column="0" Grid.Row="0" Spacing="8">
+                            <Label Text="☀️" FontSize="18" VerticalOptions="Center" />
+                            <Label Text="Daily Morning Briefing"
+                                   FontFamily="LegacySerifBold"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}"
+                                   VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Switch Grid.Column="1" Grid.Row="0" Grid.RowSpan="2"
+                                x:Name="SwitchMorningBriefing"
+                                IsToggled="{Binding MorningBriefingEnabled, Mode=TwoWay}"
+                                VerticalOptions="Center" />
+                        <Label Grid.Column="0" Grid.Row="1"
+                               Text="Curated morning digest delivered to your device"
+                               FontFamily="LegacySansBook"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}"
+                               Margin="26,2,0,0" />
+                    </Grid>
+
+                    <VerticalStackLayout x:Name="MorningTimeContainer"
+                                         IsVisible="{Binding MorningBriefingEnabled}"
+                                         Spacing="8">
+                        <BoxView HeightRequest="1" Color="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource DarkSurfaceCard}}" />
+                        <Grid ColumnDefinitions="*,Auto" Padding="4,4,4,0">
+                            <Label Grid.Column="0"
+                                   Text="Delivery Time"
+                                   FontFamily="LegacySansBook"
+                                   FontSize="14"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray700}, Dark={StaticResource DarkTextSecondary}}"
+                                   VerticalOptions="Center" />
+                            <TimePicker Grid.Column="1"
+                                        x:Name="TimePickerMorning"
+                                        Time="{Binding MorningBriefingTime, Mode=TwoWay}"
+                                        Format="hh:mm tt"
+                                        FontFamily="LegacySansBook"
+                                        FontSize="14"
+                                        TextColor="{AppThemeBinding Light={StaticResource AccentBlue}, Dark={StaticResource DarkPrimary}}"
+                                        VerticalOptions="Center" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Audio Briefings Card -->
+            <Border Padding="16"
+                    Background="{StaticResource WhiteBrush}"
+                    StrokeShape="RoundRectangle 16"
+                    StrokeThickness="1"
+                    Stroke="{StaticResource Gray100Brush}"
+                    Margin="0,0,0,14">
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                        <HorizontalStackLayout Grid.Column="0" Grid.Row="0" Spacing="8">
+                            <Label Text="🎧" FontSize="18" VerticalOptions="Center" />
+                            <Label Text="Audio Briefing Alerts"
+                                   FontFamily="LegacySerifBold"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}"
+                                   VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Switch Grid.Column="1" Grid.Row="0" Grid.RowSpan="2"
+                                x:Name="SwitchAudioBriefings"
+                                IsToggled="{Binding AudioBriefingsEnabled, Mode=TwoWay}"
+                                VerticalOptions="Center" />
+                        <Label Grid.Column="0" Grid.Row="1"
+                               Text="Notify when new Morning (8:00 AM) &amp; Evening (6:00 PM) audio digests are ready"
+                               FontFamily="LegacySansBook"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}"
+                               Margin="26,2,0,0" />
+                    </Grid>
+
+                    <VerticalStackLayout x:Name="AudioBriefingsScheduleContainer"
+                                         IsVisible="{Binding AudioBriefingsEnabled}"
+                                         Spacing="8">
+                        <BoxView HeightRequest="1" Color="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource DarkSurfaceCard}}" />
+                        <Grid ColumnDefinitions="*,Auto" Padding="4,4,4,0">
+                            <Label Grid.Column="0"
+                                   Text="Update Schedule"
+                                   FontFamily="LegacySansBook"
+                                   FontSize="14"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray700}, Dark={StaticResource DarkTextSecondary}}"
+                                   VerticalOptions="Center" />
+                            <Label Grid.Column="1"
+                                   Text="8:00 AM &amp; 6:00 PM (WAT)"
+                                   FontFamily="LegacySansBook"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light={StaticResource AccentGreen}, Dark={StaticResource DarkPrimary}}"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Keyword Alerts Card -->
+            <Border Padding="16"
+                    Background="{StaticResource WhiteBrush}"
+                    StrokeShape="RoundRectangle 16"
+                    StrokeThickness="1"
+                    Stroke="{StaticResource Gray100Brush}"
+                    Margin="0,0,0,24">
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                        <HorizontalStackLayout Grid.Column="0" Grid.Row="0" Spacing="8">
+                            <Label Text="🔔" FontSize="18" VerticalOptions="Center" />
+                            <Label Text="Keyword Alerts"
+                                   FontFamily="LegacySerifBold"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}"
+                                   VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Switch Grid.Column="1" Grid.Row="0" Grid.RowSpan="2"
+                                x:Name="SwitchKeywordAlerts"
+                                IsToggled="{Binding KeywordAlertsEnabled, Mode=TwoWay}"
+                                VerticalOptions="Center" />
+                        <Label Grid.Column="0" Grid.Row="1"
+                               Text="Private on-device alerts for freshly updated stories"
+                               FontFamily="LegacySansBook"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}"
+                               Margin="26,2,0,0" />
+                    </Grid>
+
+                    <VerticalStackLayout x:Name="KeywordAlertsContainer"
+                                         IsVisible="{Binding KeywordAlertsEnabled}"
+                                         Spacing="12">
+                        <BoxView HeightRequest="1" Color="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource DarkSurfaceCard}}" />
+
+                        <!-- Active Keywords Header -->
+                        <Label Text="ACTIVE MONITORED TOPICS"
+                               FontFamily="LegacySansBook"
+                               FontSize="10"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Gray500}" />
+
+                        <!-- Keyword Chips Container -->
+                        <FlexLayout x:Name="ActiveKeywordsFlexLayout"
+                                    Wrap="Wrap"
+                                    Direction="Row"
+                                    AlignItems="Start"
+                                    JustifyContent="Start"
+                                    BindableLayout.ItemsSource="{Binding MonitoredKeywords}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <Border Padding="10,6"
+                                            Margin="0,0,8,8"
+                                            StrokeShape="RoundRectangle 16"
+                                            StrokeThickness="1"
+                                            Stroke="{StaticResource AccentBlueBrush}"
+                                            Background="{StaticResource AccentBlueLightBrush}">
+                                        <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                            <Label Text="{Binding .}"
+                                                   FontFamily="LegacySansBook"
+                                                   FontSize="13"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{StaticResource AccentBlue}"
+                                                   VerticalOptions="Center" />
+                                            <Label Text="✕"
+                                                   FontSize="12"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{StaticResource Gray500}"
+                                                   VerticalOptions="Center"
+                                                   Padding="4,0,0,0">
+                                                <Label.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:SettingsViewModel}}, Path=RemoveKeywordCommand}"
+                                                                          CommandParameter="{Binding .}" />
+                                                </Label.GestureRecognizers>
+                                            </Label>
+                                        </HorizontalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+
+                        <!-- Empty state when no keywords are registered -->
+                        <Label x:Name="LblEmptyKeywords"
+                               Text="No active keywords. Add custom topics or pick from suggestions below."
+                               FontFamily="LegacySansBook"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray400}"
+                               IsVisible="{Binding HasNoKeywords}" />
+
+                        <!-- Add Custom Keyword Entry -->
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,4,0,0">
+                            <Border Grid.Column="0"
+                                    Padding="12,0"
+                                    Background="{StaticResource SecondaryLightBrush}"
+                                    StrokeShape="RoundRectangle 8"
+                                    Stroke="{StaticResource Gray200Brush}"
+                                    StrokeThickness="1"
+                                    HeightRequest="42">
+                                <Entry x:Name="TxtNewKeyword"
+                                       Text="{Binding NewKeywordInput, Mode=TwoWay}"
+                                       Placeholder="Add custom topic (e.g. Dangote, Osimhen)..."
+                                       FontFamily="LegacySansBook"
+                                       FontSize="13"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}"
+                                       PlaceholderColor="{StaticResource Gray400}"
+                                       VerticalOptions="Center"
+                                       ReturnCommand="{Binding AddKeywordCommand}" />
+                            </Border>
+                            <Button Grid.Column="1"
+                                    Text="+ Add"
+                                    Command="{Binding AddKeywordCommand}"
+                                    HeightRequest="42"
+                                    Padding="14,0"
+                                    FontSize="13"
+                                    FontAttributes="Bold" />
+                        </Grid>
+
+                        <!-- Trending Suggestions -->
+                        <VerticalStackLayout Spacing="6" Margin="0,4,0,0">
+                            <Label Text="POPULAR NIGERIAN TOPICS"
+                                   FontFamily="LegacySansBook"
+                                   FontSize="10"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Gray500}" />
+                            <FlexLayout x:Name="PresetSuggestionsFlexLayout"
+                                        Wrap="Wrap"
+                                        Direction="Row"
+                                        AlignItems="Start"
+                                        JustifyContent="Start"
+                                        BindableLayout.ItemsSource="{Binding AvailablePresets}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <Border Padding="10,5"
+                                                Margin="0,0,6,6"
+                                                StrokeShape="RoundRectangle 14"
+                                                StrokeThickness="1"
+                                                Stroke="{StaticResource Gray200Brush}"
+                                                Background="{StaticResource WhiteBrush}">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:SettingsViewModel}}, Path=AddKeywordCommand}"
+                                                                      CommandParameter="{Binding .}" />
+                                            </Border.GestureRecognizers>
+                                            <Label Text="{Binding ., StringFormat='+ {0}'}"
+                                                   FontFamily="LegacySansBook"
+                                                   FontSize="12"
+                                                   TextColor="{AppThemeBinding Light={StaticResource Gray700}, Dark={StaticResource DarkTextSecondary}}"
+                                                   VerticalOptions="Center" />
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </FlexLayout>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Background Updates & Battery Saver Section -->
+            <Label Text="BACKGROUND UPDATES &amp; BATTERY"
+                   FontFamily="LegacySansBook"
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource Gray500}"
+                   Margin="0,0,0,8" />
+
+            <Border Padding="16"
+                    Background="{StaticResource WhiteBrush}"
+                    StrokeShape="RoundRectangle 16"
+                    StrokeThickness="1"
+                    Stroke="{StaticResource Gray100Brush}"
+                    Margin="0,0,0,24">
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                        <HorizontalStackLayout Grid.Column="0" Grid.Row="0" Spacing="8">
+                            <Label Text="🔋" FontSize="18" VerticalOptions="Center" />
+                            <Label Text="Background Updates"
+                                   FontFamily="LegacySerifBold"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}"
+                                   VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Switch Grid.Column="1" Grid.Row="0" Grid.RowSpan="2"
+                                x:Name="SwitchBackgroundUpdates"
+                                IsToggled="{Binding BackgroundUpdatesEnabled, Mode=TwoWay}"
+                                VerticalOptions="Center" />
+                        <Label Grid.Column="0" Grid.Row="1"
+                               Text="Keep home screen widget and stories updated in the background. Turn off to save battery power."
+                               FontFamily="LegacySansBook"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}"
+                               Margin="26,2,0,0" />
+                    </Grid>
+                    <BoxView HeightRequest="1" Color="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource DarkSurfaceCard}}" />
+                    <Label Text="When turned off, the widget and stories only refresh when you launch the app or manually tap the widget refresh icon."
+                           FontFamily="LegacySansBook"
+                           FontSize="11"
+                           TextColor="{StaticResource Gray400}"
+                           LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- App Info Section -->
+            <Label Text="ABOUT"
+                   FontFamily="LegacySansBook"
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource Gray500}"
+                   Margin="0,0,0,8" />
+
+            <Border Padding="16"
+                    Background="{StaticResource WhiteBrush}"
+                    StrokeShape="RoundRectangle 16"
+                    StrokeThickness="1"
+                    Stroke="{StaticResource Gray100Brush}">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="News Stand NG"
+                           FontFamily="LegacySerifBold"
+                           FontSize="17"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}" />
+                    <Label Text="AI-powered daily briefings from trusted Nigerian news sources. Verified. Categorised. Audio-ready."
+                           FontFamily="LegacySansBook"
+                           FontSize="13"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource DarkTextSecondary}}"
+                           LineBreakMode="WordWrap" />
+                    <Label Text="Version 1.0 · News Stand NG"
+                           FontFamily="LegacySansBook"
+                           FontSize="11"
+                           TextColor="{StaticResource Gray500}"
+                           Margin="0,4,0,0" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Sonic Identity & Audio Feedback Section -->
+            <Label Text="SONIC IDENTITY &amp; AUDIO FEEDBACK"
+                   FontFamily="LegacySansBook"
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource Gray500}"
+                   Margin="0,24,0,8" />
+
+            <Border Padding="16"
+                    Background="{StaticResource WhiteBrush}"
+                    StrokeShape="RoundRectangle 16"
+                    StrokeThickness="1"
+                    Stroke="{StaticResource Gray100Brush}"
+                    Margin="0,0,0,8">
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                        <HorizontalStackLayout Grid.Column="0" Grid.Row="0" Spacing="8">
+                            <Label Text="🎺" FontSize="18" VerticalOptions="Center" />
+                            <Label Text="Sound Effects &amp; Earcons"
+                                   FontFamily="LegacySerifBold"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}"
+                                   VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Switch Grid.Column="1" Grid.Row="0" Grid.RowSpan="2"
+                                x:Name="SwitchSonicFeedback"
+                                IsToggled="{Binding SonicFeedbackEnabled, Mode=TwoWay}"
+                                VerticalOptions="Center" />
+                        <Label Grid.Column="0" Grid.Row="1"
+                               Text="Play signature Newspaper Horn chime on feed refresh and audio feedback on key actions"
+                               FontFamily="LegacySansBook"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}"
+                               Margin="26,2,0,0" />
+                    </Grid>
+                    <BoxView HeightRequest="1"
+                             Color="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource DarkSurfaceCard}}" />
+                    <Button Text="Test Newspaper Horn 🎺"
+                            Command="{Binding PlayRefreshChimeCommand}"
+                            HeightRequest="36"
+                            CornerRadius="10"
+                            Padding="12,0"
+                            FontSize="12"
+                            FontAttributes="Bold"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource ButtonSecondaryBgLight}, Dark={StaticResource ButtonSecondaryBgDark}}"
+                            TextColor="{AppThemeBinding Light={StaticResource ButtonTextLight}, Dark={StaticResource ButtonTextDark}}"
+                            HorizontalOptions="Start" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Privacy & Analytics Section -->
+            <Label Text="PRIVACY &amp; ANALYTICS"
+                   FontFamily="LegacySansBook"
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource Gray500}"
+                   Margin="0,24,0,8" />
+
+            <Border Padding="16"
+                    Background="{StaticResource WhiteBrush}"
+                    StrokeShape="RoundRectangle 16"
+                    StrokeThickness="1"
+                    Stroke="{StaticResource Gray100Brush}"
+                    Margin="0,0,0,8">
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                        <HorizontalStackLayout Grid.Column="0" Grid.Row="0" Spacing="8">
+                            <Label Text="📊" FontSize="18" VerticalOptions="Center" />
+                            <Label Text="Usage Analytics"
+                                   FontFamily="LegacySerifBold"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}"
+                                   VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Switch Grid.Column="1" Grid.Row="0" Grid.RowSpan="2"
+                                x:Name="SwitchAnalytics"
+                                IsToggled="{Binding AnalyticsEnabled, Mode=TwoWay}"
+                                VerticalOptions="Center" />
+                        <Label Grid.Column="0" Grid.Row="1"
+                               Text="Share anonymous usage data to help improve the app"
+                               FontFamily="LegacySansBook"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}"
+                               Margin="26,2,0,0" />
+                    </Grid>
+                    <BoxView HeightRequest="1"
+                             Color="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource DarkSurfaceCard}}" />
+                    <Label Text="No personal information is ever collected. Events are linked only to a random device identifier that cannot be traced back to you."
+                           FontFamily="LegacySansBook"
+                           FontSize="11"
+                           TextColor="{StaticResource Gray400}"
+                           LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Feedback & Support Section -->
+            <Label Text="SEND FEEDBACK &amp; REPORT ISSUES"
+                   FontFamily="LegacySansBook"
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource Gray500}"
+                   Margin="0,24,0,8" />
+
+            <Border Padding="16"
+                    Background="{StaticResource WhiteBrush}"
+                    StrokeShape="RoundRectangle 16"
+                    StrokeThickness="1"
+                    Stroke="{StaticResource Gray100Brush}">
+                <VerticalStackLayout Spacing="12">
+                    <HorizontalStackLayout Spacing="8">
+                        <Label Text="💬" FontSize="18" VerticalOptions="Center" />
+                        <Label Text="Share Your Feedback"
+                               FontFamily="LegacySerifBold"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+
+                    <Label Text="We love hearing from you! Rate your experience or report an issue directly to our team."
+                           FontFamily="LegacySansBook"
+                           FontSize="12"
+                           TextColor="{StaticResource Gray500}" />
+
+                    <!-- Star Rating Picker -->
+                    <VerticalStackLayout Spacing="4" Margin="0,4,0,0">
+                        <Label Text="RATING" FontFamily="LegacySansBook" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                        <HorizontalStackLayout Spacing="6">
+                            <Button x:Name="Star1" Text="⭐ 1" Clicked="OnStarClicked" CommandParameter="1" Padding="8,4" FontSize="12" CornerRadius="10" BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource DarkSurfaceCard}}" TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}" />
+                            <Button x:Name="Star2" Text="⭐ 2" Clicked="OnStarClicked" CommandParameter="2" Padding="8,4" FontSize="12" CornerRadius="10" BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource DarkSurfaceCard}}" TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}" />
+                            <Button x:Name="Star3" Text="⭐ 3" Clicked="OnStarClicked" CommandParameter="3" Padding="8,4" FontSize="12" CornerRadius="10" BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource DarkSurfaceCard}}" TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}" />
+                            <Button x:Name="Star4" Text="⭐ 4" Clicked="OnStarClicked" CommandParameter="4" Padding="8,4" FontSize="12" CornerRadius="10" BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource DarkSurfaceCard}}" TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}" />
+                            <Button x:Name="Star5" Text="⭐ 5" Clicked="OnStarClicked" CommandParameter="5" Padding="8,4" FontSize="12" CornerRadius="10" BackgroundColor="{StaticResource AccentBlue}" TextColor="White" FontAttributes="Bold" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+
+                    <!-- Category Selector Pills -->
+                    <VerticalStackLayout Spacing="4" Margin="0,4,0,0">
+                        <Label Text="TOPIC CATEGORY" FontFamily="LegacySansBook" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                        <FlexLayout Wrap="Wrap" Direction="Row" AlignItems="Start">
+                            <Button x:Name="CatGeneral" Text="General" Clicked="OnFeedbackCategoryClicked" CommandParameter="General" Padding="10,4" Margin="0,0,6,6" FontSize="12" CornerRadius="12" BackgroundColor="{StaticResource AccentBlue}" TextColor="White" FontAttributes="Bold" />
+                            <Button x:Name="CatBug" Text="Bug Report" Clicked="OnFeedbackCategoryClicked" CommandParameter="Bug Report" Padding="10,4" Margin="0,0,6,6" FontSize="12" CornerRadius="12" BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource DarkSurfaceCard}}" TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}" />
+                            <Button x:Name="CatFeature" Text="Feature Request" Clicked="OnFeedbackCategoryClicked" CommandParameter="Feature Request" Padding="10,4" Margin="0,0,6,6" FontSize="12" CornerRadius="12" BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource DarkSurfaceCard}}" TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}" />
+                            <Button x:Name="CatContent" Text="Content Issue" Clicked="OnFeedbackCategoryClicked" CommandParameter="Content Issue" Padding="10,4" Margin="0,0,6,6" FontSize="12" CornerRadius="12" BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource DarkSurfaceCard}}" TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}" />
+                        </FlexLayout>
+                    </VerticalStackLayout>
+
+                    <!-- Feedback Message Editor -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="YOUR MESSAGE" FontFamily="LegacySansBook" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                        <Border Padding="8" Background="{StaticResource SecondaryLightBrush}" StrokeShape="RoundRectangle 10" Stroke="{StaticResource Gray200Brush}" StrokeThickness="1">
+                            <Editor x:Name="TxtFeedbackMessage"
+                                    Text="{Binding FeedbackMessage, Mode=TwoWay}"
+                                    Placeholder="Tell us what you like or what we should improve..."
+                                    HeightRequest="85"
+                                    FontFamily="LegacySansBook"
+                                    FontSize="13"
+                                    TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}"
+                                    PlaceholderColor="{StaticResource Gray400}" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <!-- Optional Contact Email Entry -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="YOUR EMAIL (OPTIONAL FOR REPLIES)" FontFamily="LegacySansBook" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Gray500}" />
+                        <Border Padding="10,0" Background="{StaticResource SecondaryLightBrush}" StrokeShape="RoundRectangle 10" Stroke="{StaticResource Gray200Brush}" StrokeThickness="1" HeightRequest="40">
+                            <Entry x:Name="TxtFeedbackEmail"
+                                   Text="{Binding FeedbackEmail, Mode=TwoWay}"
+                                   Placeholder="name@example.com"
+                                   Keyboard="Email"
+                                   FontFamily="LegacySansBook"
+                                   FontSize="13"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}"
+                                   PlaceholderColor="{StaticResource Gray400}"
+                                   VerticalOptions="Center" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <!-- Submit Button & Status -->
+                    <Button x:Name="BtnSubmitFeedback"
+                            Text="Submit Feedback 🚀"
+                            Command="{Binding SubmitFeedbackCommand}"
+                            IsEnabled="{Binding CanSubmitFeedback}"
+                            HeightRequest="44"
+                            CornerRadius="14"
+                            FontAttributes="Bold"
+                            BackgroundColor="{StaticResource AccentBlue}"
+                            TextColor="White"
+                            Margin="0,6,0,0" />
+
+                    <ActivityIndicator x:Name="FeedbackSpinner"
+                                       IsRunning="{Binding IsSubmittingFeedback}"
+                                       IsVisible="{Binding IsSubmittingFeedback}"
+                                       Color="{StaticResource AccentBlue}"
+                                       HorizontalOptions="Center" />
+                    <Label x:Name="LblFeedbackStatus"
+                           Text="{Binding FeedbackStatusText}"
+                           IsVisible="{Binding IsFeedbackStatusVisible}"
+                           TextColor="{Binding FeedbackStatusColor}"
+                           FontFamily="LegacySansBook"
+                           FontSize="12"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

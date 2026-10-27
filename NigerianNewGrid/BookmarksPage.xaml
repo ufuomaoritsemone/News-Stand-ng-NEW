@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+              xmlns:models="clr-namespace:NigerianNewsGrid.Client.Models;assembly=NigerianNewsGrid.Client"
+              xmlns:views="clr-namespace:NigerianNewGrid.Views"
+              x:Class="NigerianNewGrid.BookmarksPage"
+              Title="Bookmarks"
+              SafeAreaEdges="Container"
+              Background="{AppThemeBinding Light={StaticResource SecondaryLightBrush}, Dark={StaticResource DarkSurfaceBg}}">
+
+    <Grid RowDefinitions="Auto,*" Padding="0" RowSpacing="0">
+
+        <!-- Header -->
+        <Grid Grid.Row="0"
+              Padding="20,16,20,12"
+              Background="{AppThemeBinding Light={StaticResource WhiteBrush}, Dark={StaticResource DarkSurfaceCard}}"
+              ColumnDefinitions="*,Auto">
+            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                <Label Text="Bookmarks"
+                       FontFamily="LegacySerifBold"
+                       FontSize="28"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}"
+                       SemanticProperties.HeadingLevel="Level1" />
+                <Label x:Name="BookmarkCountLabel"
+                       Text="0 saved stories"
+                       FontFamily="LegacySansBook"
+                       FontSize="13"
+                       TextColor="{StaticResource Gray500}" />
+            </VerticalStackLayout>
+            <Button Grid.Column="1"
+                    Text="Clear All"
+                    x:Name="ClearAllBtn"
+                    Clicked="OnClearAllClicked"
+                    IsVisible="False"
+                    Padding="14,8"
+                    FontSize="12"
+                    FontAttributes="Bold"
+                    CornerRadius="14"
+                    BorderWidth="1.5"
+                    BorderColor="{AppThemeBinding Light={StaticResource AccentOrange}, Dark={StaticResource DarkAccentOrange}}"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource AccentOrangeLight}, Dark={StaticResource DarkAccentOrangeLight}}"
+                    TextColor="{AppThemeBinding Light={StaticResource AccentOrange}, Dark={StaticResource DarkAccentOrange}}" />
+        </Grid>
+
+        <!-- Bookmark List -->
+        <CollectionView Grid.Row="1"
+                        x:Name="BookmarksView"
+                        SelectionMode="None"
+                        Margin="16,12,16,0">
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" />
+            </CollectionView.ItemsLayout>
+
+            <!-- Empty State -->
+            <CollectionView.EmptyView>
+                <ContentView>
+                    <VerticalStackLayout HorizontalOptions="Center"
+                                         VerticalOptions="Center"
+                                         Spacing="16"
+                                         Padding="32">
+                        <Label Text="🔖" FontSize="56" HorizontalOptions="Center" />
+                        <Label Text="No bookmarks yet"
+                               FontFamily="LegacySerifBold"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               HorizontalTextAlignment="Center"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource DarkTextPrimary}}" />
+                        <Label Text="Tap the Bookmark button on any story to save it here for later reading."
+                               FontFamily="LegacySansBook"
+                               FontSize="14"
+                               HorizontalTextAlignment="Center"
+                               TextColor="{StaticResource Gray500}" />
+                    </VerticalStackLayout>
+                </ContentView>
+            </CollectionView.EmptyView>
+
+            <!-- Bookmark Item Template — Reusable ArticleCardView -->
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:BriefingItem">
+                    <views:ArticleCardView ArticleTapped="OnBookmarkTapped" />
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

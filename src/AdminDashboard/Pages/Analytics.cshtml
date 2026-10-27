@@ -1,0 +1,528 @@
+@page
+@model AdminDashboard.Pages.AnalyticsModel
+@{
+    ViewData["Title"] = "User Analytics | News Stand NG";
+    var s = Model.Summary;
+}
+
+<div class="container-fluid px-4 py-3">
+
+    <!-- SaaS Page Header -->
+    <div class="saas-page-header">
+        <div>
+            <div class="d-flex align-items-center gap-3">
+                <h1 class="saas-page-title mb-0"><i class="bi bi-bar-chart-fill text-success"></i> User Analytics</h1>
+                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 px-3 py-1 rounded-pill" style="font-size:0.75rem;letter-spacing:.05em;">
+                    <i class="bi bi-activity me-1"></i> LIVE TELEMETRY
+                </span>
+            </div>
+            <p class="saas-page-desc mt-1">Anonymised in-app telemetry, readership engagement &amp; widget adoption</p>
+        </div>
+        <div class="saas-toolbar">
+            <!-- Period filter -->
+            <form method="get" class="d-flex align-items-center gap-2">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-transparent border-glass text-muted"><i class="bi bi-calendar3"></i></span>
+                    <select name="days" class="form-select form-control-glass form-select-sm" onchange="this.form.submit()" style="width:160px;">
+                        <option value="7" selected="@(Model.Days == 7)">Last 7 days</option>
+                        <option value="30" selected="@(Model.Days == 30)">Last 30 days</option>
+                        <option value="90" selected="@(Model.Days == 90)">Last 90 days</option>
+                    </select>
+                </div>
+            </form>
+            <a href="/Analytics?days=@Model.Days" class="btn btn-saas-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i> Refresh</a>
+        </div>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show glass-card border-danger text-white mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- ── Summary Cards ── -->
+    <div class="row g-3 mb-4 mt-1">
+        <div class="col-6 col-md-3 col-xl">
+            <div class="glass-card stat-card text-center">
+                <div class="text-muted small text-uppercase">Total Events</div>
+                <div class="stat-value">@(s?.TotalEvents ?? 0)</div>
+                <div class="small text-info mt-1"><i class="bi bi-activity me-1"></i> @Model.Days-day window</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-xl">
+            <div class="glass-card stat-card text-center">
+                <div class="text-muted small text-uppercase">Unique Devices</div>
+                <div class="stat-value">@(s?.UniqueDevices ?? 0)</div>
+                <div class="small text-warning mt-1"><i class="bi bi-phone me-1"></i> Anonymous</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-xl">
+            <div class="glass-card stat-card text-center">
+                <div class="text-muted small text-uppercase">App Opens</div>
+                <div class="stat-value text-success">@(s?.AppOpens ?? 0)</div>
+                <div class="small text-muted mt-1"><i class="bi bi-box-arrow-in-right me-1"></i> Sessions</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-xl">
+            <div class="glass-card stat-card text-center">
+                <div class="text-muted small text-uppercase">Articles Read</div>
+                <div class="stat-value text-info">@(s?.ArticleReads ?? 0)</div>
+                <div class="small text-muted mt-1"><i class="bi bi-book me-1"></i> Reads</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-xl">
+            <div class="glass-card stat-card text-center">
+                <div class="text-muted small text-uppercase">Audio Started</div>
+                <div class="stat-value text-primary">@(s?.AudioListensStarted ?? 0)</div>
+                <div class="small text-muted mt-1"><i class="bi bi-headphones me-1"></i> Listens</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-xl">
+            <div class="glass-card stat-card text-center">
+                <div class="text-muted small text-uppercase">Audio Completed</div>
+                <div class="stat-value text-success">@(s?.AudioListensCompleted ?? 0)</div>
+                <div class="small text-success mt-1"><i class="bi bi-check2-circle me-1"></i> @(s?.AudioCompletionRate ?? 0)% rate</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-xl">
+            <div class="glass-card stat-card text-center">
+                <div class="text-muted small text-uppercase">Shares Clicked</div>
+                <div class="stat-value text-warning">@(s?.SharesClicked ?? 0)</div>
+                <div class="small text-muted mt-1"><i class="bi bi-share-fill me-1"></i> Virality</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-xl">
+            <div class="glass-card stat-card text-center">
+                <div class="text-muted small text-uppercase">Bookmarks</div>
+                <div class="stat-value text-danger">@(s?.BookmarksAdded ?? 0)</div>
+                <div class="small text-muted mt-1"><i class="bi bi-bookmark-fill me-1"></i> Saved</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── PWA Web App Adoption Section ── -->
+    <div class="row g-0 mb-2 mt-2">
+        <div class="col-12">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span style="font-size:1.1rem;">📲</span>
+                <h5 class="text-white brand-font mb-0">PWA Web App Installs &amp; Adoption</h5>
+                <span class="badge bg-success bg-opacity-25 text-success ms-1" style="font-size:0.7rem;letter-spacing:.05em;">PROGRESSIVE WEB APP</span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl">
+            <div class="glass-card stat-card text-center" style="border-top:3px solid #008751;">
+                <div class="text-muted small text-uppercase">Total Installs</div>
+                <div class="stat-value text-success">@(s?.PwaInstalls ?? 0)</div>
+                <div class="small text-success mt-1"><i class="bi bi-download me-1"></i>Web App Installs</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="glass-card stat-card text-center" style="border-top:3px solid #3b82f6;">
+                <div class="text-muted small text-uppercase">Standalone Opens</div>
+                <div class="stat-value text-primary">@(s?.PwaStandaloneOpens ?? 0)</div>
+                <div class="small text-muted mt-1"><i class="bi bi-box-arrow-in-up-right me-1"></i>Home Screen Launches</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="glass-card stat-card text-center" style="border-top:3px solid #10b981;">
+                <div class="text-muted small text-uppercase">Android Installs</div>
+                <div class="stat-value text-success">@(s?.PwaAndroidInstalls ?? 0)</div>
+                <div class="small text-muted mt-1"><i class="bi bi-android2 me-1"></i>Chrome &amp; Samsung</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="glass-card stat-card text-center" style="border-top:3px solid #a855f7;">
+                <div class="text-muted small text-uppercase">iOS Installs</div>
+                <div class="stat-value text-purple" style="color:#c084fc;">@(s?.PwaIosInstalls ?? 0)</div>
+                <div class="small text-muted mt-1"><i class="bi bi-apple me-1"></i>Safari Home Screen</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="glass-card stat-card text-center" style="border-top:3px solid #06b6d4;">
+                <div class="text-muted small text-uppercase">Desktop Installs</div>
+                <div class="stat-value text-info">@(s?.PwaDesktopInstalls ?? 0)</div>
+                <div class="small text-muted mt-1"><i class="bi bi-laptop me-1"></i>Chrome &amp; Edge</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Widget Adoption Section ── -->
+    <div class="row g-0 mb-2 mt-2">
+        <div class="col-12">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span style="font-size:1.1rem;">📱</span>
+                <h5 class="text-white brand-font mb-0">Widget Adoption</h5>
+                <span class="badge bg-info bg-opacity-25 text-info ms-1" style="font-size:0.7rem;letter-spacing:.05em;">ANDROID HOME SCREEN</span>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl">
+            <div class="glass-card stat-card text-center" style="border-top:3px solid #6366f1;">
+                <div class="text-muted small text-uppercase">Deployed</div>
+                <div class="stat-value text-primary">@(s?.NetWidgetDeployments ?? 0)</div>
+                <div class="small text-primary mt-1"><i class="bi bi-grid-3x3-gap-fill me-1"></i>Net active</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="glass-card stat-card text-center" style="border-top:3px solid #22c55e;">
+                <div class="text-muted small text-uppercase">Installs</div>
+                <div class="stat-value text-success">@(s?.WidgetInstalls ?? 0)</div>
+                <div class="small text-muted mt-1"><i class="bi bi-plus-circle me-1"></i>Added to home</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="glass-card stat-card text-center" style="border-top:3px solid #ef4444;">
+                <div class="text-muted small text-uppercase">Removed</div>
+                <div class="stat-value text-danger">@(s?.WidgetRemovals ?? 0)</div>
+                <div class="small text-muted mt-1"><i class="bi bi-dash-circle me-1"></i>Uninstalled</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="glass-card stat-card text-center" style="border-top:3px solid #38bdf8;">
+                <div class="text-muted small text-uppercase">Refreshes</div>
+                <div class="stat-value text-info">@(s?.WidgetRefreshes ?? 0)</div>
+                <div class="small text-muted mt-1"><i class="bi bi-arrow-clockwise me-1"></i>Manual taps</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="glass-card stat-card text-center" style="border-top:3px solid #f59e0b;">
+                <div class="text-muted small text-uppercase">Story Taps</div>
+                <div class="stat-value text-warning">@(s?.WidgetClicks ?? 0)</div>
+                <div class="small text-muted mt-1"><i class="bi bi-hand-index-thumb me-1"></i>Opens app</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Widget Engagement Detail ── -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <h5 class="text-white brand-font mb-3"><i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i> Widget Engagement Funnel</h5>
+                @{
+                    var wInstalls     = s?.WidgetInstalls ?? 0;
+                    var wActive       = s?.NetWidgetDeployments ?? 0;
+                    var wRefresh      = s?.WidgetRefreshes ?? 0;
+                    var wClicks       = s?.WidgetClicks ?? 0;
+                    var retentionPct  = wInstalls > 0 ? Math.Round(wActive  * 100.0 / wInstalls, 1) : 0.0;
+                    var ctrPct        = wInstalls > 0 ? Math.Round(wClicks  * 100.0 / wInstalls, 1) : 0.0;
+                    var refreshPerDev = wActive   > 0 ? Math.Round(wRefresh * 1.0   / wActive,   1) : 0.0;
+                }
+                <div class="d-flex flex-column gap-3 mt-1">
+                    <div>
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span><i class="bi bi-heart-fill text-danger me-1"></i>Widget Retention</span>
+                            <span class="fw-bold text-white">@retentionPct%</span>
+                        </div>
+                        <div class="progress" style="height:8px;background:rgba(255,255,255,0.08);border-radius:4px;">
+                            <div class="progress-bar bg-danger" style="width:@Math.Min(100,retentionPct)%;border-radius:4px;"></div>
+                        </div>
+                        <div class="small text-muted mt-1">@wActive active of @wInstalls installs</div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span><i class="bi bi-hand-index-thumb text-warning me-1"></i>Story Click-Through Rate</span>
+                            <span class="fw-bold text-white">@ctrPct%</span>
+                        </div>
+                        <div class="progress" style="height:8px;background:rgba(255,255,255,0.08);border-radius:4px;">
+                            <div class="progress-bar bg-warning" style="width:@Math.Min(100,ctrPct)%;border-radius:4px;"></div>
+                        </div>
+                        <div class="small text-muted mt-1">@wClicks story taps across widget users</div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-25">
+                        <span class="small text-muted"><i class="bi bi-arrow-clockwise text-info me-1"></i>Avg. refreshes / active widget</span>
+                        <span class="fw-bold text-info">@refreshPerDev</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="small text-muted"><i class="bi bi-dash-circle text-danger me-1"></i>Churn (removals)</span>
+                        <span class="fw-bold text-danger">@(s?.WidgetRemovals ?? 0) @(wInstalls > 0 ? $"({Math.Round((s?.WidgetRemovals ?? 0) * 100.0 / wInstalls, 1)}%)" : "")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <h5 class="text-white brand-font mb-3"><i class="bi bi-bar-chart-steps text-info me-2"></i> Widget vs In-App Activity</h5>
+                <canvas id="widgetChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Charts + Top Articles ── -->
+    <div class="row g-4 mb-4">
+
+        <!-- Daily Sparkline -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <h5 class="text-white brand-font mb-3"><i class="bi bi-bar-chart-fill text-info me-2"></i> Daily Event Volume (7 days)</h5>
+                <canvas id="dailyChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Event Type Breakdown -->
+        <div class="col-lg-3">
+            <div class="glass-card p-4 h-100">
+                <h5 class="text-white brand-font mb-3"><i class="bi bi-pie-chart-fill text-warning me-2"></i> Event Types</h5>
+                <canvas id="typeChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Engagement Rate -->
+        <div class="col-lg-3">
+            <div class="glass-card p-4 h-100">
+                <h5 class="text-white brand-font mb-3"><i class="bi bi-lightning-charge-fill text-success me-2"></i> Engagement</h5>
+                @{
+                    var opens = s?.AppOpens ?? 0;
+                    var reads = s?.ArticleReads ?? 0;
+                    var rateVal = opens > 0 ? (reads * 100.0 / opens) : 0;
+                }
+                <div class="text-center mt-3">
+                    <div class="display-4 text-success fw-bold">@rateVal.ToString("F0")<span class="fs-3">%</span></div>
+                    <div class="text-muted small mt-2">Read-through rate<br />(articles read per session)</div>
+                </div>
+                <hr class="border-secondary border-opacity-25 my-3" />
+                <div class="d-flex justify-content-between small text-muted">
+                    <span>Audio Completion Rate</span>
+                    <span class="text-info fw-bold">
+                        @(s?.AudioCompletionRate ?? 0.0)%
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between small text-muted mt-1">
+                    <span>Share Rate</span>
+                    <span class="text-warning fw-bold">
+                        @(reads > 0 ? ((s?.SharesClicked ?? 0) * 100.0 / reads).ToString("F1") : "0.0")%
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between small text-muted mt-1">
+                    <span>Bookmark Rate</span>
+                    <span class="text-danger fw-bold">
+                        @(reads > 0 ? ((s?.BookmarksAdded ?? 0) * 100.0 / reads).ToString("F1") : "0.0")%
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Top Articles ── -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="glass-card p-4">
+                <h5 class="text-white brand-font mb-3"><i class="bi bi-trophy-fill text-warning me-2"></i> Top 10 Most-Read Articles</h5>
+                @if (s?.TopArticles?.Any() == true)
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0" style="font-size:0.82rem;">
+                            <thead class="text-muted text-uppercase" style="font-size:0.72rem;">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Article</th>
+                                    <th>Category</th>
+                                    <th class="text-end">Reads</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{int rank = 1;}
+                                @foreach (var a in s.TopArticles)
+                                {
+                                    <tr>
+                                        <td class="text-muted">@rank</td>
+                                        <td>
+                                            <span title="@a.Title" class="text-white d-block" style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                                @a.Title
+                                            </span>
+                                        </td>
+                                        <td><span class="badge bg-secondary rounded-pill" style="font-size:0.68rem;">@a.Category</span></td>
+                                        <td class="text-end text-info fw-bold">@a.ReadCount</td>
+                                    </tr>
+                                    rank++;
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                        No article reads recorded yet for this period.
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Recent Events Log -->
+        <div class="col-lg-5">
+            <div class="glass-card p-4">
+                <h5 class="text-white brand-font mb-3"><i class="bi bi-clock-history text-info me-2"></i> Recent Events (last 30)</h5>
+                @if (Model.RecentEvents?.Any() == true)
+                {
+                    <div style="max-height:380px;overflow-y:auto;">
+                        @foreach (var ev in Model.RecentEvents)
+                        {
+                            var icon = ev.EventType switch
+                            {
+                                "app_open"                                  => "bi-box-arrow-in-right text-success",
+                                "article_read"                              => "bi-book text-info",
+                                "article_share"                             => "bi-share-fill text-warning",
+                                "article_bookmark"                          => "bi-bookmark-fill text-danger",
+                                "audio_listen_start" or "audio_listen"      => "bi-headphones text-primary",
+                                "audio_listen_complete" or "audio_complete" => "bi-check-circle-fill text-success",
+                                "widget_enabled"                            => "bi-grid-3x3-gap-fill text-primary",
+                                "widget_disabled"                           => "bi-grid-3x3-gap text-danger",
+                                "widget_refresh"                            => "bi-arrow-clockwise text-info",
+                                "widget_item_click"                         => "bi-hand-index-thumb text-warning",
+                                "pwa_install"                               => "bi-download text-success",
+                                "pwa_open"                                  => "bi-box-arrow-in-up-right text-primary",
+                                "pwa_prompt_shown"                          => "bi-bell text-warning",
+                                "pwa_prompt_dismissed"                      => "bi-x-circle text-muted",
+                                _                                           => "bi-dot text-muted"
+                            };
+                            <div class="d-flex align-items-start gap-2 py-2 border-bottom border-secondary border-opacity-10">
+                                <i class="bi @icon mt-1 flex-shrink-0" style="font-size:0.9rem;"></i>
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <div class="text-white small text-truncate">@(ev.ArticleTitle ?? ev.EventType.Replace("_", " "))</div>
+                                    <div class="text-muted" style="font-size:0.7rem;">@ev.DeviceId · @ev.Platform · @ev.OccurredAt.ToString("MMM dd HH:mm")</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                        No events recorded yet.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script>
+        // ── Daily sparkline ──
+        const dailyLabels = [@Html.Raw(string.Join(",", (s?.DailyBreakdown ?? []).Select(d => $"'{d.Date[5..]}'")))] ;
+        const dailyCounts = [@Html.Raw(string.Join(",", (s?.DailyBreakdown ?? []).Select(d => d.Count)))];
+
+        const isDarkInit = document.documentElement.getAttribute('data-bs-theme') !== 'light';
+        const getChartTextColor = (isDark) => isDark ? '#94a3b8' : '#475569';
+        const getChartGridColor = (isDark) => isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
+        const dailyChart = new Chart(document.getElementById('dailyChart'), {
+            type: 'bar',
+            data: {
+                labels: dailyLabels,
+                datasets: [{
+                    label: 'Events',
+                    data: dailyCounts,
+                    backgroundColor: 'rgba(56, 189, 248, 0.65)',
+                    borderColor: 'rgba(56, 189, 248, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: getChartTextColor(isDarkInit), font: { size: 11 } }, grid: { color: getChartGridColor(isDarkInit) } },
+                    y: { ticks: { color: getChartTextColor(isDarkInit), font: { size: 11 } }, grid: { color: getChartGridColor(isDarkInit) }, beginAtZero: true }
+                }
+            }
+        });
+
+        // ── Event type doughnut ──
+        const typeChart = new Chart(document.getElementById('typeChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['App Opens', 'Reads', 'Audio Started', 'Audio Completed', 'Shares', 'Bookmarks', 'Widget Installs', 'Widget Taps'],
+                datasets: [{
+                    data: [
+                        @(s?.AppOpens ?? 0),
+                        @(s?.ArticleReads ?? 0),
+                        @(s?.AudioListensStarted ?? 0),
+                        @(s?.AudioListensCompleted ?? 0),
+                        @(s?.SharesClicked ?? 0),
+                        @(s?.BookmarksAdded ?? 0),
+                        @(s?.WidgetInstalls ?? 0),
+                        @(s?.WidgetClicks ?? 0)
+                    ],
+                    backgroundColor: ['#22c55e', '#38bdf8', '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#818cf8', '#fb923c'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: getChartTextColor(isDarkInit), font: { size: 11 }, boxWidth: 12 } }
+                },
+                cutout: '65%'
+            }
+        });
+
+        // ── Widget vs In-App horizontal bar ──
+        const widgetChart = new Chart(document.getElementById('widgetChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Widget Installs', 'Active Widgets', 'Refreshes', 'Story Taps', 'App Opens', 'Article Reads'],
+                datasets: [{
+                    label: 'Count',
+                    data: [
+                        @(s?.WidgetInstalls ?? 0),
+                        @(s?.NetWidgetDeployments ?? 0),
+                        @(s?.WidgetRefreshes ?? 0),
+                        @(s?.WidgetClicks ?? 0),
+                        @(s?.AppOpens ?? 0),
+                        @(s?.ArticleReads ?? 0)
+                    ],
+                    backgroundColor: ['#818cf8','#6366f1','#38bdf8','#f59e0b','#22c55e','#38bdf8'],
+                    borderRadius: 4,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: getChartTextColor(isDarkInit), font: { size: 11 } }, grid: { color: getChartGridColor(isDarkInit) }, beginAtZero: true },
+                    y: { ticks: { color: getChartTextColor(isDarkInit), font: { size: 11 } }, grid: { display: false } }
+                }
+            }
+        });
+
+        window.addEventListener('themeChanged', (e) => {
+            const isDark = e.detail?.isDark ?? true;
+            const textColor = getChartTextColor(isDark);
+            const gridColor = getChartGridColor(isDark);
+
+            if (dailyChart && dailyChart.options && dailyChart.options.scales) {
+                dailyChart.options.scales.x.ticks.color = textColor;
+                dailyChart.options.scales.x.grid.color = gridColor;
+                dailyChart.options.scales.y.ticks.color = textColor;
+                dailyChart.options.scales.y.grid.color = gridColor;
+                dailyChart.update();
+            }
+
+            if (typeChart && typeChart.options && typeChart.options.plugins) {
+                typeChart.options.plugins.legend.labels.color = textColor;
+                typeChart.update();
+            }
+
+            if (widgetChart && widgetChart.options && widgetChart.options.scales) {
+                widgetChart.options.scales.x.ticks.color = textColor;
+                widgetChart.options.scales.x.grid.color = gridColor;
+                widgetChart.options.scales.y.ticks.color = textColor;
+                widgetChart.update();
+            }
+        });
+    </script>
+}
