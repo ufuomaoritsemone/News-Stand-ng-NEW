@@ -30,35 +30,29 @@ jobs:
         working-directory: src/NigerianNewsGrid.Web
         run: npm run build
 
-      - name: Start Mock NewsApi (deterministic SSR data)
-        working-directory: src/NigerianNewsGrid.Web
-        run: |
-          nohup node scripts/lhci-mock-api.mjs > mock-api.log 2>&1 &
-          for i in $(seq 1 20); do
-            curl -sf http://127.0.0.1:5055/api/v1/articles > /dev/null && exit 0
-            sleep 0.5
-          done
-          echo "Mock API failed to start"; cat mock-api.log; exit 1
-        env:
-          MOCK_API_PORT: 5055
-
-      - name: Warm up SSR server
-        run: |
-          npm --prefix src/NigerianNewsGrid.Web start > /tmp/warmup.log 2>&1 &
-          SERVER_PID=$!
-          for i in $(seq 1 60); do
-            curl -sf http://localhost:3000/ > /dev/null && break
-            sleep 1
-          done
-          kill $SERVER_PID || true
-          sleep 1
-        env:
-          PORT: 3000
-          API_BASE_URL: http://127.0.0.1:5055
-
       - name: Run Lighthouse CI with Core Web Vitals Budgets
         run: |
+          node src/NigerianNewsGrid.Web/scripts/lhci-mock-api.mjs > /tmp/mock-api.log 2>&1 &
+          MOCK_PID=$!
+          trap 'kill $MOCK_PID 2>/dev/null || true' EXIT
+
+          for i in $(seq 1 20); do
+            if curl -sf http://127.0.0.1:5055/api/v1/articles > /dev/null; then
+              echo "Mock NewsApi ready on http://127.0.0.1:5055 (PID $MOCK_PID)"
+              break
+            fi
+            sleep 0.5
+          done
+
+          curl -sf http://127.0.0.1:5055/api/v1/articles > /dev/null || {
+            echo "Mock API failed to start"
+            cat /tmp/mock-api.log
+            exit 1
+          }
+
           npx -y @lhci/cli@0.14.x autorun --config=./lighthouserc.json
         env:
+          MOCK_API_PORT: 5055
           PORT: 3000
           API_BASE_URL: http://127.0.0.1:5055
+          NEWS_API_URL: http://127.0.0.1:5055

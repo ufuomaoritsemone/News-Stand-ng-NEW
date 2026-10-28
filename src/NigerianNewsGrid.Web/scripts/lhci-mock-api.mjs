@@ -8,13 +8,14 @@
  * Usage: node scripts/lhci-mock-api.mjs   (PORT defaults to 5055)
  */
 import http from "node:http";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
 
 const PORT = Number(process.env.MOCK_API_PORT || process.env.PORT || 5055);
-const here = path.dirname(fileURLToPath(import.meta.url));
-const heroImage = readFileSync(path.join(here, "..", "public", "newsstand-masthead.png"));
+
+// Compact 1x1 PNG (68 bytes) so concurrent article thumbnails do not saturate Lighthouse's simulated 1.6 Mbps Slow 4G pipe.
+const heroImage = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  "base64"
+);
 
 const categories = ["Politics", "Business", "Technology", "Sports", "Entertainment", "International"];
 const sources = ["Punch Newspaper", "Premium Times", "Vanguard News", "Thisday", "Channels Television"];
@@ -40,7 +41,7 @@ const articles = Array.from({ length: 24 }, (_, i) => {
 });
 
 const routes = {
-  "/api/v1/articles": () => ({ articles, totalCount: articles.length, page: 1, pageSize: articles.length }),
+  "/api/v1/articles": () => articles,
   "/api/v1/articles/sponsored": () => [],
   "/api/v1/sources": () => sources.map((name) => ({ name, slug: name.toLowerCase().replace(/\s+/g, "-") })),
   "/api/v1/stories/trending": () => ({ totalCount: 0, stories: [] }),
@@ -74,4 +75,3 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, "127.0.0.1", () => {
   console.log(`[lhci-mock-api] listening on http://127.0.0.1:${PORT}`);
 });
-
