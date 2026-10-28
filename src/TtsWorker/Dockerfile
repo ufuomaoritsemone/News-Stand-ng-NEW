@@ -5,12 +5,12 @@ WORKDIR /src
 COPY Directory.Build.props ./
 COPY ["src/TtsWorker/TtsWorker.csproj", "TtsWorker/"]
 COPY ["src/NigerianNewsGrid.Client/NigerianNewsGrid.Client.csproj", "NigerianNewsGrid.Client/"]
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet restore "TtsWorker/TtsWorker.csproj"
+RUN --mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages \
+    dotnet restore "TtsWorker/TtsWorker.csproj" --disable-parallel
 
 COPY src/ ./
 WORKDIR /src/TtsWorker
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+RUN --mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages \
     dotnet publish "TtsWorker.csproj" -c Release -o /app/publish --no-restore /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final

@@ -5,12 +5,12 @@ WORKDIR /src
 COPY Directory.Build.props ./
 COPY ["src/NewsScraperService/NewsScraperService.csproj", "NewsScraperService/"]
 COPY ["src/NigerianNewsGrid.Client/NigerianNewsGrid.Client.csproj", "NigerianNewsGrid.Client/"]
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet restore "NewsScraperService/NewsScraperService.csproj"
+RUN --mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages \
+    dotnet restore "NewsScraperService/NewsScraperService.csproj" --disable-parallel
 
 COPY src/ ./
 WORKDIR /src/NewsScraperService
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+RUN --mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages \
     dotnet publish "NewsScraperService.csproj" -c Release -o /app/publish --no-restore /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final

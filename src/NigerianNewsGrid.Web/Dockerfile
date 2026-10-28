@@ -3,7 +3,7 @@ FROM node:22-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,id=npm,sharing=locked,target=/root/.npm \
     npm ci
 
 COPY . ./
@@ -13,7 +13,7 @@ FROM node:22-alpine AS production-dependencies
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,id=npm,sharing=locked,target=/root/.npm \
     npm ci --omit=dev
 
 FROM node:22-alpine AS final

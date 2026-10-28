@@ -23,6 +23,13 @@ Projects:
 
 ## Updates
 
+### October 28, 2026 — Docker BuildKit Cache Mount Locking Fix for Parallel Multi-Service CI Builds
+Resolved the GitHub Actions `docker compose build` failure (`target news-scraper-service: failed to solve: process "/bin/sh -c dotnet restore \"NewsScraperService/NewsScraperService.csproj\"" did not complete successfully: exit code: 1`) caused by concurrent cross-container writes to the shared BuildKit NuGet cache mount.
+- **[Root Cause Analysis]**: During `docker compose build`, BuildKit (`docker buildx bake`) builds `news-api`, `admin-dashboard`, `news-scraper-service`, and `tts-worker` in parallel. Because `--mount=type=cache,id=nuget,target=/root/.nuget/packages` defaults to `sharing=shared`, all four containers wrote simultaneously to the same `/root/.nuget/packages` directory while NuGet's file locks (`/tmp/NuGetScratch/lock`) remained isolated inside each container's private `/tmp` filesystem, causing package extraction race conditions on shared dependencies (`Microsoft.ML 5.0.1`, `Microsoft.Extensions.Hosting 10.0.14`, `Microsoft.Extensions.Http 10.0.14`).
+- **[.NET Multi-Stage Dockerfiles (`src/NewsScraperService/Dockerfile`, `src/NewsApi/Dockerfile`, `src/AdminDashboard/Dockerfile`, `src/TtsWorker/Dockerfile`)]**: Added `sharing=locked` to `--mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages` on both `dotnet restore` and `dotnet publish` steps so BuildKit serializes access to the NuGet cache mount across parallel builds, and added `--disable-parallel` to `dotnet restore` to reduce socket/thread contention on 2-vCPU CI runners.
+- **[Web SSR Dockerfile (`src/NigerianNewsGrid.Web/Dockerfile`)]**: Added `id=npm,sharing=locked` to `--mount=type=cache,id=npm,sharing=locked,target=/root/.npm` across the concurrent `build` and `production-dependencies` stages to prevent parallel `npm ci` cache contention.
+- **[Testing & Verification]**: Verified full concurrent multi-container `docker compose build` across all 5 services (`news-api`, `admin-dashboard`, `news-scraper-service`, `tts-worker`, `news-web`).
+
 ### October 28, 2026 — End-to-End Codebase Security, Worker Reliability, Admin Dashboard & SSR Web Audit Fixes
 Conducted a comprehensive technical audit across `NewsApi`, `NewsScraperService`, `TtsWorker`, `AdminDashboard`, and `NigerianNewsGrid.Web` and implemented fixes for security vulnerabilities, worker timeouts, TTS voice resolution, admin portal controls, and SSR reverse-proxy compression.
 - **[`NewsApi` Security, Auth & Middleware Hardening]**:

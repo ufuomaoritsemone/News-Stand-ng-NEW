@@ -414,6 +414,133 @@ Once the response returns your AWS Lightsail Static IP (or Cloudflare proxy IP i
 
 ---
 
+### 4.6 Custom Domain Email (`@newsstand.ng`) & Transactional SMTP Setup
+
+> [!WARNING]
+> **Do NOT run a self-hosted mail server (Postfix/Mailcow) directly on your AWS Lightsail VPS.**
+> AWS blocks outbound TCP port `25` by default on Lightsail instances, and cloud VPS IP blocks are frequently flagged by Gmail/Outlook spam filters. Always handle inbound mail via DNS `MX` routing and outbound transactional mail (`no-reply@newsstand.ng`) via an authenticated external SMTP relay on port `587`.
+
+Your email setup for `newsstand.ng` covers two needs:
+1. **Inbound Editorial & Feedback Mailboxes** (`feedback@newsstand.ng`, `editor@newsstand.ng`, `admin@newsstand.ng`)
+2. **Outbound Transactional App SMTP** (`no-reply@newsstand.ng` used by `news-api` for Community Forum OTP verification & feedback routing in `/opt/newsgrid/.env`)
+
+Below are the two recommended production architectures.
+
+---
+
+#### Option 1: The `$0/month` Stack (Cloudflare Email Routing + Resend / Brevo Free SMTP)
+Best if you are using **Cloudflare DNS** (Section 4.2) and want all `@newsstand.ng` emails forwarded to your existing Gmail/Outlook inbox at zero monthly cost.
+
+##### Step 1: Configure Inbound Receiving via Cloudflare Email Routing (Free)
+1. In the [Cloudflare Dashboard](https://dash.cloudflare.com/), select `newsstand.ng` and navigate to **Email** > **Email Routing**.
+2. Click **Get started** / **Enable Email Routing**.
+3. Cloudflare will automatically prompt you to add its required `MX` and `SPF` (`TXT`) records to your DNS zone—click **Add records and enable**.
+4. Under **Destination addresses**, add your personal email address (e.g., `yourname@gmail.com`) and click the verification link sent to your inbox.
+5. Under **Routing rules** > **Custom addresses**, create your addresses:
+   - `feedback@newsstand.ng` ──► Forward to `yourname@gmail.com`
+   - `editor@newsstand.ng` ──► Forward to `yourname@gmail.com`
+   - `admin@newsstand.ng` ──► Forward to `yourname@gmail.com`
+   - *(Optional)* Enable **Catch-all address** (`*@newsstand.ng`) so any email sent to your domain is delivered to your inbox.
+
+##### Step 2: Configure Outbound Transactional SMTP via Resend (Free 3,000 emails/mo) or Brevo (Free 300 emails/day)
+**Using Resend (Recommended):**
+1. Create a free account at [Resend.com](https://resend.com/).
+2. Go to **Domains** > **Add Domain** and enter `newsstand.ng` (select region closest to your VPS, e.g. `eu-west-1`).
+3. Add the provided `TXT` (DKIM & SPF) and `MX` (bounce subdomain `send.newsstand.ng`) records in Cloudflare DNS (set Proxy status to **DNS Only / Grey Cloud**).
+4. Once verified, go to **API Keys** > **Create API Key** and copy the key (`re_123456...`).
+5. Update `/opt/newsgrid/.env` with your Resend SMTP credentials:
+   ```env
+   FEEDBACK_RECIPIENT_EMAIL=feedback@newsstand.ng
+   SMTP_HOST=smtp.resend.com
+   SMTP_PORT=587
+   SMTP_ENABLE_SSL=true
+   SMTP_USERNAME=resend
+   SMTP_PASSWORD=re_YourResendApiKeyHere
+   SMTP_FROM_EMAIL=no-reply@newsstand.ng
+   SMTP_FROM_NAME=News Stand NG
+   ```
+
+**Alternative — Using Brevo (Free 300 emails/day):**
+1. Create a free account at [Brevo.com](https://www.brevo.com/) > **Senders, Domains & Dedicated IPs** > **Domains** > Add `newsstand.ng` and verify the DNS `TXT` records.
+2. Go to **SMTP & API** > **SMTP** and generate a new SMTP Master Password.
+3. Update `/opt/newsgrid/.env`:
+   ```env
+   FEEDBACK_RECIPIENT_EMAIL=feedback@newsstand.ng
+   SMTP_HOST=smtp-relay.brevo.com
+   SMTP_PORT=587
+   SMTP_ENABLE_SSL=true
+   SMTP_USERNAME=your-brevo-account-login@email.com
+   SMTP_PASSWORD=xsmtpsib-YourBrevoSmtpKeyHere
+   SMTP_FROM_EMAIL=no-reply@newsstand.ng
+   SMTP_FROM_NAME=News Stand NG
+   ```
+
+##### Step 3: Reply as `@newsstand.ng` directly from Gmail (Optional)
+To compose and reply to emails from `editor@newsstand.ng` or `feedback@newsstand.ng` inside your personal Gmail:
+1. Open Gmail > **Settings (Gear Icon)** > **See all settings** > **Accounts and Import**.
+2. Under **Send mail as**, click **Add another email address**.
+3. Enter Name: `News Stand NG Editorial` and Email: `editor@newsstand.ng` (uncheck *Treat as an alias*).
+4. Enter the SMTP Server from Step 2 (`smtp.resend.com` or `smtp-relay.brevo.com`), Port `587`, Username, and API/SMTP Password, then click **Add Account**.
+5. Enter the confirmation code sent to `editor@newsstand.ng` (which Cloudflare Email Routing forwards right into your Gmail inbox).
+
+---
+
+#### Option 2: Zoho Mail Dedicated Inbox (`$0` Free Forever or `~$1/user/mo` Mail Lite)
+Best if you want a dedicated business webmail inbox and mobile app (`mail.zoho.com` + Zoho Mail iOS/Android app) separate from your personal email.
+
+- **Zoho Forever Free Plan (`$0/month`)**: Up to **5 users** (`5 GB`/user) with full webmail and Zoho Mail mobile app access. *(Note: The Free tier does not include external IMAP/SMTP relay, so pair it with Resend or Brevo from Option 1 Step 2 for `/opt/newsgrid/.env` app OTP emails).*
+- **Zoho Mail Lite (`~$1/user/month`)**: Includes full **SMTP/IMAP access**, email aliases (`feedback@`, `no-reply@`, `editor@` under 1 user account), and can power both your editorial inbox and `/opt/newsgrid/.env` directly.
+
+##### Step 1: Sign Up & Verify `newsstand.ng` in Zoho Mail
+1. Go to [Zoho Mail Pricing](https://www.zoho.com/mail/zohomail-pricing.html) and select either **Mail Lite** (~`$1/mo`) or the **Forever Free Plan** (at the bottom of the pricing page).
+2. Enter your domain `newsstand.ng` and create your primary super-admin account (e.g. `admin@newsstand.ng` or `editor@newsstand.ng`).
+3. Zoho will provide a verification `TXT` record (`zoho-verification=zb...`). Add it to your Cloudflare or Lightsail DNS zone and click **Verify TXT Record**.
+4. Inside Zoho Mail Admin Console, create your mailboxes or free **Email Aliases** (`feedback@newsstand.ng`, `no-reply@newsstand.ng`, `editor@newsstand.ng`).
+
+##### Step 2: Add Zoho Mail DNS Records (`MX`, `SPF`, and `DKIM`)
+In your Cloudflare or AWS Lightsail DNS Zone, remove any conflicting `@` `MX` records and add the following Zoho Mail records (use `.com` or `.eu` depending on the Zoho data center where your account was registered):
+
+| Record Type | Host / Name | Target / Value | Priority | TTL |
+| :--- | :--- | :--- | :--- | :--- |
+| **MX** | `@` | `mx.zoho.com` | `10` | Auto / 3600 |
+| **MX** | `@` | `mx2.zoho.com` | `20` | Auto / 3600 |
+| **MX** | `@` | `mx3.zoho.com` | `50` | Auto / 3600 |
+| **TXT** | `@` | `v=spf1 include:zoho.com ~all` | — | Auto / 3600 |
+| **TXT** | `zmail._domainkey` | `<Paste RSA Public Key generated in Zoho Admin > Email Configuration > DKIM>` | — | Auto / 3600 |
+
+##### Step 3: Configure `/opt/newsgrid/.env` for Outbound App SMTP
+- **If using Zoho Mail Lite (`~$1/mo` — Direct Zoho SMTP)**:
+  1. Log into [Zoho Accounts Security](https://accounts.zoho.com/home#security/security_pwd) > **App Passwords** > **Generate New Password** (required if 2FA is enabled).
+  2. Update `/opt/newsgrid/.env`:
+     ```env
+     FEEDBACK_RECIPIENT_EMAIL=feedback@newsstand.ng
+     SMTP_HOST=smtp.zoho.com
+     SMTP_PORT=587
+     SMTP_ENABLE_SSL=true
+     SMTP_USERNAME=no-reply@newsstand.ng
+     SMTP_PASSWORD=YourZohoAppSpecificPassword
+     SMTP_FROM_EMAIL=no-reply@newsstand.ng
+     SMTP_FROM_NAME=News Stand NG
+     ```
+  3. Restart `news-api` to load the new SMTP settings:
+     ```bash
+     cd /opt/newsgrid
+     docker compose up -d news-api
+     ```
+- **If using Zoho Forever Free Plan (`$0/mo`)**:
+  - Keep the Zoho `MX` records above for receiving emails in your Zoho inbox, and use **Resend** (`smtp.resend.com`) or **Brevo** (`smtp-relay.brevo.com`) from **Option 1, Step 2** for `/opt/newsgrid/.env` outbound OTP emails.
+
+---
+
+#### DMARC Policy Record (Required by Gmail & Yahoo for Both Options)
+Whether you choose Option 1 or Option 2, add a `TXT` record for `_dmarc` in your DNS zone so Gmail and Yahoo accept emails from `@newsstand.ng`:
+
+| Record Type | Host / Name | Target / Value | Proxy Status |
+| :--- | :--- | :--- | :--- |
+| **TXT** | `_dmarc` | `v=DMARC1; p=quarantine; rua=mailto:feedback@newsstand.ng; pct=100; adkim=r; aspf=r` | DNS Only (Grey Cloud) |
+
+---
+
 ## Part 5: Configure Reverse Proxy (Caddy)
 
 Configure Caddy to manage public domains, route incoming HTTP/HTTPS requests to internal containers, and automatically issue Let's Encrypt SSL certificates.

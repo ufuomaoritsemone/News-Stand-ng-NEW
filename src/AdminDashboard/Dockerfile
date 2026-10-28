@@ -5,12 +5,12 @@ WORKDIR /src
 COPY Directory.Build.props ./
 COPY ["src/AdminDashboard/AdminDashboard.csproj", "AdminDashboard/"]
 COPY ["src/NigerianNewsGrid.Client/NigerianNewsGrid.Client.csproj", "NigerianNewsGrid.Client/"]
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet restore "AdminDashboard/AdminDashboard.csproj"
+RUN --mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages \
+    dotnet restore "AdminDashboard/AdminDashboard.csproj" --disable-parallel
 
 COPY src/ ./
 WORKDIR /src/AdminDashboard
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+RUN --mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages \
     dotnet publish "AdminDashboard.csproj" -c Release -o /app/publish --no-restore /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
