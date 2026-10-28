@@ -34,6 +34,7 @@ services:
       - YouTube__ApiKey=${YOUTUBE_API_KEY:-}
       - Gemini__ApiKey=${GEMINI_API_KEY:-}
       - Gemini__Model=${GEMINI_MODEL:-gemini-3.1-flash-lite}
+      - LlmEntityExtraction__Enabled=${LLM_ENTITY_EXTRACTION_ENABLED:-false}
       - AiEnrichment__GeminiEnabled=${AiEnrichment__GeminiEnabled:-true}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/gcp-service-account.json
       - GCP_PROJECT_ID=${GCP_PROJECT_ID:-project-00ae160d-e8ea-44ec-9ff}
@@ -42,17 +43,23 @@ services:
       - GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI:-false}
       - GoogleCloud__ApiKey=${GCP_TTS_API_KEY:-}
       - IndexNow__Key=${INDEXNOW_KEY:-3a7b9c1d2e4f5a6b7c8d9e0f1a2b3c4d}
+      - IndexNow__Host=${INDEXNOW_HOST:-newsstand.ng}
+      - IndexNow__Enabled=${INDEXNOW_ENABLED:-true}
+      - MediaSync__IntervalMinutes=${MEDIA_SYNC_INTERVAL_MINUTES:-15}
+      - RateLimiting__PermitLimit=${RATE_LIMITING_PERMIT_LIMIT:-600}
       - AllowedOrigins__0=${AllowedOrigins__0:-https://newsstand.ng}
       - AllowedOrigins__1=${AllowedOrigins__1:-https://www.newsstand.ng}
       - AllowedOrigins__2=${AllowedOrigins__2:-https://admin.newsstand.ng}
       - AllowedOrigins__3=${AllowedOrigins__3:-http://localhost:3000}
       - Google__ClientId=${GOOGLE_CLIENT_ID:-434931027697-0ofh3nptkv409vju55od3fhrfbkccu15.apps.googleusercontent.com}
+      - Feedback__RecipientEmail=${FEEDBACK_RECIPIENT_EMAIL:-feedback@newsstand.ng}
       - Feedback__Smtp__Host=${SMTP_HOST:-}
       - Feedback__Smtp__Port=${SMTP_PORT:-587}
       - Feedback__Smtp__EnableSsl=${SMTP_ENABLE_SSL:-true}
       - Feedback__Smtp__UserName=${SMTP_USERNAME:-}
       - Feedback__Smtp__Password=${SMTP_PASSWORD:-}
       - Feedback__Smtp__FromEmail=${SMTP_FROM_EMAIL:-no-reply@newsstand.ng}
+      - Feedback__Smtp__FromName=${SMTP_FROM_NAME:-News Stand NG}
     volumes:
       - audio-data:/app/data/audio
       - img-cache:/app/data/img_cache
@@ -119,11 +126,12 @@ services:
       - DOTNET_ENVIRONMENT=Production
       - ApiBaseUrl=http://news-api:8080
       - NewsApi__BaseUrl=http://news-api:8080
-      - Scraper__IntervalMinutes=15
+      - Scraper__IntervalMinutes=${SCRAPER_INTERVAL_MINUTES:-15}
       - Scraper__MaxConcurrency=${SCRAPER_MAX_CONCURRENCY:-4}
       - ApiKey=${API_KEY:?Set API_KEY in .env}
       - Gemini__ApiKey=${GEMINI_API_KEY:-}
       - Gemini__Model=${GEMINI_MODEL:-gemini-3.1-flash-lite}
+      - LlmEntityExtraction__Enabled=${LLM_ENTITY_EXTRACTION_ENABLED:-false}
     depends_on:
       news-api:
         condition: service_healthy
@@ -139,6 +147,7 @@ services:
       - DOTNET_ENVIRONMENT=Production
       - ApiBaseUrl=http://news-api:8080
       - NewsApi__BaseUrl=http://news-api:8080
+      - Tts__Provider=${TTS_PROVIDER:-EdgeNeural}
       - Tts__AudioStoragePath=/app/data/audio
       - GoogleCloud__ApiKey=${GCP_TTS_API_KEY:-}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/gcp-service-account.json

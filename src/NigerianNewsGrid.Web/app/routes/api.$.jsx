@@ -15,6 +15,17 @@ export async function action({ request, params }) {
 }
 
 async function handleProxy(request, subPath) {
+  const safeSubPath = String(subPath || "");
+  if (safeSubPath.includes("..") || safeSubPath.startsWith("/")) {
+    return new Response(
+      JSON.stringify({ error: "Invalid API path." }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+
   const backendBase = (
     process.env.API_BASE_URL ||
     process.env.NEWS_API_URL ||
@@ -23,12 +34,12 @@ async function handleProxy(request, subPath) {
   ).replace(/\/$/, "");
 
   const url = new URL(request.url);
-  const targetUrl = `${backendBase}/api/${subPath || ""}${url.search}`;
+  const targetUrl = `${backendBase}/api/${safeSubPath}${url.search}`;
 
   const forwardHeaders = new Headers();
   for (const [key, value] of request.headers.entries()) {
     const lower = key.toLowerCase();
-    if (lower !== "host" && lower !== "connection") {
+    if (lower !== "host" && lower !== "connection" && lower !== "accept-encoding") {
       forwardHeaders.set(key, value);
     }
   }
@@ -47,7 +58,11 @@ async function handleProxy(request, subPath) {
     const upstreamRes = await fetch(targetUrl, fetchOptions);
 
     const responseHeaders = new Headers(upstreamRes.headers);
-    responseHeaders.set("Access-Control-Allow-Origin", "*");
+    // Node's native fetch transparently decompresses responses; strip encoding/length headers to prevent ERR_CONTENT_DECODING_FAILED
+    responseHeaders.delete("content-encoding");
+    responseHeaders.delete("content-length");
+    responseHeaders.delete("transfer-encoding");
+    responseHeaders.delete("connection");
 
     return new Response(upstreamRes.body, {
       status: upstreamRes.status,
@@ -57,7 +72,7 @@ async function handleProxy(request, subPath) {
   } catch (err) {
     console.error(`[API Proxy] Failed to proxy ${request.method} to ${targetUrl}:`, err.message);
     return new Response(
-      JSON.stringify({ error: `Backend API unreachable at ${targetUrl}: ${err.message}` }),
+      JSON.stringify({ error: "Backend API service is temporarily unavailable." }),
       {
         status: 503,
         headers: { "Content-Type": "application/json" },

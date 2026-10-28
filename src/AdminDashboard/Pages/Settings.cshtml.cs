@@ -61,6 +61,22 @@ public class SettingsModel : PageModel
 
         try
         {
+            string[] booleanSwitchKeys =
+            [
+                "AiEnrichment:GeminiEnabled",
+                "LlmEntityExtraction:Enabled",
+                "IndexNow:Enabled",
+                "Feedback:Smtp:EnableSsl"
+            ];
+
+            foreach (var boolKey in booleanSwitchKeys)
+            {
+                if (!FormInputs.ContainsKey(boolKey))
+                {
+                    FormInputs[boolKey] = "false";
+                }
+            }
+
             var updatePayload = new { Settings = FormInputs };
             var response = await client.PutAsJsonAsync($"{apiBase.TrimEnd('/')}/api/v1/settings", updatePayload);
 
@@ -91,7 +107,10 @@ public class SettingsModel : PageModel
 
         try
         {
-            var payload = new { ApiKey = TestApiKey };
+            var keyToTest = !string.IsNullOrWhiteSpace(TestApiKey)
+                ? TestApiKey
+                : (FormInputs.TryGetValue("Gemini:ApiKey", out var gk) ? gk : null);
+            var payload = new { ApiKey = keyToTest };
             var response = await client.PostAsJsonAsync($"{apiBase.TrimEnd('/')}/api/v1/settings/test-gemini", payload);
             var result = await response.Content.ReadFromJsonAsync<TestConnectionResponseDto>();
 
@@ -117,7 +136,10 @@ public class SettingsModel : PageModel
 
         try
         {
-            var payload = new { ApiKey = TestApiKey };
+            var keyToTest = !string.IsNullOrWhiteSpace(TestApiKey)
+                ? TestApiKey
+                : (FormInputs.TryGetValue("YouTube:ApiKey", out var yk) ? yk : null);
+            var payload = new { ApiKey = keyToTest };
             var response = await client.PostAsJsonAsync($"{apiBase.TrimEnd('/')}/api/v1/settings/test-youtube", payload);
             var result = await response.Content.ReadFromJsonAsync<TestConnectionResponseDto>();
 

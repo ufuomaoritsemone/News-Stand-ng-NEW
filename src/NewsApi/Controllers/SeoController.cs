@@ -26,6 +26,7 @@ public class SeoController(
     /// <c>noindex, follow</c> and must therefore be excluded from the topics sitemap.
     /// </summary>
     public const int MinTopicArticlesForIndexing = 5;
+    private static DateTime _lastOnDemandClusterUtc = DateTime.MinValue;
     private static readonly string[] StandardCategories =
     [
         "politics", "business", "technology", "entertainment", "sports", "metro", "opinion"
@@ -204,8 +205,10 @@ public class SeoController(
                 // If nothing is persisted yet (fresh deploy / clustering job not run), cluster on demand so
                 // the stories sitemap is not empty. Ephemeral synthesized clusters are intentionally NOT
                 // submitted because their slugs are not stable.
-                if (response.TotalCount == 0 && safePage == 1 && _clusteringService is not null)
+                if (response.TotalCount == 0 && safePage == 1 && _clusteringService is not null &&
+                    DateTime.UtcNow - _lastOnDemandClusterUtc > TimeSpan.FromMinutes(15))
                 {
+                    _lastOnDemandClusterUtc = DateTime.UtcNow;
                     try
                     {
                         await _clusteringService.RunClusteringAsync(ct);

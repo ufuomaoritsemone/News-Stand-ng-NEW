@@ -90,13 +90,13 @@ public class ScraperWorker : BackgroundService
     {
         _logger.LogInformation("ScraperWorker starting with parallel Google News Sitemap discovery, per-source circuit breakers, JSON-LD/SmartReader extraction, and ML categorization...");
 
-        var internalApiClient = _httpFactory.CreateClient();
-        ConfigureApiKeyHeader(internalApiClient);
-
-        var externalScraperClient = _httpFactory.CreateClient();
-
         while (!stoppingToken.IsCancellationRequested)
         {
+            using var internalApiClient = _httpFactory.CreateClient();
+            ConfigureApiKeyHeader(internalApiClient);
+
+            using var externalScraperClient = _httpFactory.CreateClient();
+
             var scrapers = await GetScrapersAsync(internalApiClient, externalScraperClient, stoppingToken);
             var maxConcurrency = Math.Clamp(_configuration.GetValue("Scraper:MaxConcurrency", 4), 1, 16);
             var sourceTimeoutSeconds = Math.Clamp(_configuration.GetValue("Scraper:SourceTimeoutSeconds", 45), 5, 300);
@@ -216,6 +216,17 @@ public class ScraperWorker : BackgroundService
 
             // Populate missing images using metadata/extractor fallback (external client, no X-Api-Key)
             await _enricher.PopulateMissingImageUrlsAsync(externalScraperClient, items, s.SourceName, sourceToken);
+
+            // Filter out any items that still have an empty title or URL after enrichment
+            items = items
+                .Where(it => !string.IsNullOrWhiteSpace(it.Title) && !string.IsNullOrWhiteSpace(it.Url))
+                .ToList();
+
+            if (items.Count == 0)
+            {
+                RecordSourceSuccess(s.SourceName);
+                return;
+            }
 
             // Extract entities / topics for each article using Tier 1 Gazetteer + Tier 2 LLM fallback
             foreach (var it in items)

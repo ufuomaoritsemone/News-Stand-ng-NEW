@@ -8,6 +8,7 @@ using NewsApi.Services.Embeddings;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
+using System.Net;
 using System.Threading.RateLimiting;
 
 namespace NewsApi.Extensions;
@@ -37,6 +38,7 @@ public static class ServiceCollectionExtensions
         })
         .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
         {
+            AllowAutoRedirect = false,
             AutomaticDecompression = System.Net.DecompressionMethods.All,
             SslOptions = new System.Net.Security.SslClientAuthenticationOptions
             {
@@ -126,11 +128,23 @@ public static class ServiceCollectionExtensions
         {
             if (isPostgres)
             {
-                options.UseNpgsql(connectionString, b => b.MigrationsAssembly(typeof(NewsDbContext).Assembly.FullName));
+                options.UseNpgsql(connectionString, b =>
+                {
+                    b.MigrationsAssembly(typeof(NewsDbContext).Assembly.FullName);
+                    b.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(10),
+                        errorCodesToAdd: null);
+                    b.CommandTimeout(30);
+                });
             }
             else
             {
-                options.UseSqlite(connectionString, b => b.MigrationsAssembly(typeof(NewsDbContext).Assembly.FullName));
+                options.UseSqlite(connectionString, b =>
+                {
+                    b.MigrationsAssembly(typeof(NewsDbContext).Assembly.FullName);
+                    b.CommandTimeout(30);
+                });
             }
 
             options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
@@ -144,17 +158,24 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds rate limiting — sliding window policy at 60 req/min per IP for writes (Fix #4).
+    /// Adds rate limiting — sliding window policy per IP for API endpoints (Fix #4).
+    /// Internal workers (X-Api-Key) and health probes bypass the limiter.
+    /// In Development, local loopback requests bypass to allow multi-service local testing.
     /// </summary>
-    public static IServiceCollection AddApiRateLimiting(this IServiceCollection services, IConfiguration? configuration = null)
+    public static IServiceCollection AddApiRateLimiting(
+        this IServiceCollection services,
+        IConfiguration? configuration = null,
+        IHostEnvironment? environment = null)
     {
-        var permitLimit = configuration?.GetValue<int>("RateLimiting:PermitLimit") ?? 120;
+        var permitLimit = configuration?.GetValue<int>("RateLimiting:PermitLimit") ?? 600;
         if (permitLimit <= 0)
         {
-            permitLimit = 120;
+            permitLimit = 600;
         }
 
-        var configuredApiKey = configuration?["ApiKey"];
+        var configuredApiKey = configuration?["ApiKey"]
+            ?? configuration?["API_KEY"]
+            ?? Environment.GetEnvironmentVariable("API_KEY");
 
         services.AddRateLimiter(options =>
         {
@@ -166,16 +187,39 @@ public static class ServiceCollectionExtensions
                     return RateLimitPartition.GetNoLimiter("health_probe");
                 }
 
-                // Allow authorized stress testing or internal batch workers to bypass if header matches ApiKey
-                if (!string.IsNullOrEmpty(configuredApiKey) &&
-                    ctx.Request.Headers.TryGetValue("X-Bypass-Rate-Limit", out var bypassKey) &&
-                    string.Equals(bypassKey, configuredApiKey, StringComparison.Ordinal))
+                // Allow authorized internal services (Scraper, Admin, Worker) or stress testing to bypass if key matches
+                if (!string.IsNullOrEmpty(configuredApiKey))
                 {
-                    return RateLimitPartition.GetNoLimiter("authorized_bypass");
+                    if ((ctx.Request.Headers.TryGetValue("X-Api-Key", out var apiKey) && string.Equals(apiKey, configuredApiKey, StringComparison.Ordinal)) ||
+                        (ctx.Request.Headers.TryGetValue("X-Bypass-Rate-Limit", out var bypassKey) && string.Equals(bypassKey, configuredApiKey, StringComparison.Ordinal)))
+                    {
+                        return RateLimitPartition.GetNoLimiter("authorized_bypass");
+                    }
+                }
+
+                // In Development mode, bypass rate limiting for local loopback connections so multi-service local stacks do not choke
+                var remoteIp = ctx.Connection.RemoteIpAddress;
+                if ((environment?.IsDevelopment() ?? false) && remoteIp != null && IPAddress.IsLoopback(remoteIp))
+                {
+                    return RateLimitPartition.GetNoLimiter("dev_loopback");
+                }
+
+                // Extract client IP: only trust X-Forwarded-For when the immediate peer is loopback or private Docker network
+                string partitionKey = "unknown";
+                bool isTrustedProxy = remoteIp == null || IPAddress.IsLoopback(remoteIp) || IsPrivateNetworkIp(remoteIp);
+                if (isTrustedProxy &&
+                    ctx.Request.Headers.TryGetValue("X-Forwarded-For", out var fwd) &&
+                    !string.IsNullOrWhiteSpace(fwd))
+                {
+                    partitionKey = fwd.ToString().Split(',')[0].Trim();
+                }
+                else if (remoteIp != null)
+                {
+                    partitionKey = remoteIp.ToString();
                 }
 
                 return RateLimitPartition.GetSlidingWindowLimiter(
-                    partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    partitionKey: partitionKey,
                     factory: _ => new SlidingWindowRateLimiterOptions
                     {
                         PermitLimit          = permitLimit,
@@ -273,5 +317,24 @@ public static class ServiceCollectionExtensions
             });
 
         return services;
+    }
+
+    private static bool IsPrivateNetworkIp(IPAddress ip)
+    {
+        if (ip.IsIPv4MappedToIPv6)
+        {
+            ip = ip.MapToIPv4();
+        }
+
+        if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+        {
+            var bytes = ip.GetAddressBytes();
+            return bytes[0] == 10 ||
+                   (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) ||
+                   (bytes[0] == 192 && bytes[1] == 168) ||
+                   bytes[0] == 127;
+        }
+
+        return ip.IsIPv6SiteLocal || ip.IsIPv6LinkLocal;
     }
 }

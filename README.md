@@ -23,6 +23,73 @@ Projects:
 
 ## Updates
 
+### October 28, 2026 — End-to-End Codebase Security, Worker Reliability, Admin Dashboard & SSR Web Audit Fixes
+Conducted a comprehensive technical audit across `NewsApi`, `NewsScraperService`, `TtsWorker`, `AdminDashboard`, and `NigerianNewsGrid.Web` and implemented fixes for security vulnerabilities, worker timeouts, TTS voice resolution, admin portal controls, and SSR reverse-proxy compression.
+- **[`NewsApi` Security, Auth & Middleware Hardening]**:
+  - Removed fallback to internal `ApiKey` / `API_KEY` from Gemini API key resolution in `ArticleEnrichmentService`, `SeoFeedbackLoopService`, `GeminiEmbeddingProvider`, and `LlmEntityExtractor` so the internal admin secret is never sent to `generativelanguage.googleapis.com`.
+  - Restricted `debugCode` in `AuthController.RequestEmailOtp` strictly to `Development` mode, returning HTTP 503 in production when SMTP is unavailable, and HTML-encoded `displayName` and `code` in verification emails.
+  - Hardened `ApiKeyMiddleware` to normalize trailing slashes, protect `/health/details`, `/health/purge-cache`, and `/health/ping-db`, and require `X-Api-Key` on sensitive administrative GET endpoints (`/api/v1/comments/flagged`, `/api/v1/categorizer/corrections`, `/api/v1/categorizer/model`, `/api/v1/seo/search-analytics`, `/api/v1/seo/crawl-diagnostics`).
+  - Hardened `ImageProxyController` against open-redirect SSRF (disabling automatic redirects and validating each redirect target against `IsAllowedHost`), enforced a 10 MB stream upper bound, and replaced direct `FileMode.Create` cache writes with atomic temp-file moves (`File.Move(..., overwrite: true)`).
+  - Restricted `X-Forwarded-For` trust in `ServiceCollectionExtensions.AddApiRateLimiting` and `AdminDashboard/Pages/Login.cshtml.cs` to loopback and private network proxy peers.
+  - Sanitized and HTML-encoded `imageUrl` and `targetUrl` in `ArticleIngestionService.RenderShareCardHtmlAsync`.
+- **[`NewsApi` Database, Caching & Background Services]**:
+  - Replaced full-table `ArticleEnrichments.Select(e => e.ArticleId).ToListAsync()` materialization in `ArticleEnrichmentService.ProcessUnenrichedBatchAsync` with a SQL anti-join (`!_db.ArticleEnrichments.Any(e => e.ArticleId == a.Id)`).
+  - Replaced `(_cache as MemoryCache)?.Clear()` in `VideoStoriesController` with targeted `videostories_*` cache key invalidation so syncing video stories does not wipe `SystemSettingsService` or briefing caches.
+  - Normalized vote values (`1` / `-1`) when flipping existing votes in `CommentsController.VoteComment`.
+  - Wired `ISocialFeedService.SyncAllHandlesAsync` into `BackgroundMediaSyncService`, added a guard in `MarketDataBackgroundService` to preserve existing `naira-fx` records when upstream FX scrapers return `₦0.00`, disposed `CancellationTokenSource` in `IndexNowBackgroundService`, and persisted user feedback before attempting bounded SMTP delivery in `FeedbackService`.
+  - Converted synchronous `.GetAwaiter().GetResult()` settings lookups in `GeminiEmbeddingProvider` and `YouTubeFeedService` to async calls.
+- **[`NewsScraperService` & `TtsWorker` Reliability]**:
+  - Fixed per-article 10-second `OperationCanceledException` handling in `ArticleContentExtractor.ExtractFromUrlAsync` and `ArticleEnricher.PopulateMissingImageUrlsAsync` (`when (!cancellationToken.IsCancellationRequested)`) so a single slow URL does not abort the entire 25-article publisher batch or trip the source circuit breaker.
+  - Fixed `SitemapScraperBase` returning already-seen URLs when `candidatesToEnrich.Count == 0`, filtered out empty-title fallback items, rotated `HttpClient` instances per scraping cycle in `ScraperWorker`, guarded Gemini JSON candidate parsing in `LlmEntityExtractor`, and disposed replaced `PredictionEngine` instances in `MlCategorizerEngine`.
+  - Fixed `GoogleCloudTtsSynthesizer` in `TtsWorker` rejecting Microsoft Edge voice names (`en-NG-EzinneNeural`) with HTTP 400 by resolving `en-NG-Neural2-A` when an Edge voice identifier is passed, and added `API_KEY` environment variable fallback in `RegisterAudioWithApiAsync`.
+- **[`AdminDashboard` & `NigerianNewsGrid.Web` Fixes]**:
+  - Blocked default `"AdminPass123!"` password usage in Production in `Login.cshtml.cs`, escaped all untrusted fields in `Index.cshtml`'s AI Summary modal (`escapeHtml`), and fixed `Settings.cshtml.cs` so unchecked boolean switches save as `"false"` and Gemini/YouTube "Test Key" buttons read `FormInputs`.
+  - Fixed `ERR_CONTENT_DECODING_FAILED` in `NigerianNewsGrid.Web/app/routes/api.$.jsx` by stripping `content-encoding` and `content-length` headers from Node `fetch` responses and blocking `..` path traversal.
+  - Escaped `<` (`\u003c`) in all SSR JSON-LD `<script type="application/ld+json">` blocks (`home.jsx`, `news.$slug.jsx`, `story.$slug.jsx`, `category.$category.jsx`), registered `/share/:id` in `app/routes.js`, fixed timeline date rendering (`fact.dateOrTime || fact.dateText`) in `news.$slug.jsx`, and removed the duplicate `getStories` definition in `src/services/api.js`.
+
+### October 28, 2026 — PostgreSQL & Database Initialization (`DbInitializer`, `DataSeeder`, `NewsDbContext`, `ArticleSearchService`) Hardening
+Reviewed and refactored the database initialization, schema migration, full-text search, and data seeding layer in `NewsApi` to resolve PostgreSQL/Npgsql compatibility bugs, eliminate schema drift, and reduce startup database round-trips.
+- **[PostgreSQL Schema & Migration Baselining (`DbInitializer.cs`)]**:
+  - Updated `InitializeAsync` on PostgreSQL to execute `EnsureTablesExistAsync` and `BaselineLegacyDatabaseIfNeededAsync` prior to `MigrateAsync`, preventing SQLite-typed migration files (`TEXT`/`INTEGER` column types) from creating incompatible columns on fresh PostgreSQL instances.
+  - Added `CREATE TABLE IF NOT EXISTS "Sources"` and `CREATE TABLE IF NOT EXISTS "Articles"` (plus all indexes and `AudioAssets`/`Briefings` tables on SQLite) to `EnsureTablesExistAsync` so schema creation is 100% self-contained.
+  - Fixed `BaselineLegacyDatabaseIfNeededAsync` to check whether `__EFMigrationsHistory` is already populated before baselining and used case-insensitive `current_schema()` and `lower(table_name)` checks on PostgreSQL.
+  - Corrected `IX_CommentVotes_CommentId_UserId` in PostgreSQL DDL to `CREATE UNIQUE INDEX`, added missing `IX_StoryComments_Status` and `IX_CommentReports_CreatedAt` indexes, aligned `ArticleEmbeddings.Model` (`varchar(100)`) and `StoryClusters.Title` (`varchar(300)`) with EF Core annotations, and removed the dead `StoryComments.IsResolved` check.
+  - Optimized `EnsureSchemaColumnsUpdatedAsync` on PostgreSQL to inspect `information_schema.columns` in a single query (`GetPostgresColumnTypesAsync`), avoiding 30+ redundant `ALTER TABLE` `ACCESS EXCLUSIVE` locks on every startup, and added automatic normalization (`NormalizePostgresTimestampColumnAsync`, `NormalizePostgresTypeDirectAsync`) for any legacy `TEXT` timestamp, `uuid`, or `interval` columns.
+- **[Npgsql Full-Text Search & Parameter Typing (`ArticleSearchService.cs`)]**:
+  - Fixed `ExecutePostgresTsSearchAsync` by binding explicit `NpgsqlDbType` (`NpgsqlDbType.Text`, `NpgsqlDbType.TimestampTz`, `NpgsqlDbType.Integer`) on `NpgsqlParameter<T>` instances so null filter parameters (`@cutoff IS NULL OR a."PublishedAt" >= @cutoff`) do not trigger PostgreSQL `42883: operator does not exist: timestamp with time zone >= text` errors and fall back to slow `LIKE` scans.
+  - Hoisted `websearch_to_tsquery('english', @query) query` into the `FROM` clause so the tsquery is parsed once per search instead of twice per row.
+- **[Npgsql Resiliency & UTC DateTime Conventions (`ServiceCollectionExtensions.cs`, `NewsDbContext.cs`)]**:
+  - Enabled Npgsql transient fault resiliency (`EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10))`) and explicit 30-second command timeouts in `AddInfrastructureServices`.
+  - Registered global EF Core `ConfigureConventions` value converters (`UtcDateTimeValueConverter`, `NullableUtcDateTimeValueConverter`, `UtcDateTimeOffsetValueConverter`, `NullableUtcDateTimeOffsetValueConverter`) in `NewsDbContext` to guarantee all `DateTime` / `DateTimeOffset` values written to PostgreSQL `timestamp with time zone` have `DateTimeKind.Utc`, and replaced inline `Regex.Replace` calls in `EnsureArticleSlugs` with source-generated `[GeneratedRegex]` methods.
+- **[Single-Batch Publisher Seeding (`DataSeeder.cs`)]**:
+  - Consolidated `SeedSourcesAsync` to load existing `Sources` in a single dictionary query and reconcile all default, opinion, and core national publishers in memory with a single `SaveChangesAsync` call, eliminating 20+ sequential `AnyAsync` round-trips on startup.
+- **[Testing & Verification]**: Added `NewsDbContext_DateTimeValueConverters_NormalizeUnspecifiedAndLocalToUtc` in `DbInitializerTests.cs` and verified all 93 tests in `NewsApi.Tests` and 312 tests in `NewsApiClient.Tests` pass cleanly (405/405 total tests passing).
+
+### October 27, 2026 — Admin Settings Synchronization & Docker Environment Variable Matrix Alignment
+Audited all 22 configuration keys across the Admin Dashboard Settings UI (`Settings.cshtml` / `Settings.cshtml.cs`) and backend configuration services (`SystemSettingsService.cs`), synchronizing environment variable mappings across `docker-compose.yml`, `.env.example`, and `VPS_Deployment.md`.
+- **[Docker Compose Alignment (`docker-compose.yml`)]**: Added explicit environment variable bindings with defaults for `RATE_LIMITING_PERMIT_LIMIT`, `FEEDBACK_RECIPIENT_EMAIL`, `SMTP_FROM_NAME`, `SCRAPER_INTERVAL_MINUTES`, `MEDIA_SYNC_INTERVAL_MINUTES`, `TTS_PROVIDER`, `INDEXNOW_HOST`, `INDEXNOW_ENABLED`, and `LLM_ENTITY_EXTRACTION_ENABLED`.
+- **[Configuration Template Harmonization (`.env.example`, `.env`, `VPS_Deployment.md`)]**: Grouped and documented all 22 operational settings into clear logical categories (Database, Auth, AI, Audio/TTS, Media, Scraper, SEO, SMTP/Feedback, and CORS/Networking) so every toggle in the Admin Dashboard is configurable via environment variables at startup.
+- **[Testing & Verification]**: Verified Docker compose variable interpolation with `docker compose config --quiet`.
+
+### October 27, 2026 — Docker Fleet, Configuration & VPS Deployment Architecture Audit
+Conducted an end-to-end architectural review across all 5 Dockerfiles (`NewsApi`, `AdminDashboard`, `NewsScraperService`, `TtsWorker`, `NigerianNewsGrid.Web`), `docker-compose.yml`, environment configuration templates (`.env.example`), and `VPS_Deployment.md`.
+- **[Configuration Harmonization (`.env.example`)]**: Synchronized `.env.example` with `VPS_Deployment.md` to document the complete set of production variables including PostgreSQL credentials, Admin Dashboard portal auth (`ADMIN_USERNAME`, `ADMIN_PASSWORD`), Gemini AI routing (`GOOGLE_GENAI_USE_VERTEXAI`), IndexNow, reader Google auth, and SMTP settings.
+- **[Dockerfile & Container Security Audit]**: Confirmed multi-stage builds across all .NET 10 and Node 22 services, non-root execution (`$APP_UID` in .NET and `node` in Web), healthcheck readiness probes, and internal loopback port isolation (`127.0.0.1:5432`, `127.0.0.1:5000`, `127.0.0.1:5001`, `127.0.0.1:3000`).
+- **[Testing & Verification]**: Validated schema and environment interpolation via `docker compose config --quiet`.
+
+### October 27, 2026 — Docker Compose Environment (.env) Bootstrap & Runner Automation
+Resolved Docker Compose variable interpolation failures (`required variable API_KEY is missing a value`, `required variable POSTGRES_PASSWORD is missing a value`) when invoking `.\run-services.ps1 -Docker`.
+- **[Local Docker Environment Bootstrap (`.env`, `secrets/`)]**: Initialized the root `.env` configuration file from `.env.example` with local development credentials (`POSTGRES_PASSWORD`, `API_KEY`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`) and ensured the `./secrets` mount target exists.
+- **[Service Runner Automation (`run-services.ps1`)]**: Added an automatic pre-flight check in `run-services.ps1` under the `-Docker` switch to detect missing `.env` files and scaffold them automatically from `.env.example`, preventing Docker Compose interpolation failures during first-time or clean runs.
+- **[Testing & Verification]**: Verified Docker compose configuration parsing (`docker compose config --quiet`) with zero interpolation warnings or errors.
+
+### October 27, 2026 — API Rate Limiting Multi-Service Deadlock Fix & Reverse Proxy Hardening
+Resolved `HTTP 429: {"error":{"code":"RATE_LIMIT_EXCEEDED"}}` errors occurring across the Web frontend when starting all services simultaneously via `run-services.ps1`.
+- **[Rate Limiting Worker Bypass (`ServiceCollectionExtensions.cs`)]**: Updated `AddApiRateLimiting` to check `X-Api-Key` in addition to `X-Bypass-Rate-Limit`. Internal batch workers (`NewsScraperService`, `AdminDashboard`, `TtsWorker`) authenticated with the configured API key now bypass the limiter, preventing bulk ingestion requests from consuming the shared client quota.
+- **[Development Loopback Bypass & Quota Calibration (`ServiceCollectionExtensions.cs`, `appsettings.json`, `appsettings.Development.json`)]**: In `Development` mode, local loopback connections (`127.0.0.1` / `::1`) bypass rate limiting so multi-process development stacks run without contention. Raised default production sliding window quota from 120 to 600 req/min (10,000 in dev) to comfortably support concurrent React Router SSR and multi-tab browsing.
+- **[Client IP Disambiguation Behind Reverse Proxies]**: Configured `X-Forwarded-For` header inspection so that in production environments behind Caddy/Nginx, rate limits partition by individual client IPs rather than grouping all traffic under the proxy IP.
+- **[Testing & Verification]**: Verified build (`dotnet build`) and executed full `NewsApi.Tests` suite with all 93 tests passing cleanly.
+
 ### October 27, 2026 — Web Frontend npm Dependencies Installation & Auto-Restore Automation
 Resolved a startup failure where executing `.\run-services.ps1 -Web` resulted in `'react-router' is not recognized as an internal or external command` due to uninstalled npm packages in `src/NigerianNewsGrid.Web`.
 - **[NigerianNewsGrid.Web]**: Ran `npm install` to populate `node_modules` and restore React Router v7 (`@react-router/dev`, `@react-router/node`, `@react-router/serve` v7.18.4) along with Vite and React 19 dependencies.

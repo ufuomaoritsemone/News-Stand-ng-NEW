@@ -20,14 +20,16 @@ public class LoginModel : PageModel
     private readonly IConfiguration _config;
     private readonly ILogger<LoginModel> _logger;
     private readonly IMemoryCache _cache;
+    private readonly IHostEnvironment? _env;
 
     private sealed record LoginAttemptState(int FailedAttempts, DateTimeOffset LastFailedAttempt);
 
-    public LoginModel(IConfiguration config, ILogger<LoginModel> logger, IMemoryCache cache)
+    public LoginModel(IConfiguration config, ILogger<LoginModel> logger, IMemoryCache cache, IHostEnvironment? env = null)
     {
         _config = config;
         _logger = logger;
         _cache = cache;
+        _env = env;
     }
 
     [BindProperty]
@@ -73,9 +75,19 @@ public class LoginModel : PageModel
                              ?? _config["AdminAuth:Username"] 
                              ?? "admin";
 
-        var configuredPass = _config["ADMIN_PASSWORD"] 
-                             ?? _config["AdminAuth:Password"] 
-                             ?? "AdminPass123!";
+        var explicitPass = _config["ADMIN_PASSWORD"]
+                           ?? Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
+                           ?? _config["AdminAuth:Password"];
+
+        if (_env?.IsProduction() == true &&
+            (string.IsNullOrWhiteSpace(explicitPass) || string.Equals(explicitPass, "AdminPass123!", StringComparison.Ordinal)))
+        {
+            _logger.LogCritical("Admin login blocked in Production: ADMIN_PASSWORD is not configured or is using the insecure default password.");
+            ErrorMessage = "Administrator authentication is not configured on this server. Set ADMIN_PASSWORD in the environment.";
+            return Page();
+        }
+
+        var configuredPass = explicitPass ?? "AdminPass123!";
 
         var isUserValid = ConstantTimeEquals(Input.Username.Trim(), configuredUser.Trim());
         var isPassValid = ConstantTimeEquals(Input.Password, configuredPass);
@@ -133,7 +145,14 @@ public class LoginModel : PageModel
 
     private string GetClientIpAddress()
     {
-        if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwarded) && !string.IsNullOrWhiteSpace(forwarded))
+        var remoteIp = HttpContext.Connection.RemoteIpAddress;
+        bool isTrustedProxy = remoteIp == null ||
+                              System.Net.IPAddress.IsLoopback(remoteIp) ||
+                              IsPrivateNetworkIp(remoteIp);
+
+        if (isTrustedProxy &&
+            Request.Headers.TryGetValue("X-Forwarded-For", out var forwarded) &&
+            !string.IsNullOrWhiteSpace(forwarded))
         {
             var ip = forwarded.ToString().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
             if (!string.IsNullOrEmpty(ip))
@@ -142,7 +161,18 @@ public class LoginModel : PageModel
             }
         }
 
-        return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return remoteIp?.ToString() ?? "unknown";
+    }
+
+    private static bool IsPrivateNetworkIp(System.Net.IPAddress ip)
+    {
+        if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+        if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+        {
+            var b = ip.GetAddressBytes();
+            return b[0] == 10 || (b[0] == 172 && b[1] >= 16 && b[1] <= 31) || (b[0] == 192 && b[1] == 168) || b[0] == 127;
+        }
+        return ip.IsIPv6SiteLocal || ip.IsIPv6LinkLocal;
     }
 
     private static bool ConstantTimeEquals(string a, string b)

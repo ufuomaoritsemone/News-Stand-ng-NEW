@@ -49,8 +49,7 @@ public class SeoFeedbackLoopService(
             ?? _config["Gemini:ApiKey"]
             ?? _config["Gemini__ApiKey"]
             ?? _config["Google:ApiKey"]
-            ?? _config["ApiKey"]
-            ?? Environment.GetEnvironmentVariable("API_KEY");
+            ?? Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
 
         if (!string.IsNullOrWhiteSpace(apiKey))
         {

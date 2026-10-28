@@ -1,12 +1,52 @@
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NewsApi.Models;
 
 namespace NewsApi.Data;
 
-public class NewsDbContext : DbContext
+public partial class NewsDbContext : DbContext
 {
+    public sealed class UtcDateTimeValueConverter() : ValueConverter<DateTime, DateTime>(
+        v => v.Kind == DateTimeKind.Utc ? v : (v.Kind == DateTimeKind.Local ? v.ToUniversalTime() : DateTime.SpecifyKind(v, DateTimeKind.Utc)),
+        v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+    public sealed class NullableUtcDateTimeValueConverter() : ValueConverter<DateTime?, DateTime?>(
+        v => v.HasValue
+            ? (v.Value.Kind == DateTimeKind.Utc ? v.Value : (v.Value.Kind == DateTimeKind.Local ? v.Value.ToUniversalTime() : DateTime.SpecifyKind(v.Value, DateTimeKind.Utc)))
+            : v,
+        v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+
+    public sealed class UtcDateTimeOffsetValueConverter() : ValueConverter<DateTimeOffset, DateTimeOffset>(
+        v => v.ToUniversalTime(),
+        v => v.ToUniversalTime());
+
+    public sealed class NullableUtcDateTimeOffsetValueConverter() : ValueConverter<DateTimeOffset?, DateTimeOffset?>(
+        v => v.HasValue ? v.Value.ToUniversalTime() : v,
+        v => v.HasValue ? v.Value.ToUniversalTime() : v);
+
+    [GeneratedRegex(@"[^a-z0-9]+")]
+    private static partial Regex NonAlphanumericRegex();
+
+    [GeneratedRegex(@"<.*?>")]
+    private static partial Regex HtmlTagRegex();
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex WhitespaceRegex();
+
     public NewsDbContext(DbContextOptions<NewsDbContext> options) : base(options)
     {
+    }
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+
+        // Npgsql 6+ strictly requires DateTimeKind.Utc (and offset 0 for DateTimeOffset) when writing to 'timestamp with time zone'.
+        configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeValueConverter>();
+        configurationBuilder.Properties<DateTime?>().HaveConversion<NullableUtcDateTimeValueConverter>();
+        configurationBuilder.Properties<DateTimeOffset>().HaveConversion<UtcDateTimeOffsetValueConverter>();
+        configurationBuilder.Properties<DateTimeOffset?>().HaveConversion<NullableUtcDateTimeOffsetValueConverter>();
     }
 
     public DbSet<Article> Articles { get; set; } = null!;
@@ -239,7 +279,7 @@ public class NewsDbContext : DbContext
             if (string.IsNullOrWhiteSpace(article.Slug))
             {
                 var titleText = !string.IsNullOrWhiteSpace(article.Title) ? article.Title : "article";
-                var clean = System.Text.RegularExpressions.Regex.Replace(titleText.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+                var clean = NonAlphanumericRegex().Replace(titleText.ToLowerInvariant(), "-").Trim('-');
                 if (clean.Length > 60) clean = clean[..60].TrimEnd('-');
                 if (string.IsNullOrWhiteSpace(clean)) clean = "story";
 
@@ -258,8 +298,8 @@ public class NewsDbContext : DbContext
             if (string.IsNullOrWhiteSpace(article.Excerpt) && (!string.IsNullOrWhiteSpace(article.Summary) || !string.IsNullOrWhiteSpace(article.Content)))
             {
                 var raw = !string.IsNullOrWhiteSpace(article.Summary) ? article.Summary : article.Content;
-                var clean = System.Text.RegularExpressions.Regex.Replace(raw!, "<.*?>", " ");
-                clean = System.Text.RegularExpressions.Regex.Replace(clean, @"\s+", " ").Trim();
+                var clean = HtmlTagRegex().Replace(raw!, " ");
+                clean = WhitespaceRegex().Replace(clean, " ").Trim();
                 article.Excerpt = clean.Length > 300 ? clean[..297] + "..." : clean;
             }
         }

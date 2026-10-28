@@ -18,6 +18,7 @@ public class VideoStoriesController : ControllerBase
     private static DateTimeOffset _lastTrendingSyncAttempt = DateTimeOffset.MinValue;
 
     private static readonly TimeSpan MinSyncCooldown = TimeSpan.FromMinutes(15);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> VideoCacheKeys = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly NewsDbContext _db;
     private readonly IYouTubeFeedService _ytService;
@@ -108,6 +109,7 @@ public class VideoStoriesController : ControllerBase
 
         if (dtos.Count > 0)
         {
+            VideoCacheKeys.TryAdd(cacheKey, 0);
             _cache.Set(cacheKey, dtos, new MemoryCacheEntryOptions()
                 .SetSlidingExpiration(TimeSpan.FromMinutes(3))
                 .SetAbsoluteExpiration(TimeSpan.FromMinutes(5)));
@@ -126,6 +128,7 @@ public class VideoStoriesController : ControllerBase
         try
         {
             var count = await _ytService.SyncAllChannelsAsync(cancellationToken);
+            InvalidateVideoCache();
             return Ok(new { message = $"Successfully synced YouTube feeds. {count} new stories added.", newCount = count });
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -212,6 +215,7 @@ public class VideoStoriesController : ControllerBase
 
         if (dtos.Count > 0)
         {
+            VideoCacheKeys.TryAdd(cacheKey, 0);
             _cache.Set(cacheKey, dtos, new MemoryCacheEntryOptions()
                 .SetSlidingExpiration(TimeSpan.FromMinutes(3))
                 .SetAbsoluteExpiration(TimeSpan.FromMinutes(5)));
@@ -250,7 +254,7 @@ public class VideoStoriesController : ControllerBase
         try
         {
             var count = await _ytService.SyncTrendingNewsAsync(cancellationToken);
-            (_cache as MemoryCache)?.Clear();
+            InvalidateVideoCache();
             return Ok(new { message = $"Successfully synced trending YouTube news. {count} stories updated.", updatedCount = count });
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -270,7 +274,7 @@ public class VideoStoriesController : ControllerBase
         {
             var channelCount = await _ytService.SyncAllChannelsAsync(cancellationToken);
             var trendingCount = await _ytService.SyncTrendingNewsAsync(cancellationToken);
-            (_cache as MemoryCache)?.Clear();
+            InvalidateVideoCache();
             return Ok(new
             {
                 message = "Successfully synchronized all YouTube channels and trending feeds.",
@@ -283,6 +287,15 @@ public class VideoStoriesController : ControllerBase
             _logger.LogError(ex, "Error syncing all YouTube channels and trending stories");
             return StatusCode(500, new { message = "Full sync failed. An error occurred while synchronizing all feeds." });
         }
+    }
+
+    private void InvalidateVideoCache()
+    {
+        foreach (var key in VideoCacheKeys.Keys)
+        {
+            _cache.Remove(key);
+        }
+        VideoCacheKeys.Clear();
     }
 
     /// <summary>

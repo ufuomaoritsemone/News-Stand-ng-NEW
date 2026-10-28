@@ -55,7 +55,7 @@ public class YouTubeFeedService : IYouTubeFeedService
             return 0;
         }
 
-        var apiKey = GetApiKey();
+        var apiKey = await GetApiKeyAsync(ct);
         int totalNewOrUpdated = 0;
 
         foreach (var channel in channels)
@@ -79,7 +79,7 @@ public class YouTubeFeedService : IYouTubeFeedService
     /// </summary>
     public async Task<int> SyncChannelAsync(VideoChannel channel, CancellationToken ct = default)
     {
-        var apiKey = GetApiKey();
+        var apiKey = await GetApiKeyAsync(ct);
         return await SyncChannelAsync(channel, apiKey, ct);
     }
 
@@ -354,7 +354,7 @@ public class YouTubeFeedService : IYouTubeFeedService
     /// </summary>
     public async Task<int> SyncTrendingNewsAsync(CancellationToken ct = default)
     {
-        var apiKey = GetApiKey();
+        var apiKey = await GetApiKeyAsync(ct);
 
         if (!string.IsNullOrWhiteSpace(apiKey))
         {
@@ -672,11 +672,11 @@ public class YouTubeFeedService : IYouTubeFeedService
         return string.Empty;
     }
 
-    private string GetApiKey()
+    private async Task<string> GetApiKeyAsync(CancellationToken ct = default)
     {
         if (_settingsService != null)
         {
-            var dynamicKey = _settingsService.GetSettingAsync("YouTube:ApiKey").GetAwaiter().GetResult();
+            var dynamicKey = await _settingsService.GetSettingAsync("YouTube:ApiKey", null, ct);
             if (!string.IsNullOrWhiteSpace(dynamicKey))
             {
                 return dynamicKey;

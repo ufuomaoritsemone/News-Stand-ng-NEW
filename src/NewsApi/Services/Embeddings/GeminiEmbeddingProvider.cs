@@ -84,7 +84,7 @@ public class GeminiEmbeddingProvider : IEmbeddingProvider
             return await _fallback.GenerateEmbeddingAsync(text, cancellationToken);
         }
 
-        var client = GetClient();
+        var client = await GetClientAsync(cancellationToken);
         if (client == null)
         {
             return await _fallback.GenerateEmbeddingAsync(text, cancellationToken);
@@ -134,7 +134,7 @@ public class GeminiEmbeddingProvider : IEmbeddingProvider
             return await _fallback.GenerateEmbeddingsBatchAsync(textList, cancellationToken);
         }
 
-        var client = GetClient();
+        var client = await GetClientAsync(cancellationToken);
         if (client == null)
         {
             return await _fallback.GenerateEmbeddingsBatchAsync(textList, cancellationToken);
@@ -169,9 +169,9 @@ public class GeminiEmbeddingProvider : IEmbeddingProvider
         }
     }
 
-    private Client? GetClient()
+    private async Task<Client?> GetClientAsync(CancellationToken ct = default)
     {
-        var apiKey = GetApiKey();
+        var apiKey = await GetApiKeyAsync(ct);
         var adcEnv = System.Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
         if (string.IsNullOrWhiteSpace(adcEnv) || !System.IO.File.Exists(adcEnv))
         {
@@ -219,7 +219,7 @@ public class GeminiEmbeddingProvider : IEmbeddingProvider
         return _client;
     }
 
-    private string? GetApiKey()
+    private async Task<string?> GetApiKeyAsync(CancellationToken ct = default)
     {
         if (_scopeFactory != null)
         {
@@ -229,7 +229,7 @@ public class GeminiEmbeddingProvider : IEmbeddingProvider
                 var settings = scope.ServiceProvider.GetService<ISystemSettingsService>();
                 if (settings != null)
                 {
-                    var dyn = settings.GetSettingAsync("Gemini:ApiKey").GetAwaiter().GetResult();
+                    var dyn = await settings.GetSettingAsync("Gemini:ApiKey", null, ct);
                     if (!string.IsNullOrWhiteSpace(dyn)) return dyn;
                 }
             }
@@ -241,7 +241,6 @@ public class GeminiEmbeddingProvider : IEmbeddingProvider
             ?? _config["Gemini__ApiKey"]
             ?? _config["GoogleCloud:ApiKey"]
             ?? _config["Embeddings:ApiKey"]
-            ?? _config["ApiKey"]
-            ?? System.Environment.GetEnvironmentVariable("API_KEY");
+            ?? System.Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
     }
 }

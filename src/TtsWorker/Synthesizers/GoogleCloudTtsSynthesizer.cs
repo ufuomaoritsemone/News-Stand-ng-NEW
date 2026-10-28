@@ -66,7 +66,10 @@ public sealed class GoogleCloudTtsSynthesizer : ITtsSynthesizer
 
         try
         {
-            var voiceName = !string.IsNullOrWhiteSpace(voiceOrLanguage) ? voiceOrLanguage : DefaultVoice;
+            var configuredGoogleVoice = _configuration["Tts:GoogleVoice"]
+                ?? _configuration["GoogleCloud:TtsVoice"]
+                ?? DefaultVoice;
+            var voiceName = ResolveGoogleVoiceName(voiceOrLanguage, configuredGoogleVoice);
             var languageCode = voiceName.Length >= 5 ? voiceName.Substring(0, 5) : DefaultLanguageCode;
 
             _logger.LogInformation("Calling Google Cloud Text-to-Speech API with voice '{Voice}'...", voiceName);
@@ -127,6 +130,25 @@ public sealed class GoogleCloudTtsSynthesizer : ITtsSynthesizer
             _logger.LogWarning(ex, "Google Cloud TTS synthesis failed: {Error}. Seamless fallback will occur.", ex.Message);
             return new TtsSynthesisResult(false, null, "audio/mpeg", ProviderName, ex.Message);
         }
+    }
+
+    private static string ResolveGoogleVoiceName(string? voiceOrLanguage, string fallbackGoogleVoice)
+    {
+        if (string.IsNullOrWhiteSpace(voiceOrLanguage))
+        {
+            return fallbackGoogleVoice;
+        }
+
+        var trimmed = voiceOrLanguage.Trim();
+        // Microsoft Edge / Azure Neural voices end with "...Neural" (e.g. "en-NG-EzinneNeural", "en-NG-AbeoNeural")
+        // whereas Google Cloud voices use "-Neural2-", "-Wavenet-", "-Standard-", "-Journey-", "-Studio-", "-Polyglot-".
+        if (trimmed.EndsWith("Neural", StringComparison.OrdinalIgnoreCase) &&
+            !trimmed.Contains("-Neural2", StringComparison.OrdinalIgnoreCase))
+        {
+            return fallbackGoogleVoice;
+        }
+
+        return trimmed;
     }
 
     private string? GetApiKey()

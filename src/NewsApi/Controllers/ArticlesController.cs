@@ -58,7 +58,10 @@ public class ArticlesController : ControllerBase
     private bool IsAuthorizedInternal()
     {
         if (_config == null) return false;
-        var configuredKey = _config["ApiKey"] ?? _config["ApiSecurity:ApiKey"];
+        var configuredKey = _config["ApiKey"]
+            ?? _config["API_KEY"]
+            ?? _config["ApiSecurity:ApiKey"]
+            ?? Environment.GetEnvironmentVariable("API_KEY");
         if (string.IsNullOrWhiteSpace(configuredKey)) return false;
 
         if (Request.Headers.TryGetValue("X-Api-Key", out var providedKey) &&

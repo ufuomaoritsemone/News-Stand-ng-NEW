@@ -65,5 +65,20 @@ public class BackgroundMediaSyncService(
         {
             logger.LogWarning(ex, "Error syncing YouTube trending stories.");
         }
+
+        // 3. Sync breaking social feed handles
+        var socialService = scope.ServiceProvider.GetService<ISocialFeedService>();
+        if (socialService != null)
+        {
+            try
+            {
+                var socialCount = await socialService.SyncAllHandlesAsync(ct);
+                logger.LogInformation("Social feed sync completed: {Count} items updated.", socialCount);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogWarning(ex, "Error syncing social feed handles.");
+            }
+        }
     }
 }

@@ -445,13 +445,23 @@ public class ArticleIngestionService : IArticleIngestionService
 
         if (a == null) return null;
 
-        var imageUrl    = CategoryImageMap.Resolve(a.ImageUrl, a.Category);
+        var rawImageUrl = CategoryImageMap.Resolve(a.ImageUrl, a.Category);
+        var safeImageUrl = (Uri.TryCreate(rawImageUrl, UriKind.Absolute, out var imgUri) &&
+                            (imgUri.Scheme == Uri.UriSchemeHttp || imgUri.Scheme == Uri.UriSchemeHttps))
+            ? rawImageUrl
+            : CategoryImageMap.Resolve(null, a.Category);
+        var imageUrl    = System.Net.WebUtility.HtmlEncode(safeImageUrl);
         var title       = System.Net.WebUtility.HtmlEncode(a.Title ?? "News Stand NG Story");
         var source      = System.Net.WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(a.Source) ? "News Stand NG" : a.Source);
         var summary     = System.Net.WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(a.Summary) ? $"Read the latest breaking story from {source} on News Stand NG." : a.Summary);
-        var targetUrl   = a.Url ?? "https://play.google.com/store/apps/details?id=com.nigeriannewsgrid.app";
+        var rawTargetUrl = a.Url ?? "https://play.google.com/store/apps/details?id=com.nigeriannewsgrid.app";
+        var safeTargetUrl = (Uri.TryCreate(rawTargetUrl, UriKind.Absolute, out var tgtUri) &&
+                             (tgtUri.Scheme == Uri.UriSchemeHttp || tgtUri.Scheme == Uri.UriSchemeHttps))
+            ? rawTargetUrl
+            : "https://play.google.com/store/apps/details?id=com.nigeriannewsgrid.app";
+        var targetUrl   = System.Net.WebUtility.HtmlEncode(safeTargetUrl);
         var appStoreUrl = "https://play.google.com/store/apps/details?id=com.nigeriannewsgrid.app";
-        var deepLinkUri = $"nigeriannewsgrid://article/{id}";
+        var deepLinkUri = $"nigeriannewsgrid://article/{Uri.EscapeDataString(id)}";
 
         return $@"<!DOCTYPE html>
 <html lang=""en"">

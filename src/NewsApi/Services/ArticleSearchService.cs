@@ -178,26 +178,26 @@ public class ArticleSearchService : IArticleSearchService
 
         var sql = """
             SELECT a.*
-            FROM "Articles" a
-            WHERE a."SearchVector" @@ websearch_to_tsquery('english', @query)
+            FROM "Articles" a, websearch_to_tsquery('english', @query) query
+            WHERE a."SearchVector" @@ query
               AND (@category IS NULL OR lower(a."Category") = @category)
               AND (@source IS NULL OR lower(a."Source") LIKE '%' || @source || '%')
               AND (@contentType IS NULL OR lower(a."ContentType") = @contentType)
               AND (@cutoff IS NULL OR a."PublishedAt" >= @cutoff)
-            ORDER BY ts_rank(a."SearchVector", websearch_to_tsquery('english', @query)) DESC,
+            ORDER BY ts_rank(a."SearchVector", query) DESC,
                      a."PublishedAt" DESC
             LIMIT @limit OFFSET @offset;
             """;
 
         var parameters = new object[]
         {
-            new NpgsqlParameter("@query", searchParams.Search.Trim()),
-            new NpgsqlParameter("@category", (object?)categoryFilter ?? DBNull.Value),
-            new NpgsqlParameter("@source", (object?)sourceFilter ?? DBNull.Value),
-            new NpgsqlParameter("@contentType", (object?)contentTypeFilter ?? DBNull.Value),
-            new NpgsqlParameter("@cutoff", (object?)cutoffFilter ?? DBNull.Value),
-            new NpgsqlParameter("@limit", size),
-            new NpgsqlParameter("@offset", offset)
+            new NpgsqlParameter<string>("@query", NpgsqlTypes.NpgsqlDbType.Text) { TypedValue = searchParams.Search.Trim() },
+            new NpgsqlParameter<string?>("@category", NpgsqlTypes.NpgsqlDbType.Text) { TypedValue = categoryFilter },
+            new NpgsqlParameter<string?>("@source", NpgsqlTypes.NpgsqlDbType.Text) { TypedValue = sourceFilter },
+            new NpgsqlParameter<string?>("@contentType", NpgsqlTypes.NpgsqlDbType.Text) { TypedValue = contentTypeFilter },
+            new NpgsqlParameter<DateTime?>("@cutoff", NpgsqlTypes.NpgsqlDbType.TimestampTz) { TypedValue = cutoffFilter },
+            new NpgsqlParameter<int>("@limit", NpgsqlTypes.NpgsqlDbType.Integer) { TypedValue = size },
+            new NpgsqlParameter<int>("@offset", NpgsqlTypes.NpgsqlDbType.Integer) { TypedValue = offset }
         };
 
         return await _db.Articles

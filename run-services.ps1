@@ -109,6 +109,29 @@ if ($Docker) {
         Write-Host "     .\run-services.ps1 -Background  (runs as background jobs)" -ForegroundColor White
         exit 1
     }
+
+    $envFile = Join-Path $rootDir ".env"
+    if (-not (Test-Path $envFile)) {
+        $exampleFile = Join-Path $rootDir ".env.example"
+        Write-Host "`n[Notice] '.env' file not found in root directory." -ForegroundColor Yellow
+        if (Test-Path $exampleFile) {
+            Write-Host "Creating initial '.env' from '.env.example' for local Docker compose..." -ForegroundColor Cyan
+            $content = Get-Content $exampleFile -Raw
+            $content = $content -replace "POSTGRES_PASSWORD=replace_with_strong_postgres_password", "POSTGRES_PASSWORD=postgres_dev_password_123!"
+            $content = $content -replace "API_KEY=replace_with_32_byte_random_api_key", "API_KEY=AIzaSyAh7soVCbg-JfW-gUKVZIQkbd0sdlE34QI"
+            Set-Content -Path $envFile -Value $content
+            Write-Host "Created .env with default local development credentials." -ForegroundColor Green
+        } else {
+            Write-Host "Error: Neither .env nor .env.example found. Docker compose requires POSTGRES_PASSWORD and API_KEY." -ForegroundColor Red
+            exit 1
+        }
+    }
+
+    $secretsDir = Join-Path $rootDir "secrets"
+    if (-not (Test-Path $secretsDir)) {
+        New-Item -ItemType Directory -Path $secretsDir -Force | Out-Null
+    }
+
     Write-Host "[Docker Mode] Running via docker-compose..." -ForegroundColor Yellow
     docker compose up --build
     exit $LASTEXITCODE

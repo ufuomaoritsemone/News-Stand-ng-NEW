@@ -28,11 +28,24 @@ public class DbInitializer(
         await _initLock.WaitAsync(cancellationToken);
         try
         {
-            await BaselineLegacyDatabaseIfNeededAsync(cancellationToken);
+            var isPostgres = db.Database.ProviderName?.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase) == true;
+
+            if (isPostgres)
+            {
+                // Ensure all PostgreSQL tables and native column types (timestamptz, boolean, uuid, interval)
+                // exist before MigrateAsync runs, and record migration history so SQLite-typed migration files
+                // do not create TEXT/INTEGER columns on a fresh PostgreSQL instance.
+                await EnsureTablesExistAsync(cancellationToken);
+                await BaselineLegacyDatabaseIfNeededAsync(cancellationToken);
+            }
+            else
+            {
+                await BaselineLegacyDatabaseIfNeededAsync(cancellationToken);
+            }
 
             try
             {
-                // Run EF Core migrations (creates schema if missing, applies pending migrations)
+                // Run EF Core migrations (creates schema if missing on SQLite, applies pending migrations)
                 await db.Database.MigrateAsync(cancellationToken);
                 logger.LogInformation("Database schema migrated successfully via EF Core Migrations.");
             }
@@ -50,7 +63,10 @@ public class DbInitializer(
                 }
             }
 
-            await EnsureTablesExistAsync(cancellationToken);
+            if (!isPostgres)
+            {
+                await EnsureTablesExistAsync(cancellationToken);
+            }
             await EnsureSchemaColumnsUpdatedAsync(cancellationToken);
             await EnsureFullTextSearchCreatedAsync(db, logger, cancellationToken);
             await _dataSeeder.SeedAsync(cancellationToken);
@@ -81,6 +97,7 @@ public class DbInitializer(
             }
 
             bool hasLegacyTables = false;
+            bool hasMigrationHistory = false;
             bool hasSeoSlugsAndTopics = false;
 
             if (isSqlite)
@@ -92,6 +109,15 @@ public class DbInitializer(
 
                 if (hasLegacyTables)
                 {
+                    using var histCheckCmd = conn.CreateCommand();
+                    histCheckCmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='__EFMigrationsHistory';";
+                    if (Convert.ToInt32(await histCheckCmd.ExecuteScalarAsync(ct)) > 0)
+                    {
+                        using var rowCheckCmd = conn.CreateCommand();
+                        rowCheckCmd.CommandText = "SELECT COUNT(*) FROM \"__EFMigrationsHistory\";";
+                        hasMigrationHistory = Convert.ToInt32(await rowCheckCmd.ExecuteScalarAsync(ct)) > 0;
+                    }
+
                     using var checkCmd = conn.CreateCommand();
                     checkCmd.CommandText = """
                         SELECT (
@@ -106,17 +132,26 @@ public class DbInitializer(
             else if (isPostgres)
             {
                 using var cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Articles';";
+                cmd.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = current_schema() AND lower(table_name) = 'articles';";
                 var result = await cmd.ExecuteScalarAsync(ct);
                 hasLegacyTables = Convert.ToInt32(result) > 0;
 
                 if (hasLegacyTables)
                 {
+                    using var histCheckCmd = conn.CreateCommand();
+                    histCheckCmd.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = current_schema() AND lower(table_name) = '__efmigrationshistory';";
+                    if (Convert.ToInt32(await histCheckCmd.ExecuteScalarAsync(ct)) > 0)
+                    {
+                        using var rowCheckCmd = conn.CreateCommand();
+                        rowCheckCmd.CommandText = "SELECT COUNT(*) FROM \"__EFMigrationsHistory\";";
+                        hasMigrationHistory = Convert.ToInt32(await rowCheckCmd.ExecuteScalarAsync(ct)) > 0;
+                    }
+
                     using var checkCmd = conn.CreateCommand();
                     checkCmd.CommandText = """
                         SELECT (
-                            (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'public' AND lower(table_name) = 'sources' AND lower(column_name) = 'slug') +
-                            (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND lower(table_name) = 'topics')
+                            (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = current_schema() AND lower(table_name) = 'sources' AND lower(column_name) = 'slug') +
+                            (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = current_schema() AND lower(table_name) = 'topics')
                         );
                         """;
                     var checkRes = await checkCmd.ExecuteScalarAsync(ct);
@@ -124,7 +159,7 @@ public class DbInitializer(
                 }
             }
 
-            if (hasLegacyTables)
+            if (hasLegacyTables && !hasMigrationHistory)
             {
                 if (isSqlite)
                 {
@@ -202,6 +237,60 @@ public class DbInitializer(
             if (isPostgres)
             {
                 await db.Database.ExecuteSqlRawAsync("""
+                    CREATE TABLE IF NOT EXISTS "Sources" (
+                        "Id" text NOT NULL,
+                        "Name" text NOT NULL,
+                        "Slug" character varying(100) NULL,
+                        "RssUrl" text NULL,
+                        "SitemapUrl" text NULL,
+                        "ScraperType" text NULL DEFAULT 'Hybrid',
+                        CONSTRAINT "PK_Sources" PRIMARY KEY ("Id")
+                    );
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_Sources_Slug" ON "Sources" ("Slug");
+
+                    CREATE TABLE IF NOT EXISTS "Articles" (
+                        "Id" text NOT NULL,
+                        "Title" text NOT NULL,
+                        "Summary" text NULL,
+                        "Content" text NULL,
+                        "Url" text NULL,
+                        "ImageUrl" text NULL,
+                        "Source" text NULL,
+                        "Category" text NULL,
+                        "PublishedAt" timestamp with time zone NULL,
+                        "AudioUrl" text NULL,
+                        "Author" text NULL,
+                        "ContentType" text NULL DEFAULT 'News',
+                        "Slug" character varying(120) NOT NULL DEFAULT '',
+                        "Excerpt" character varying(300) NULL,
+                        "SeoTitle" character varying(70) NULL,
+                        "SeoDescription" character varying(160) NULL,
+                        "IsSponsored" boolean NOT NULL DEFAULT false,
+                        "SponsorName" text NULL,
+                        "SponsorUrl" text NULL,
+                        "CampaignExpiresAt" timestamp with time zone NULL,
+                        "IsPinned" boolean NOT NULL DEFAULT false,
+                        "TargetPosition" integer NULL,
+                        "PriorityWeight" integer NOT NULL DEFAULT 1,
+                        "ImpressionCount" integer NOT NULL DEFAULT 0,
+                        "ClickCount" integer NOT NULL DEFAULT 0,
+                        "PlacementZone" text NOT NULL DEFAULT 'MainPage_InFeed',
+                        "TargetPlatform" text NOT NULL DEFAULT 'All',
+                        "UpdatedAt" timestamp with time zone NULL,
+                        CONSTRAINT "PK_Articles" PRIMARY KEY ("Id")
+                    );
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_Articles_Slug" ON "Articles" ("Slug") WHERE "Slug" <> '';
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_PublishedAt" ON "Articles" ("PublishedAt");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_Category" ON "Articles" ("Category");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_Source" ON "Articles" ("Source");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_ContentType" ON "Articles" ("ContentType");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_Url" ON "Articles" ("Url");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_Title" ON "Articles" ("Title");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_IsSponsored" ON "Articles" ("IsSponsored");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_IsPinned" ON "Articles" ("IsPinned");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_CampaignExpiresAt" ON "Articles" ("CampaignExpiresAt");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_UpdatedAt" ON "Articles" ("UpdatedAt");
+
                     CREATE TABLE IF NOT EXISTS "VideoChannels" (
                         "Id" text NOT NULL,
                         "ChannelName" text NOT NULL,
@@ -375,8 +464,10 @@ public class DbInitializer(
                     CREATE INDEX IF NOT EXISTS "IX_StoryComments_ArticleId" ON "StoryComments" ("ArticleId");
                     CREATE INDEX IF NOT EXISTS "IX_StoryComments_ParentCommentId" ON "StoryComments" ("ParentCommentId");
                     CREATE INDEX IF NOT EXISTS "IX_StoryComments_CreatedAt" ON "StoryComments" ("CreatedAt");
-                    CREATE INDEX IF NOT EXISTS "IX_CommentVotes_CommentId_UserId" ON "CommentVotes" ("CommentId", "UserId");
+                    CREATE INDEX IF NOT EXISTS "IX_StoryComments_Status" ON "StoryComments" ("Status");
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_CommentVotes_CommentId_UserId" ON "CommentVotes" ("CommentId", "UserId");
                     CREATE INDEX IF NOT EXISTS "IX_CommentReports_CommentId" ON "CommentReports" ("CommentId");
+                    CREATE INDEX IF NOT EXISTS "IX_CommentReports_CreatedAt" ON "CommentReports" ("CreatedAt");
 
                     CREATE TABLE IF NOT EXISTS "UserVerifications" (
                         "Id" text NOT NULL,
@@ -421,7 +512,7 @@ public class DbInitializer(
                         "ArticleId" text NOT NULL,
                         "Dimensions" integer NOT NULL,
                         "VectorBlob" bytea NOT NULL,
-                        "Model" character varying(50) NOT NULL,
+                        "Model" character varying(100) NOT NULL,
                         "CreatedAt" timestamp with time zone NOT NULL,
                         CONSTRAINT "PK_ArticleEmbeddings" PRIMARY KEY ("ArticleId"),
                         CONSTRAINT "FK_ArticleEmbeddings_Articles_ArticleId" FOREIGN KEY ("ArticleId") REFERENCES "Articles" ("Id") ON DELETE CASCADE
@@ -430,7 +521,7 @@ public class DbInitializer(
                     CREATE TABLE IF NOT EXISTS "StoryClusters" (
                         "Id" text NOT NULL,
                         "Slug" character varying(160) NOT NULL,
-                        "Title" character varying(500) NOT NULL,
+                        "Title" character varying(300) NOT NULL,
                         "Summary" text NULL,
                         "ImageUrl" text NULL,
                         "CreatedAt" timestamp with time zone NOT NULL,
@@ -502,6 +593,74 @@ public class DbInitializer(
             else if (isSqlite)
             {
                 await db.Database.ExecuteSqlRawAsync("""
+                    CREATE TABLE IF NOT EXISTS "Sources" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_Sources" PRIMARY KEY,
+                        "Name" TEXT NOT NULL,
+                        "Slug" TEXT NULL,
+                        "RssUrl" TEXT NULL,
+                        "SitemapUrl" TEXT NULL,
+                        "ScraperType" TEXT NULL DEFAULT 'Hybrid'
+                    );
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_Sources_Slug" ON "Sources" ("Slug");
+
+                    CREATE TABLE IF NOT EXISTS "Articles" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_Articles" PRIMARY KEY,
+                        "Title" TEXT NOT NULL,
+                        "Summary" TEXT NULL,
+                        "Content" TEXT NULL,
+                        "Url" TEXT NULL,
+                        "ImageUrl" TEXT NULL,
+                        "Source" TEXT NULL,
+                        "Category" TEXT NULL,
+                        "PublishedAt" TEXT NULL,
+                        "AudioUrl" TEXT NULL,
+                        "Author" TEXT NULL,
+                        "ContentType" TEXT NULL DEFAULT 'News',
+                        "Slug" TEXT NOT NULL DEFAULT '',
+                        "Excerpt" TEXT NULL,
+                        "SeoTitle" TEXT NULL,
+                        "SeoDescription" TEXT NULL,
+                        "IsSponsored" INTEGER NOT NULL DEFAULT 0,
+                        "SponsorName" TEXT NULL,
+                        "SponsorUrl" TEXT NULL,
+                        "CampaignExpiresAt" TEXT NULL,
+                        "IsPinned" INTEGER NOT NULL DEFAULT 0,
+                        "TargetPosition" INTEGER NULL,
+                        "PriorityWeight" INTEGER NOT NULL DEFAULT 1,
+                        "ImpressionCount" INTEGER NOT NULL DEFAULT 0,
+                        "ClickCount" INTEGER NOT NULL DEFAULT 0,
+                        "PlacementZone" TEXT NOT NULL DEFAULT 'MainPage_InFeed',
+                        "TargetPlatform" TEXT NOT NULL DEFAULT 'All',
+                        "UpdatedAt" TEXT NULL
+                    );
+                    CREATE UNIQUE INDEX IF NOT EXISTS "IX_Articles_Slug" ON "Articles" ("Slug") WHERE "Slug" <> '';
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_PublishedAt" ON "Articles" ("PublishedAt");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_Category" ON "Articles" ("Category");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_Source" ON "Articles" ("Source");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_ContentType" ON "Articles" ("ContentType");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_Url" ON "Articles" ("Url");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_Title" ON "Articles" ("Title");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_IsSponsored" ON "Articles" ("IsSponsored");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_IsPinned" ON "Articles" ("IsPinned");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_CampaignExpiresAt" ON "Articles" ("CampaignExpiresAt");
+                    CREATE INDEX IF NOT EXISTS "IX_Articles_UpdatedAt" ON "Articles" ("UpdatedAt");
+
+                    CREATE TABLE IF NOT EXISTS "AudioAssets" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_AudioAssets" PRIMARY KEY,
+                        "ArticleId" TEXT NULL,
+                        "Url" TEXT NOT NULL,
+                        "Duration" TEXT NOT NULL,
+                        "CreatedAt" TEXT NOT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS "IX_AudioAssets_ArticleId" ON "AudioAssets" ("ArticleId");
+
+                    CREATE TABLE IF NOT EXISTS "Briefings" (
+                        "Id" TEXT NOT NULL CONSTRAINT "PK_Briefings" PRIMARY KEY,
+                        "Category" TEXT NOT NULL,
+                        "GeneratedAt" TEXT NOT NULL,
+                        "PayloadJson" TEXT NOT NULL
+                    );
+
                     CREATE TABLE IF NOT EXISTS "VideoChannels" (
                         "Id" TEXT NOT NULL CONSTRAINT "PK_VideoChannels" PRIMARY KEY,
                         "ChannelName" TEXT NOT NULL,
@@ -780,32 +939,240 @@ public class DbInitializer(
 
         if (!isSqlite && !isPostgres) return;
 
-        await AddColumnIfMissingAsync("Sources", "SitemapUrl", "TEXT NULL", ct);
-        await AddColumnIfMissingAsync("Sources", "ScraperType", "TEXT NULL DEFAULT 'Hybrid'", ct);
-        await AddColumnIfMissingAsync("VideoStories", "IsTrending", isPostgres ? "boolean NOT NULL DEFAULT false" : "INTEGER NOT NULL DEFAULT 0", ct);
-        await AddColumnIfMissingAsync("VideoStories", "TrendingRank", "INTEGER NULL", ct);
-        await AddColumnIfMissingAsync("VideoStories", "ViewCount", isPostgres ? "bigint NOT NULL DEFAULT 0" : "INTEGER NOT NULL DEFAULT 0", ct);
-        await AddColumnIfMissingAsync("VideoStories", "LikeCount", isPostgres ? "bigint NOT NULL DEFAULT 0" : "INTEGER NOT NULL DEFAULT 0", ct);
-        await AddColumnIfMissingAsync("Articles", "IsSponsored", isPostgres ? "boolean NOT NULL DEFAULT false" : "INTEGER NOT NULL DEFAULT 0", ct);
-        await AddColumnIfMissingAsync("Articles", "SponsorName", "TEXT NULL", ct);
-        await AddColumnIfMissingAsync("Articles", "SponsorUrl", "TEXT NULL", ct);
-        await AddColumnIfMissingAsync("Articles", "CampaignExpiresAt", isPostgres ? "timestamp with time zone NULL" : "TEXT NULL", ct);
-        await AddColumnIfMissingAsync("Articles", "IsPinned", isPostgres ? "boolean NOT NULL DEFAULT false" : "INTEGER NOT NULL DEFAULT 0", ct);
-        await AddColumnIfMissingAsync("Articles", "ImpressionCount", "INTEGER NOT NULL DEFAULT 0", ct);
-        await AddColumnIfMissingAsync("Articles", "ClickCount", "INTEGER NOT NULL DEFAULT 0", ct);
-        await AddColumnIfMissingAsync("Articles", "Author", "TEXT NULL", ct);
-        await AddColumnIfMissingAsync("Articles", "ContentType", "TEXT NULL DEFAULT 'News'", ct);
-        await AddColumnIfMissingAsync("Articles", "TargetPosition", "INTEGER NULL", ct);
-        await AddColumnIfMissingAsync("Articles", "PriorityWeight", "INTEGER NOT NULL DEFAULT 1", ct);
-        await AddColumnIfMissingAsync("Articles", "UpdatedAt", isPostgres ? "timestamp with time zone NULL" : "TEXT NULL", ct);
-        await AddColumnIfMissingAsync("Articles", "Slug", "TEXT NOT NULL DEFAULT ''", ct);
-        await AddColumnIfMissingAsync("Articles", "Excerpt", "TEXT NULL", ct);
-        await AddColumnIfMissingAsync("Articles", "SeoTitle", "TEXT NULL", ct);
-        await AddColumnIfMissingAsync("Articles", "SeoDescription", "TEXT NULL", ct);
-        await AddColumnIfMissingAsync("Articles", "PlacementZone", "TEXT NOT NULL DEFAULT 'MainPage_InFeed'", ct);
-        await AddColumnIfMissingAsync("Articles", "TargetPlatform", "TEXT NOT NULL DEFAULT 'All'", ct);
-        await AddColumnIfMissingAsync("Sources", "Slug", "TEXT NULL", ct);
-        await AddColumnIfMissingAsync("ArticleEnrichments", "FullSummaryJson", "TEXT NULL", ct);
+        Dictionary<(string Table, string Column), string>? pgColumnTypes = null;
+        if (isPostgres)
+        {
+            pgColumnTypes = await GetPostgresColumnTypesAsync(ct);
+        }
+
+        var requiredColumns = new (string Table, string Column, string Definition)[]
+        {
+            ("Sources",            "SitemapUrl",        "TEXT NULL"),
+            ("Sources",            "ScraperType",       "TEXT NULL DEFAULT 'Hybrid'"),
+            ("Sources",            "Slug",              "TEXT NULL"),
+            ("VideoStories",       "IsTrending",        isPostgres ? "boolean NOT NULL DEFAULT false" : "INTEGER NOT NULL DEFAULT 0"),
+            ("VideoStories",       "TrendingRank",      "INTEGER NULL"),
+            ("VideoStories",       "ViewCount",         isPostgres ? "bigint NOT NULL DEFAULT 0" : "INTEGER NOT NULL DEFAULT 0"),
+            ("VideoStories",       "LikeCount",         isPostgres ? "bigint NOT NULL DEFAULT 0" : "INTEGER NOT NULL DEFAULT 0"),
+            ("Articles",           "IsSponsored",       isPostgres ? "boolean NOT NULL DEFAULT false" : "INTEGER NOT NULL DEFAULT 0"),
+            ("Articles",           "SponsorName",       "TEXT NULL"),
+            ("Articles",           "SponsorUrl",        "TEXT NULL"),
+            ("Articles",           "CampaignExpiresAt", isPostgres ? "timestamp with time zone NULL" : "TEXT NULL"),
+            ("Articles",           "IsPinned",          isPostgres ? "boolean NOT NULL DEFAULT false" : "INTEGER NOT NULL DEFAULT 0"),
+            ("Articles",           "ImpressionCount",   "INTEGER NOT NULL DEFAULT 0"),
+            ("Articles",           "ClickCount",        "INTEGER NOT NULL DEFAULT 0"),
+            ("Articles",           "Author",            "TEXT NULL"),
+            ("Articles",           "ContentType",       "TEXT NULL DEFAULT 'News'"),
+            ("Articles",           "TargetPosition",    "INTEGER NULL"),
+            ("Articles",           "PriorityWeight",    "INTEGER NOT NULL DEFAULT 1"),
+            ("Articles",           "UpdatedAt",         isPostgres ? "timestamp with time zone NULL" : "TEXT NULL"),
+            ("Articles",           "Slug",              "TEXT NOT NULL DEFAULT ''"),
+            ("Articles",           "Excerpt",           "TEXT NULL"),
+            ("Articles",           "SeoTitle",          "TEXT NULL"),
+            ("Articles",           "SeoDescription",    "TEXT NULL"),
+            ("Articles",           "PlacementZone",     "TEXT NOT NULL DEFAULT 'MainPage_InFeed'"),
+            ("Articles",           "TargetPlatform",    "TEXT NOT NULL DEFAULT 'All'"),
+            ("ArticleEnrichments", "FullSummaryJson",   "TEXT NULL")
+        };
+
+        foreach (var (table, col, def) in requiredColumns)
+        {
+            if (isPostgres && pgColumnTypes != null && pgColumnTypes.ContainsKey((table.ToLowerInvariant(), col.ToLowerInvariant())))
+            {
+                continue;
+            }
+            await AddColumnIfMissingAsync(table, col, def, ct);
+        }
+
+        if (isPostgres && pgColumnTypes != null)
+        {
+            // 1. Normalize legacy SQLite INTEGER columns into PostgreSQL boolean
+            var booleanColumns = new (string Table, string Column)[]
+            {
+                ("Articles",          "IsSponsored"),
+                ("Articles",          "IsPinned"),
+                ("VideoStories",      "IsTrending"),
+                ("StoryComments",     "IsPinned"),
+                ("CommentReports",    "IsResolved"),
+                ("UserVerifications", "IsVerified"),
+                ("SystemSettings",    "IsSecret"),
+                ("Feedbacks",         "IsEmailSent")
+            };
+
+            foreach (var (table, col) in booleanColumns)
+            {
+                if (pgColumnTypes.TryGetValue((table.ToLowerInvariant(), col.ToLowerInvariant()), out var dt) &&
+                    dt is "smallint" or "integer" or "bigint")
+                {
+                    await NormalizePostgresBooleanColumnAsync(table, col, ct);
+                }
+            }
+
+            // 2. Normalize legacy SQLite TEXT timestamp columns into PostgreSQL timestamp with time zone
+            var timestampColumns = new (string Table, string Column)[]
+            {
+                ("Articles",            "PublishedAt"),
+                ("Articles",            "CampaignExpiresAt"),
+                ("Articles",            "UpdatedAt"),
+                ("AudioAssets",         "CreatedAt"),
+                ("Briefings",           "GeneratedAt"),
+                ("CategoryCorrections", "CreatedAt"),
+                ("Feedbacks",           "CreatedAt"),
+                ("SocialHandles",       "CreatedAt"),
+                ("SocialPosts",         "PublishedAt"),
+                ("SocialPosts",         "CreatedAt"),
+                ("UserEvents",          "OccurredAt"),
+                ("UserEvents",          "ReceivedAt"),
+                ("VideoChannels",       "CreatedAt"),
+                ("VideoStories",        "PublishedAt"),
+                ("VideoStories",        "CreatedAt"),
+                ("CommentReports",      "CreatedAt"),
+                ("CommentVotes",        "CreatedAt"),
+                ("StoryComments",       "CreatedAt"),
+                ("StoryComments",       "UpdatedAt"),
+                ("Topics",              "CreatedAt"),
+                ("UserVerifications",   "ExpiresAt"),
+                ("UserVerifications",   "CreatedAt")
+            };
+
+            foreach (var (table, col) in timestampColumns)
+            {
+                if (pgColumnTypes.TryGetValue((table.ToLowerInvariant(), col.ToLowerInvariant()), out var dt) &&
+                    dt is "text" or "character varying")
+                {
+                    await NormalizePostgresTimestampColumnAsync(table, col, ct);
+                }
+            }
+
+            // 3. Normalize legacy SQLite TEXT uuid/interval columns
+            if (pgColumnTypes.TryGetValue(("audioassets", "id"), out var audioIdType) && audioIdType is "text" or "character varying")
+            {
+                await NormalizePostgresTypeDirectAsync("AudioAssets", "Id", "uuid", "\"Id\"::uuid", ct);
+            }
+            if (pgColumnTypes.TryGetValue(("audioassets", "duration"), out var audioDurType) && audioDurType is "text" or "character varying")
+            {
+                await NormalizePostgresTypeDirectAsync("AudioAssets", "Duration", "interval", "NULLIF(TRIM(\"Duration\"), '')::interval", ct);
+            }
+            if (pgColumnTypes.TryGetValue(("briefings", "id"), out var briefIdType) && briefIdType is "text" or "character varying")
+            {
+                await NormalizePostgresTypeDirectAsync("Briefings", "Id", "uuid", "\"Id\"::uuid", ct);
+            }
+        }
+    }
+
+    private async Task<Dictionary<(string Table, string Column), string>> GetPostgresColumnTypesAsync(CancellationToken ct)
+    {
+        var result = new Dictionary<(string Table, string Column), string>();
+        try
+        {
+            var conn = db.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await db.Database.OpenConnectionAsync(ct);
+            }
+
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                SELECT lower(table_name), lower(column_name), lower(data_type)
+                FROM information_schema.columns
+                WHERE table_schema = current_schema();
+                """;
+
+            using var reader = await cmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                result[(reader.GetString(0), reader.GetString(1))] = reader.GetString(2);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not inspect PostgreSQL information_schema.columns; falling back to per-column checks.");
+        }
+        return result;
+    }
+
+    private async Task NormalizePostgresBooleanColumnAsync(string tableName, string columnName, CancellationToken ct)
+    {
+        // Older PostgreSQL databases could inherit SQLite's INTEGER mapping for bools.
+        // Convert existing 0/1 values without losing their meaning.
+        try
+        {
+            var sql = $"""
+                DO $migration$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM information_schema.columns
+                        WHERE table_schema = current_schema()
+                          AND lower(table_name) = lower('{tableName}')
+                          AND lower(column_name) = lower('{columnName}')
+                          AND data_type IN ('smallint', 'integer', 'bigint')
+                    ) THEN
+                        ALTER TABLE "{tableName}" ALTER COLUMN "{columnName}" DROP DEFAULT;
+                        ALTER TABLE "{tableName}"
+                            ALTER COLUMN "{columnName}" TYPE boolean
+                            USING ("{columnName}" <> 0);
+                        ALTER TABLE "{tableName}" ALTER COLUMN "{columnName}" SET DEFAULT false;
+                    END IF;
+                END
+                $migration$
+                """;
+            await db.Database.ExecuteSqlRawAsync(sql, ct);
+            logger.LogInformation("Normalized PostgreSQL column {Table}.{Column} from integer to boolean.", tableName, columnName);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not normalize boolean column {Table}.{Column}.", tableName, columnName);
+        }
+    }
+
+    private async Task NormalizePostgresTimestampColumnAsync(string tableName, string columnName, CancellationToken ct)
+    {
+        try
+        {
+            var sql = $"""
+                DO $migration$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM information_schema.columns
+                        WHERE table_schema = current_schema()
+                          AND lower(table_name) = lower('{tableName}')
+                          AND lower(column_name) = lower('{columnName}')
+                          AND data_type IN ('text', 'character varying')
+                    ) THEN
+                        ALTER TABLE "{tableName}" ALTER COLUMN "{columnName}" DROP DEFAULT;
+                        ALTER TABLE "{tableName}"
+                            ALTER COLUMN "{columnName}" TYPE timestamp with time zone
+                            USING (NULLIF(TRIM("{columnName}"), '')::timestamp with time zone);
+                    END IF;
+                END
+                $migration$
+                """;
+            await db.Database.ExecuteSqlRawAsync(sql, ct);
+            logger.LogInformation("Normalized PostgreSQL column {Table}.{Column} from text to timestamp with time zone.", tableName, columnName);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not normalize timestamp column {Table}.{Column}.", tableName, columnName);
+        }
+    }
+
+    private async Task NormalizePostgresTypeDirectAsync(string tableName, string columnName, string targetType, string usingExpr, CancellationToken ct)
+    {
+        try
+        {
+            var sql = $"""
+                ALTER TABLE "{tableName}" ALTER COLUMN "{columnName}" DROP DEFAULT;
+                ALTER TABLE "{tableName}" ALTER COLUMN "{columnName}" TYPE {targetType} USING ({usingExpr});
+                """;
+            await db.Database.ExecuteSqlRawAsync(sql, ct);
+            logger.LogInformation("Normalized PostgreSQL column {Table}.{Column} to {TargetType}.", tableName, columnName, targetType);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not normalize column {Table}.{Column} to {TargetType}.", tableName, columnName, targetType);
+        }
     }
 
     private async Task AddColumnIfMissingAsync(string tableName, string columnName, string columnDefinition, CancellationToken ct)

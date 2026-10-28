@@ -4,6 +4,7 @@ export default [
   // Page routes
   index("routes/home.jsx"),
   route("news/:slug", "routes/news.$slug.jsx"),
+  route("share/:id", "routes/share.$id.jsx"),
   route("story/:slug", "routes/story.$slug.jsx"),
   route("topic/:slug", "routes/topic.$slug.jsx"),
   route("category/:category", "routes/category.$category.jsx"),

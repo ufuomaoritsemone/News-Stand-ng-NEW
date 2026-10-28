@@ -199,11 +199,12 @@ public class CommentsController : ControllerBase
         var existingVote = await _db.CommentVotes
             .FirstOrDefaultAsync(v => v.CommentId == id && v.UserId == request.UserId, ct);
 
+        int normalizedVote = request.VoteType > 0 ? 1 : (request.VoteType < 0 ? -1 : 0);
         int effectiveUserVote = 0;
 
         if (existingVote != null)
         {
-            if (existingVote.VoteType == request.VoteType || request.VoteType == 0)
+            if (existingVote.VoteType == normalizedVote || normalizedVote == 0)
             {
                 // Toggled off / removed
                 _db.CommentVotes.Remove(existingVote);
@@ -212,12 +213,12 @@ public class CommentsController : ControllerBase
             else
             {
                 // Switched vote
-                existingVote.VoteType = request.VoteType;
+                existingVote.VoteType = normalizedVote;
                 existingVote.CreatedAt = DateTime.UtcNow;
-                effectiveUserVote = request.VoteType;
+                effectiveUserVote = normalizedVote;
             }
         }
-        else if (request.VoteType != 0)
+        else if (normalizedVote != 0)
         {
             // New vote
             _db.CommentVotes.Add(new CommentVote
@@ -225,10 +226,10 @@ public class CommentsController : ControllerBase
                 Id = Guid.NewGuid().ToString(),
                 CommentId = id,
                 UserId = request.UserId,
-                VoteType = request.VoteType > 0 ? 1 : -1,
+                VoteType = normalizedVote,
                 CreatedAt = DateTime.UtcNow
             });
-            effectiveUserVote = request.VoteType > 0 ? 1 : -1;
+            effectiveUserVote = normalizedVote;
         }
 
         await _db.SaveChangesAsync(ct);

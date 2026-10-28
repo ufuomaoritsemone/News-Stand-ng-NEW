@@ -145,7 +145,9 @@ public class MlCategorizerEngine : IDisposable
             {
                 var mlContext = new MLContext();
                 ITransformer model = mlContext.Model.Load(path, out _);
+                var oldEngine = _predictionEngine;
                 _predictionEngine = mlContext.Model.CreatePredictionEngine<ArticleInputData, ArticlePredictionOutput>(model);
+                oldEngine?.Dispose();
                 _loadedModelPath = path;
                 _logger.LogInformation("⚡ [HOT-RELOAD] ML.NET Categorizer model successfully reloaded from {Path}!", path);
                 return true;
@@ -161,6 +163,11 @@ public class MlCategorizerEngine : IDisposable
     public void Dispose()
     {
         _watcher?.Dispose();
+        lock (_lock)
+        {
+            _predictionEngine?.Dispose();
+            _predictionEngine = null;
+        }
     }
 
     public string Categorize(string title, string? summary = null)

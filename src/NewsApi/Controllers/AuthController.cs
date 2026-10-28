@@ -216,6 +216,14 @@ public class AuthController : ControllerBase
             }
         }
 
+        if (!sentViaEmail && !_env.IsDevelopment())
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                error = "Email verification service is temporarily unavailable. Please try again later."
+            });
+        }
+
         return Ok(new
         {
             success = true,
@@ -224,8 +232,8 @@ public class AuthController : ControllerBase
                 : $"Verification code generated for {email}.",
             email,
             expiresInMinutes = 10,
-            // Include code in response when running in development or when SMTP is unconfigured for frictionless testing
-            debugCode = (_env.IsDevelopment() || !sentViaEmail) ? code : null
+            // Include code in response strictly in Development mode for local testing
+            debugCode = _env.IsDevelopment() ? code : null
         });
     }
 
@@ -343,6 +351,9 @@ public class AuthController : ControllerBase
             client.Credentials = new System.Net.NetworkCredential(userName, password);
         }
 
+        var encodedDisplayName = System.Net.WebUtility.HtmlEncode(displayName);
+        var encodedCode = System.Net.WebUtility.HtmlEncode(code);
+
         using var mail = new MailMessage
         {
             From = new MailAddress(fromEmail, fromName),
@@ -353,11 +364,11 @@ public class AuthController : ControllerBase
                         <h1 style="font-size: 24px; font-weight: 800; color: #dc2626; margin: 0;">The Newsstand</h1>
                         <p style="font-size: 14px; color: #64748b; margin-top: 4px;">Community Discussion Verification</p>
                     </div>
-                    <p style="font-size: 16px; line-height: 1.5; color: #334155;">Hello <strong>{displayName}</strong>,</p>
+                    <p style="font-size: 16px; line-height: 1.5; color: #334155;">Hello <strong>{encodedDisplayName}</strong>,</p>
                     <p style="font-size: 15px; line-height: 1.5; color: #334155;">Enter the following 6-digit code to verify your reader profile and participate in story discussions:</p>
                     <div style="text-align: center; margin: 28px 0;">
                         <span style="display: inline-block; padding: 14px 28px; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #dc2626; background: #fef2f2; border: 1.5px dashed #fca5a5; border-radius: 8px;">
-                            {code}
+                            {encodedCode}
                         </span>
                     </div>
                     <p style="font-size: 13px; color: #64748b; line-height: 1.5;">This code will expire in 10 minutes. If you did not request this verification, you can safely ignore this email.</p>

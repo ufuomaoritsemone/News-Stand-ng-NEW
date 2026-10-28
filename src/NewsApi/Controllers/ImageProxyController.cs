@@ -114,42 +114,108 @@ public class ImageProxyController(
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(TimeSpan.FromSeconds(5));
 
-            using var response = await client.GetAsync(targetUri, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-            if (!response.IsSuccessStatusCode)
+            var currentUri = targetUri;
+            HttpResponseMessage? response = null;
+            for (int redirectCount = 0; redirectCount <= 3; redirectCount++)
             {
-                logger.LogWarning("Upstream image fetch failed with status {Status} for {Url}", response.StatusCode, url);
-                return StatusCode((int)response.StatusCode, "Upstream image could not be retrieved.");
-            }
-
-            var contentType = response.Content.Headers.ContentType?.MediaType;
-            if (contentType != null && !contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-            {
-                return BadRequest("Upstream resource is not a valid image format.");
-            }
-
-            await using var sourceStream = await response.Content.ReadAsStreamAsync(cts.Token);
-            using var image = await Image.LoadAsync(sourceStream, cts.Token);
-
-            // Resize only if original image is wider than target width
-            if (image.Width > safeWidth)
-            {
-                var targetHeight = (int)Math.Round((double)image.Height * safeWidth / image.Width);
-                image.Mutate(x => x.Resize(new ResizeOptions
+                response = await client.GetAsync(currentUri, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+                if ((int)response.StatusCode is >= 300 and < 400 && response.Headers.Location != null)
                 {
-                    Size = new Size(safeWidth, targetHeight),
-                    Mode = ResizeMode.Max
-                }));
+                    var nextUri = response.Headers.Location.IsAbsoluteUri
+                        ? response.Headers.Location
+                        : new Uri(currentUri, response.Headers.Location);
+                    response.Dispose();
+                    response = null;
+
+                    if ((nextUri.Scheme != Uri.UriSchemeHttp && nextUri.Scheme != Uri.UriSchemeHttps) ||
+                        !IsAllowedHost(nextUri.Host))
+                    {
+                        logger.LogWarning("Blocked image proxy redirect to unauthorized host: {Host}", nextUri.Host);
+                        return StatusCode(StatusCodes.Status403Forbidden, "Redirect target host is not permitted by proxy policy.");
+                    }
+
+                    currentUri = nextUri;
+                    continue;
+                }
+                break;
             }
 
-            var encoder = new WebpEncoder
+            if (response == null)
             {
-                Quality = safeQuality,
-                FileFormat = WebpFileFormatType.Lossy
-            };
+                return StatusCode(StatusCodes.Status502BadGateway, "Too many redirects from upstream image server.");
+            }
 
-            await using (var fileStream = new FileStream(cachedFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+            using (response)
             {
-                await image.SaveAsync(fileStream, encoder, cts.Token);
+                if (!response.IsSuccessStatusCode)
+                {
+                    logger.LogWarning("Upstream image fetch failed with status {Status} for {Url}", response.StatusCode, url);
+                    return StatusCode((int)response.StatusCode, "Upstream image could not be retrieved.");
+                }
+
+                var contentType = response.Content.Headers.ContentType?.MediaType;
+                if (contentType != null && !contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest("Upstream resource is not a valid image format.");
+                }
+
+                const long maxImageBytes = 10 * 1024 * 1024; // 10 MB upper bound
+                if (response.Content.Headers.ContentLength is > maxImageBytes)
+                {
+                    return StatusCode(StatusCodes.Status413PayloadTooLarge, "Upstream image exceeds maximum allowed size.");
+                }
+
+                await using var sourceStream = await response.Content.ReadAsStreamAsync(cts.Token);
+                using var boundedStream = new MemoryStream();
+                var buffer = new byte[81920];
+                long totalRead = 0;
+                int bytesRead;
+                while ((bytesRead = await sourceStream.ReadAsync(buffer, cts.Token)) > 0)
+                {
+                    totalRead += bytesRead;
+                    if (totalRead > maxImageBytes)
+                    {
+                        return StatusCode(StatusCodes.Status413PayloadTooLarge, "Upstream image exceeds maximum allowed size.");
+                    }
+                    boundedStream.Write(buffer, 0, bytesRead);
+                }
+                boundedStream.Position = 0;
+
+                using var image = await Image.LoadAsync(boundedStream, cts.Token);
+
+                // Resize only if original image is wider than target width
+                if (image.Width > safeWidth)
+                {
+                    var targetHeight = (int)Math.Round((double)image.Height * safeWidth / image.Width);
+                    image.Mutate(x => x.Resize(new ResizeOptions
+                    {
+                        Size = new Size(safeWidth, targetHeight),
+                        Mode = ResizeMode.Max
+                    }));
+                }
+
+                var encoder = new WebpEncoder
+                {
+                    Quality = safeQuality,
+                    FileFormat = WebpFileFormatType.Lossy
+                };
+
+                var tempFilePath = Path.Combine(cacheDir, $"{cacheKey}.{Guid.NewGuid():N}.tmp");
+                try
+                {
+                    await using (var fileStream = new FileStream(tempFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                    {
+                        await image.SaveAsync(fileStream, encoder, cts.Token);
+                    }
+                    System.IO.File.Move(tempFilePath, cachedFilePath, overwrite: true);
+                }
+                finally
+                {
+                    if (System.IO.File.Exists(tempFilePath))
+                    {
+                        try { System.IO.File.Delete(tempFilePath); } catch { }
+                    }
+                }
             }
 
             var fileETag = $"\"{cacheKey}\"";

@@ -108,3 +108,10 @@ function safeOrigin(url) {
     return undefined;
   }
 }
+
+/**
+ * Serializes a JSON-LD object while escaping `<` so untrusted strings cannot break out of `<script>` tags.
+ */
+export function safeJsonLd(data) {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}

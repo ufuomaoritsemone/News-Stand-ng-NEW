@@ -104,10 +104,16 @@ public abstract class SitemapScraperBase : IScraper
             .Take(MaxArticlesPerCycle)
             .ToList();
 
-        // If no extractor is injected, return the discovered sitemap items directly
-        if (_extractor == null || candidatesToEnrich.Count == 0)
+        // If no extractor is injected, return the unseen candidate sitemap items directly
+        if (_extractor == null)
         {
-            return discoveredItems.Take(MaxArticlesPerCycle);
+            return candidatesToEnrich;
+        }
+
+        // If all discovered URLs were already seen in previous cycles, return empty instead of re-scraping seen URLs
+        if (candidatesToEnrich.Count == 0)
+        {
+            return Array.Empty<ArticleModel>();
         }
 
         // Enrich articles in parallel with politeness throttling (max 3 concurrent per domain)
@@ -141,9 +147,9 @@ public abstract class SitemapScraperBase : IScraper
                     _frontier?.MarkUrlSeen(item.Url);
                     _frontier?.MarkTitleSeen(enriched.Title);
                 }
-                else
+                else if (!string.IsNullOrWhiteSpace(item.Title))
                 {
-                    // Fallback to basic sitemap item if page extract failed
+                    // Fallback to basic sitemap item only if it already has a headline (e.g. Google News sitemap)
                     item.Source = SourceName;
                     lock (enrichedArticles)
                     {
@@ -154,9 +160,12 @@ public abstract class SitemapScraperBase : IScraper
             }
             catch
             {
-                lock (enrichedArticles)
+                if (!string.IsNullOrWhiteSpace(item.Title))
                 {
-                    enrichedArticles.Add(item);
+                    lock (enrichedArticles)
+                    {
+                        enrichedArticles.Add(item);
+                    }
                 }
             }
             finally

@@ -49,12 +49,16 @@ public class FeedbackService : IFeedbackService
             IsEmailSent = false
         };
 
-        // Attempt sending email notification; set flag before the single save
-        var emailSent = await TrySendFeedbackEmailAsync(feedback, cancellationToken);
-        feedback.IsEmailSent = emailSent;
-
         _db.Feedbacks.Add(feedback);
-        await _db.SaveChangesAsync(cancellationToken); // Fix #12 — single DB round-trip
+        await _db.SaveChangesAsync(cancellationToken);
+
+        // Attempt sending email notification with bounded timeout after persisting feedback
+        var emailSent = await TrySendFeedbackEmailAsync(feedback, cancellationToken);
+        if (emailSent)
+        {
+            feedback.IsEmailSent = true;
+            await _db.SaveChangesAsync(cancellationToken);
+        }
 
         _logger.LogInformation("Feedback {FeedbackId} recorded successfully (Rating: {Rating}, EmailSent: {EmailSent})",
             feedback.Id, feedback.Rating, feedback.IsEmailSent);
@@ -150,7 +154,8 @@ public class FeedbackService : IFeedbackService
 
             using var smtp = new SmtpClient(smtpHost, port)
             {
-                EnableSsl = enableSsl
+                EnableSsl = enableSsl,
+                Timeout = 10000
             };
 
             if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
@@ -158,7 +163,9 @@ public class FeedbackService : IFeedbackService
                 smtp.Credentials = new NetworkCredential(username, password);
             }
 
-            await smtp.SendMailAsync(message, cancellationToken);
+            using var smtpCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            smtpCts.CancelAfter(TimeSpan.FromSeconds(10));
+            await smtp.SendMailAsync(message, smtpCts.Token);
             _logger.LogInformation("[FeedbackService] Feedback email successfully sent to {RecipientEmail} for feedback {FeedbackId}", recipientEmail, feedback.Id);
             return true;
         }

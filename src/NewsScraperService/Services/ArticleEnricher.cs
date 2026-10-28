@@ -102,6 +102,10 @@ public class ArticleEnricher(
                     }
                 }
             }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                logger.LogDebug("Timed out resolving metadata for article '{Title}'", it.Title);
+            }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogDebug(ex, "Failed to resolve metadata for article '{Title}'", it.Title);

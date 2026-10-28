@@ -79,4 +79,31 @@ public class DbInitializerTests : IDisposable
         var sources = await db.Sources.ToListAsync();
         Assert.NotEmpty(sources);
     }
+
+    [Fact]
+    public async Task NewsDbContext_DateTimeValueConverters_NormalizeUnspecifiedAndLocalToUtc()
+    {
+        using var db = CreateContext();
+        var initializer = new DbInitializer(db, NullLogger<DbInitializer>.Instance);
+        await initializer.InitializeAsync();
+
+        var unspecifiedDate = new DateTime(2026, 10, 28, 12, 0, 0, DateTimeKind.Unspecified);
+        var articleId = Guid.NewGuid().ToString("N");
+
+        db.Articles.Add(new NewsApi.Models.Article
+        {
+            Id = articleId,
+            Title = "UTC ValueConverter Verification Headline",
+            Slug = $"utc-converter-test-{articleId[..8]}",
+            PublishedAt = unspecifiedDate,
+            UpdatedAt = unspecifiedDate
+        });
+        await db.SaveChangesAsync();
+
+        var loaded = await db.Articles.AsNoTracking().FirstOrDefaultAsync(a => a.Id == articleId);
+        Assert.NotNull(loaded);
+        Assert.NotNull(loaded.PublishedAt);
+        Assert.Equal(DateTimeKind.Utc, loaded.PublishedAt.Value.Kind);
+        Assert.Equal(DateTimeKind.Utc, loaded.UpdatedAt!.Value.Kind);
+    }
 }

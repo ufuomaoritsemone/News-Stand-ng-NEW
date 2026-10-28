@@ -46,8 +46,7 @@ public class LlmEntityExtractor : IEntityExtractor
             ?? _config["Gemini__ApiKey"]
             ?? _config["GoogleCloud:ApiKey"]
             ?? _config["LlmEntityExtraction:ApiKey"]
-            ?? _config["ApiKey"]
-            ?? Environment.GetEnvironmentVariable("API_KEY");
+            ?? Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             _logger.LogDebug("Tier 2 LLM entity extraction skipped: No API key configured.");
@@ -135,12 +134,19 @@ public class LlmEntityExtractor : IEntityExtractor
 
         var responseString = await response.Content.ReadAsStringAsync(ct);
         using var doc = JsonDocument.Parse(responseString);
-        var text = doc.RootElement
-            .GetProperty("candidates")[0]
-            .GetProperty("content")
-            .GetProperty("parts")[0]
-            .GetProperty("text")
-            .GetString();
+        if (!doc.RootElement.TryGetProperty("candidates", out var candidates) ||
+            candidates.ValueKind != JsonValueKind.Array ||
+            candidates.GetArrayLength() == 0 ||
+            !candidates[0].TryGetProperty("content", out var content) ||
+            !content.TryGetProperty("parts", out var parts) ||
+            parts.ValueKind != JsonValueKind.Array ||
+            parts.GetArrayLength() == 0 ||
+            !parts[0].TryGetProperty("text", out var textElem))
+        {
+            return [];
+        }
+
+        var text = textElem.GetString();
 
         if (string.IsNullOrWhiteSpace(text)) return [];
 

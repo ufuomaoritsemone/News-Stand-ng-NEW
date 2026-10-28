@@ -99,7 +99,7 @@ public class IndexNowBackgroundService : BackgroundService, IIndexNowService
                 }
 
                 // Debounce / collect up to 100 items within 2 seconds
-                var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
                 timeoutCts.CancelAfter(TimeSpan.FromSeconds(2));
 
                 try

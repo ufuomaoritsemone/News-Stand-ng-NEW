@@ -23,7 +23,8 @@ public class ApiKeyMiddleware
     public async Task InvokeAsync(HttpContext context, IConfiguration config, IHostEnvironment env)
     {
         var method = context.Request.Method;
-        var path = context.Request.Path.Value ?? string.Empty;
+        var rawPath = context.Request.Path.Value ?? string.Empty;
+        var path = rawPath.Length > 1 ? rawPath.TrimEnd('/') : rawPath;
 
         // Non-API paths (e.g. swagger, health checks, static root) bypass API key validation
         if (!path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase))
@@ -99,14 +100,23 @@ public class ApiKeyMiddleware
     /// </summary>
     private static bool IsSensitiveAdminEndpoint(string path)
     {
-        if (path.Equals("/api/v1/feedback", StringComparison.OrdinalIgnoreCase))
+        if (path.Equals("/api/v1/feedback", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/health/details", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/api/v1/health/details", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/api/v1/comments/flagged", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/api/v1/categorizer/corrections", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/api/v1/categorizer/model", StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
 
         if (path.StartsWith("/api/v1/analytics/summary", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/api/v1/analytics/events", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/api/v1/settings", StringComparison.OrdinalIgnoreCase))
+            path.StartsWith("/api/v1/settings", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/api/v1/seo/search-analytics", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/api/v1/seo/crawl-diagnostics", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/api/seo/search-analytics", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/api/seo/crawl-diagnostics", StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }

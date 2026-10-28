@@ -94,7 +94,7 @@ public class MarketDataBackgroundService : BackgroundService
         _logger.LogInformation("Market data sync successfully executed for all evergreen trackers.");
     }
 
-    private static async Task SeedOrUpdateNairaFxAsync(NewsDbContext db, IFxRatesScraperService fxScraper, CancellationToken ct)
+    private async Task SeedOrUpdateNairaFxAsync(NewsDbContext db, IFxRatesScraperService fxScraper, CancellationToken ct)
     {
         var record = await db.MarketDataRecords.FirstOrDefaultAsync(r => r.MetricKey == "naira-fx", ct);
         var now = DateTime.UtcNow;
@@ -140,6 +140,13 @@ public class MarketDataBackgroundService : BackgroundService
                 CreatedAt = now
             };
             db.MarketDataRecords.Add(record);
+        }
+        else if (fxResult.PrimaryValue.StartsWith("₦0.00", StringComparison.Ordinal) &&
+                 !string.IsNullOrWhiteSpace(record.PrimaryValue) &&
+                 !record.PrimaryValue.StartsWith("₦0.00", StringComparison.Ordinal))
+        {
+            _logger.LogWarning("All FX scrape sources returned 0.00; preserving existing naira-fx record ({ExistingValue}).", record.PrimaryValue);
+            return;
         }
 
         record.Title = "Naira Exchange Rate (USD/NGN)";

@@ -22,6 +22,7 @@ public class CategorizerTrainingService : ICategorizerTrainingService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<CategorizerTrainingService> _logger;
     private readonly SemaphoreSlim _trainLock = new(1, 1);
+    private static readonly object ModelFileLock = new();
     private readonly object _engineLock = new();
 
     private PredictionEngine<ArticleInput, ArticlePrediction>? _predictionEngine;
@@ -189,9 +190,12 @@ public class CategorizerTrainingService : ICategorizerTrainingService
 
     public byte[]? GetModelBytes()
     {
-        if (File.Exists(_primaryModelPath))
+        lock (ModelFileLock)
         {
-            return File.ReadAllBytes(_primaryModelPath);
+            if (File.Exists(_primaryModelPath))
+            {
+                return File.ReadAllBytes(_primaryModelPath);
+            }
         }
         return null;
     }
@@ -372,8 +376,13 @@ public class CategorizerTrainingService : ICategorizerTrainingService
             _logger.LogInformation("Training Evaluation: Micro-Accuracy={Micro:P2}, Macro-Accuracy={Macro:P2}, Log-Loss={Loss:F4}",
                 _microAccuracy, _macroAccuracy, _logLoss);
 
-            // 4. Save trained model locally
-            mlContext.Model.Save(trainedModel, mappedDataView.Schema, _primaryModelPath);
+            // 4. Save trained model locally via atomic temp file to prevent concurrent file lock collisions
+            var tempModelPath = $"{_primaryModelPath}.{Guid.NewGuid():N}.tmp";
+            mlContext.Model.Save(trainedModel, mappedDataView.Schema, tempModelPath);
+            lock (ModelFileLock)
+            {
+                File.Move(tempModelPath, _primaryModelPath, overwrite: true);
+            }
             _logger.LogInformation("Saved categorizer model to primary path: {Path}", _primaryModelPath);
 
             // 5. Propagate model to NewsScraperService and NewsCategorizer.Trainer target paths for hot-reload
@@ -392,7 +401,10 @@ public class CategorizerTrainingService : ICategorizerTrainingService
                     if (Directory.Exists(dir))
                     {
                         string destZip = Path.Combine(dir, "categorizer_model.zip");
-                        File.Copy(_primaryModelPath, destZip, overwrite: true);
+                        lock (ModelFileLock)
+                        {
+                            File.Copy(_primaryModelPath, destZip, overwrite: true);
+                        }
                         _logger.LogInformation("Propagated updated model to: {Target}", destZip);
                     }
                 }
@@ -405,9 +417,11 @@ public class CategorizerTrainingService : ICategorizerTrainingService
             // 6. Update in-memory prediction engine
             lock (_engineLock)
             {
+                var oldEngine = _predictionEngine;
                 _trainedModel = trainedModel;
                 _modelSchema = mappedDataView.Schema;
                 _predictionEngine = mlContext.Model.CreatePredictionEngine<ArticleInput, ArticlePrediction>(trainedModel);
+                oldEngine?.Dispose();
             }
 
             return new CategorizerTrainResult(

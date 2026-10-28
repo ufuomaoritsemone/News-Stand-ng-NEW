@@ -183,7 +183,7 @@ POSTGRES_USER=newsuser
 POSTGRES_PASSWORD=CreateYourStrongPasswordHere_12345!
 
 # ==============================================================================
-# SECURITY, WORKER AUTHENTICATION & ADMIN PORTAL CREDENTIALS
+# 2. SECURITY, WORKER AUTHENTICATION & ADMIN PORTAL CREDENTIALS
 # ==============================================================================
 # 64+ char secret used by NewsScraperService, TtsWorker & AdminDashboard to authenticate with NewsApi
 API_KEY=GenerateSecureRandom64CharApiKey_ForServiceToServiceAuth_2026!
@@ -192,12 +192,16 @@ API_KEY=GenerateSecureRandom64CharApiKey_ForServiceToServiceAuth_2026!
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=ChangeThisStrongAdminPassword_2026!
 
+# Maximum requests per minute per IP for the sliding-window rate limiter
+RATE_LIMITING_PERMIT_LIMIT=600
+
 # ==============================================================================
-# AI ENRICHMENT & EMBEDDINGS (Google AI Studio / Vertex AI)
+# 3. AI ENRICHMENT & EMBEDDINGS (Google AI Studio / Vertex AI)
 # ==============================================================================
 GEMINI_API_KEY=AIzaSy...YourGoogleAiStudioGeminiKey
 GEMINI_MODEL=gemini-3.1-flash-lite
 AiEnrichment__GeminiEnabled=true
+LLM_ENTITY_EXTRACTION_ENABLED=false
 
 # Keep GOOGLE_GENAI_USE_VERTEXAI=false when using a standard Google AI Studio GEMINI_API_KEY.
 # Only set to true if authenticating exclusively via a Vertex AI Service Account JSON key.
@@ -206,26 +210,37 @@ GCP_PROJECT_ID=project-00ae160d-e8ea-44ec-9ff
 GOOGLE_CLOUD_PROJECT=project-00ae160d-e8ea-44ec-9ff
 GCP_LOCATION=us-central1
 
-# Bing / Yandex IndexNow Protocol
-INDEXNOW_KEY=3a7b9c1d2e4f5a6b7c8d9e0f1a2b3c4d
-
 # ==============================================================================
-# SCRAPER, YOUTUBE & AUDIO CONFIGURATION
+# 4. SCRAPER, YOUTUBE & AUDIO CONFIGURATION
 # ==============================================================================
+SCRAPER_INTERVAL_MINUTES=15
 SCRAPER_MAX_CONCURRENCY=4
+MEDIA_SYNC_INTERVAL_MINUTES=15
 YOUTUBE_API_KEY=AIzaSy...YourYouTubeDataApiV3Key
+
+# Text-to-Speech Engine: 'EdgeNeural' (Default $0 cloud cost) or 'GoogleCloud'
+TTS_PROVIDER=EdgeNeural
 GCP_TTS_API_KEY=
 
 # ==============================================================================
-# READER AUTHENTICATION & SMTP (Optional - Community Forum OTP & Feedback)
+# 5. SEO & SEARCH ENGINE INDEXING
+# ==============================================================================
+INDEXNOW_KEY=3a7b9c1d2e4f5a6b7c8d9e0f1a2b3c4d
+INDEXNOW_HOST=newsstand.ng
+INDEXNOW_ENABLED=true
+
+# ==============================================================================
+# 6. READER AUTHENTICATION & SMTP (Community Forum OTP & Feedback)
 # ==============================================================================
 GOOGLE_CLIENT_ID=434931027697-0ofh3nptkv409vju55od3fhrfbkccu15.apps.googleusercontent.com
+FEEDBACK_RECIPIENT_EMAIL=feedback@newsstand.ng
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_ENABLE_SSL=true
 SMTP_USERNAME=
 SMTP_PASSWORD=
 SMTP_FROM_EMAIL=no-reply@newsstand.ng
+SMTP_FROM_NAME=News Stand NG
 
 # ==============================================================================
 # CORS & FRONTEND CONFIGURATION

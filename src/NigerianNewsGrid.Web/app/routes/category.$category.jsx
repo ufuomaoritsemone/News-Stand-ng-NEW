@@ -122,7 +122,7 @@ export default function CategoryPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(categoryJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(categoryJsonLd).replace(/</g, "\\u003c") }}
       />
       <App key={data.category} initialData={data} initialCategory={data.category} />
     </>

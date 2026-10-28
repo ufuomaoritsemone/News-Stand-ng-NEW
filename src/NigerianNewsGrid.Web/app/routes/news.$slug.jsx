@@ -259,17 +259,17 @@ export default function ArticleLandingPage() {
       {!article.isSponsored && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(newsArticleJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(newsArticleJsonLd).replace(/</g, "\\u003c") }}
         />
       )}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd).replace(/</g, "\\u003c") }}
       />
       {faqPageJsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageJsonLd).replace(/</g, "\\u003c") }}
         />
       )}
 
@@ -588,7 +588,7 @@ export default function ArticleLandingPage() {
                   <span className="timeline-strip-label">Key Facts:</span>
                   {article.enrichment.timelineFacts.slice(0, 4).map((fact, idx) => (
                     <span key={idx} className="timeline-fact-chip">
-                      <strong>{fact.dateOrTime}:</strong> {fact.fact}
+                      <strong>{fact.dateOrTime || fact.dateText || "Fact"}:</strong> {fact.fact}
                     </span>
                   ))}
                 </div>

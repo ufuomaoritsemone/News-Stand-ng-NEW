@@ -515,11 +515,21 @@
             }
         }
 
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         async function viewAiSummary(articleId, title, engine) {
             document.getElementById('aiSummaryModalTitle').innerText = title || 'Executive Briefing';
             var engineBadge = document.getElementById('aiModalEngineBadge');
             if (engineBadge) {
-                engineBadge.innerHTML = '<i class="bi bi-stars me-1"></i> ' + (engine || 'Gemini 1.5 Flash');
+                engineBadge.innerHTML = '<i class="bi bi-stars me-1"></i> ' + escapeHtml(engine || 'Gemini 1.5 Flash');
             }
             document.getElementById('aiModalLoading').style.display = 'block';
             document.getElementById('aiModalContent').style.display = 'none';
@@ -536,7 +546,7 @@
                 } else if (data.success && data.summary) {
                     renderEnrichmentModal({ fullSummary: data.summary, engine: engine || 'Gemini-3.1-Flash-Lite' });
                 } else {
-                    document.getElementById('aiModalLoading').innerHTML = '<div class="text-warning p-3"><i class="bi bi-exclamation-circle me-1"></i> ' + (data.message || 'No AI summary available.') + '</div>';
+                    document.getElementById('aiModalLoading').innerHTML = '<div class="text-warning p-3"><i class="bi bi-exclamation-circle me-1"></i> ' + escapeHtml(data.message || 'No AI summary available.') + '</div>';
                 }
             } catch (err) {
                 console.error('Error fetching AI summary:', err);
@@ -562,7 +572,7 @@
 
             var readingTimeEl = document.getElementById('aiModalReadingTime');
             if (full && full.readingTimeSeconds) {
-                readingTimeEl.innerHTML = '<i class="bi bi-clock me-1"></i> ~' + full.readingTimeSeconds + ' sec read';
+                readingTimeEl.innerHTML = '<i class="bi bi-clock me-1"></i> ~' + escapeHtml(full.readingTimeSeconds) + ' sec read';
             }
 
             var takeawaysEl = document.getElementById('aiModalTakeaways');
@@ -572,7 +582,7 @@
                 takeaways.forEach(function(t) {
                     var div = document.createElement('div');
                     div.className = 'ai-takeaway-item';
-                    div.innerHTML = '<i class="bi bi-check-circle-fill text-info me-2"></i>' + t;
+                    div.innerHTML = '<i class="bi bi-check-circle-fill text-info me-2"></i>' + escapeHtml(t);
                     takeawaysEl.appendChild(div);
                 });
             } else {
@@ -602,7 +612,7 @@
                     var item = document.createElement('div');
                     item.className = 'small text-light mb-1 p-2 rounded';
                     item.style.background = 'rgba(255,255,255,0.03)';
-                    item.innerHTML = '<span class="badge bg-warning text-dark me-2">' + (f.dateText || 'Fact') + '</span> ' + f.fact;
+                    item.innerHTML = '<span class="badge bg-warning text-dark me-2">' + escapeHtml(f.dateText || 'Fact') + '</span> ' + escapeHtml(f.fact);
                     timelineEl.appendChild(item);
                 });
                 timelineSec.style.display = 'block';
@@ -612,7 +622,7 @@
                     var item = document.createElement('div');
                     item.className = 'small text-light mb-1 p-2 rounded';
                     item.style.background = 'rgba(255,255,255,0.03)';
-                    item.innerHTML = '<i class="bi bi-tag-fill text-warning me-2"></i>' + k;
+                    item.innerHTML = '<i class="bi bi-tag-fill text-warning me-2"></i>' + escapeHtml(k);
                     timelineEl.appendChild(item);
                 });
                 timelineSec.style.display = 'block';
@@ -629,9 +639,9 @@
                     item.className = 'accordion-item bg-transparent border-secondary border-opacity-25';
                     item.innerHTML = '<h2 class="accordion-header" id="heading' + idx + '">' +
                         '<button class="accordion-button collapsed bg-transparent text-light py-2 px-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapse' + idx + '">' +
-                        '<span class="fw-semibold small text-info me-2">Q:</span> <span class="small">' + faq.question + '</span></button></h2>' +
+                        '<span class="fw-semibold small text-info me-2">Q:</span> <span class="small">' + escapeHtml(faq.question) + '</span></button></h2>' +
                         '<div id="collapse' + idx + '" class="accordion-collapse collapse" data-bs-parent="#aiModalFaqAccordion">' +
-                        '<div class="accordion-body text-light small px-0 pt-1 pb-3">' + faq.answer + '</div></div>';
+                        '<div class="accordion-body text-light small px-0 pt-1 pb-3">' + escapeHtml(faq.answer) + '</div></div>';
                     faqAcc.appendChild(item);
                 });
                 faqSec.style.display = 'block';

@@ -165,17 +165,6 @@ export const api = {
   },
 
   /**
-   * Fetch active story clusters.
-   */
-  async getStories({ page = 1, pageSize = 20 } = {}) {
-    const base = getApiBaseUrl();
-    const params = new URLSearchParams();
-    if (page) params.append('page', page);
-    if (pageSize) params.append('pageSize', pageSize);
-    return fetchJson(`${base}/stories?${params.toString()}`);
-  },
-
-  /**
    * Fetch a single story cluster by slug.
    */
   async getStoryBySlug(slug) {

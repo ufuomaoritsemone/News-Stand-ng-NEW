@@ -37,12 +37,11 @@ public partial class ArticleEnrichmentService(
             catch { }
         }
 
-        return Environment.GetEnvironmentVariable("GEMINI_API_KEY")
-            ?? _config["Gemini:ApiKey"]
+        return _config["Gemini:ApiKey"]
             ?? _config["Gemini__ApiKey"]
+            ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY")
             ?? _config["GoogleCloud:ApiKey"]
-            ?? _config["ApiKey"]
-            ?? Environment.GetEnvironmentVariable("API_KEY");
+            ?? Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
     }
 
     private async Task<bool> IsGeminiEnabledAsync(CancellationToken ct = default)
@@ -269,13 +268,9 @@ public partial class ArticleEnrichmentService(
     {
         var cutoff = DateTime.UtcNow.AddDays(-14);
 
-        var existingEnrichedIds = await _db.ArticleEnrichments
-            .Select(e => e.ArticleId)
-            .ToListAsync(cancellationToken);
-
         var unenrichedArticles = await _db.Articles
             .Include(a => a.ArticleTopics).ThenInclude(at => at.Topic)
-            .Where(a => a.PublishedAt >= cutoff && !existingEnrichedIds.Contains(a.Id))
+            .Where(a => a.PublishedAt >= cutoff && !_db.ArticleEnrichments.Any(e => e.ArticleId == a.Id))
             .OrderByDescending(a => a.PublishedAt)
             .Take(batchSize)
             .ToListAsync(cancellationToken);

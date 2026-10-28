@@ -271,7 +271,8 @@ public class Service : BackgroundService
         await File.WriteAllTextAsync(txtPath, scriptText, cancellationToken);
 
         // Synthesize via Tri-Tier Synthesizer
-        var synthesisResult = await _synthesizer.SynthesizeAsync(scriptText, "en-NG-EzinneNeural", cancellationToken);
+        var preferredVoice = _configuration["Tts:EdgeVoice"] ?? "en-NG-EzinneNeural";
+        var synthesisResult = await _synthesizer.SynthesizeAsync(scriptText, preferredVoice, cancellationToken);
 
         string audioExtension = synthesisResult.ContentType.Contains("wav", StringComparison.OrdinalIgnoreCase)
             ? ".wav"
@@ -321,7 +322,10 @@ public class Service : BackgroundService
                 Content = JsonContent.Create(registration)
             };
 
-            var apiKey = _configuration["ApiKey"] ?? _configuration["NewsApi:ApiKey"];
+            var apiKey = _configuration["ApiKey"]
+                ?? _configuration["NewsApi:ApiKey"]
+                ?? _configuration["API_KEY"]
+                ?? Environment.GetEnvironmentVariable("API_KEY");
             if (!string.IsNullOrWhiteSpace(apiKey))
             {
                 request.Headers.Add("X-Api-Key", apiKey);

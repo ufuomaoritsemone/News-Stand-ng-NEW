@@ -55,6 +55,11 @@ public class ArticleContentExtractor
 
             return ExtractFromHtml(html, url, sourceName);
         }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogDebug("Timed out extracting article content from {Url}", url);
+            return null;
+        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogDebug(ex, "Failed to extract article content from {Url}", url);

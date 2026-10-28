@@ -14,6 +14,7 @@ using Xunit;
 
 namespace NewsApi.Tests;
 
+[Collection("NewsApiIntegration")]
 public class ArticleEnrichmentTests
 {
     private readonly LocalFallbackEmbeddingProvider _embeddingProvider = new();
