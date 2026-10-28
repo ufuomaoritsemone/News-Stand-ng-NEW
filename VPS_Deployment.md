@@ -164,8 +164,10 @@ cd /opt/newsgrid
 git clone https://github.com/ufuomaoritsemone/News-Stand-ng.git .
 
 # Create secrets directory for optional GCP service account JSON key
+# Note: Containers run as non-root ($APP_UID 1654), so files in ./secrets must be world-readable (0644)
 mkdir -p /opt/newsgrid/secrets
 touch /opt/newsgrid/secrets/gcp-service-account.json
+chmod 644 /opt/newsgrid/secrets/gcp-service-account.json
 ```
 
 ---
@@ -189,6 +191,7 @@ POSTGRES_PASSWORD=CreateYourStrongPasswordHere_12345!
 API_KEY=GenerateSecureRandom64CharApiKey_ForServiceToServiceAuth_2026!
 
 # Admin Dashboard Portal (https://admin.newsstand.ng) Login Credentials
+# IMPORTANT: Production mode blocks login if ADMIN_PASSWORD is empty or left as 'AdminPass123!'
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=ChangeThisStrongAdminPassword_2026!
 
@@ -288,7 +291,7 @@ Expected containers:
 
 Verify backend, SSR frontend, and internal API proxy locally:
 ```bash
-# 1. Verify NewsApi PostgreSQL readiness probe
+# 1. Verify NewsApi PostgreSQL readiness probe (public healthz endpoint)
 curl -I http://127.0.0.1:5000/healthz/readiness
 # Returns: HTTP/1.1 200 OK
 
@@ -296,9 +299,14 @@ curl -I http://127.0.0.1:5000/healthz/readiness
 curl -I http://127.0.0.1:3000
 # Returns: HTTP/1.1 200 OK (Web SSR)
 
-# 3. Verify Web SSR -> NewsApi internal Docker proxy (app/routes/api.$.jsx)
-curl -I http://127.0.0.1:3000/api/v1/health/details
+# 3. Verify Web SSR -> NewsApi internal Docker proxy (app/routes/api.$.jsx) on public endpoint
+curl -I http://127.0.0.1:3000/api/v1/sources
 # Returns: HTTP/1.1 200 OK
+
+# 4. Verify authenticated /api/v1/health/details endpoint (requires X-Api-Key)
+curl -s http://127.0.0.1:5000/api/v1/health/details \
+  -H "X-Api-Key: $(grep '^API_KEY=' /opt/newsgrid/.env | cut -d '=' -f2-)" | jq .status
+# Returns: "Healthy"
 ```
 
 ---
@@ -685,7 +693,9 @@ Run these commands from your local machine or VPS terminal to verify complete en
   curl -I https://api.newsstand.ng/healthz/readiness
   # Returns: HTTP/2 200 OK
 
-  curl -s https://api.newsstand.ng/api/v1/health/details | jq .
+  # Note: /api/v1/health/details is a protected admin endpoint and requires X-Api-Key
+  curl -s https://api.newsstand.ng/api/v1/health/details \
+    -H "X-Api-Key: $(grep '^API_KEY=' /opt/newsgrid/.env | cut -d '=' -f2-)" | jq .
   # Returns JSON with database provider ("PostgreSQL"), active Gemini model, scraper status, and storage metrics
   ```
 - [ ] **SEO HTML Hydration & Structured Sitemaps**:
@@ -754,4 +764,13 @@ Optimized WebP thumbnails are cached in the `img-cache` volume (`/app/data/img_c
 ```bash
 curl -X POST http://127.0.0.1:5000/api/v1/health/purge-cache \
   -H "X-Api-Key: $(grep '^API_KEY=' /opt/newsgrid/.env | cut -d '=' -f2-)"
+```
+
+### 9.4 Non-Root Container Permissions (`$APP_UID` / `node`) when Migrating Existing Volumes
+All .NET 10 containers execute as the non-root `$APP_UID` (`1654`) user and `news-web` executes as `node` (`1000`). Fresh Docker named volumes (`audio-data`, `img-cache`, `ai-logs`) automatically inherit `1654:1654` ownership from the image. However, if you are upgrading an older VPS where volumes were previously created by `root`, fix volume ownership once with:
+```bash
+for vol in audio-data img-cache ai-logs; do
+  docker run --rm -v "newsgrid_${vol}:/mnt" alpine chown -R 1654:1654 /mnt
+done
+chmod 644 /opt/newsgrid/secrets/gcp-service-account.json
 ```

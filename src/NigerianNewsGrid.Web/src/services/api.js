@@ -10,6 +10,20 @@ export function getApiBaseUrl() {
 
 const API_BASE = '/api/v1';
 
+/** Maximum time an SSR loader waits on the backend API before falling back. */
+const SSR_FETCH_TIMEOUT_MS = Number(
+  (typeof process !== 'undefined' && process.env?.SSR_FETCH_TIMEOUT_MS) || 3000
+);
+
+/**
+ * Public (browser-reachable) API base. Used for URLs embedded in HTML such as image src/preload links.
+ * On the server this must NOT be the internal backend address (e.g. http://news-api:8080), because the
+ * browser cannot reach it; image requests go through the SSR `/api/*` reverse proxy instead.
+ */
+function getPublicApiBaseUrl() {
+  return import.meta.env?.VITE_API_BASE || API_BASE;
+}
+
 /**
  * Robust fetch wrapper with JSON parsing and error handling for both browser and SSR Node runtime.
  */
@@ -22,11 +36,17 @@ async function fetchJson(url, options = {}) {
 
   try {
     const { headers, ...restOptions } = options;
+    // Bound SSR backend calls so a slow/unreachable API cannot stall Time-To-First-Byte (and therefore LCP).
+    const ssrSignal =
+      typeof window === 'undefined' && !restOptions.signal && typeof AbortSignal?.timeout === 'function'
+        ? AbortSignal.timeout(SSR_FETCH_TIMEOUT_MS)
+        : undefined;
     const res = await fetch(targetUrl, {
       headers: {
         'Accept': 'application/json',
         ...headers,
       },
+      ...(ssrSignal ? { signal: ssrSignal } : {}),
       ...restOptions,
     });
 
@@ -52,7 +72,8 @@ export function getOptimizedImageUrl(rawUrl, width = 800) {
   if (!rawUrl) return DEFAULT_EDITORIAL_IMAGE;
   if (rawUrl.startsWith('/') || rawUrl.startsWith('data:')) return rawUrl;
   if (rawUrl.includes('/img?url=')) return rawUrl;
-  const base = getApiBaseUrl();
+  // Same value on server and client: prevents leaking internal hosts into HTML and hydration mismatches.
+  const base = getPublicApiBaseUrl().replace(/\/$/, '');
   return `${base}/img?url=${encodeURIComponent(rawUrl)}&w=${width}`;
 }
 
