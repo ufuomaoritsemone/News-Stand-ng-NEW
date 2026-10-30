@@ -101,6 +101,7 @@ public partial class StoryClusteringService : IStoryClusteringService
 
     private static readonly Dictionary<string, string> CanonicalSynonyms = new(StringComparer.OrdinalIgnoreCase)
     {
+        ["transnational"] = "transcorp",
         ["pms"] = "petrol",
         ["nnpcl"] = "nnpc",
         ["mpr"] = "monetary",
@@ -812,6 +813,10 @@ public partial class StoryClusteringService : IStoryClusteringService
 
     private static string NormalizeAndStemToken(string word)
     {
+        // Strip leading Naira currency prefix (e.g. n111 -> 111, n50 -> 50)
+        if (word.Length >= 2 && (word[0] == 'n' || word[0] == 'N') && char.IsDigit(word[1]))
+            word = word[1..];
+
         if (CanonicalSynonyms.TryGetValue(word, out var syn))
             return syn;
 

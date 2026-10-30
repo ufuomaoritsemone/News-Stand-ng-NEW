@@ -23,6 +23,11 @@ Projects:
 
 ## Updates
 
+### October 30, 2026 — Corporate Earnings Clustering Token Normalization & CI Test Suite Fix
+Resolved a CI unit test failure in `NewsApi.Tests` (`RunClustering_DoesNotMerge_UnrelatedCorporateEarningsReports`) by hardening token extraction for Nigerian financial earnings reports:
+- **[Naira Currency Prefix Normalization (StoryClusteringService.cs)]**: In `NormalizeAndStemToken`, added stripping of leading 'n'/'N' currency prefixes when followed by digits (e.g. N111 -> 111), ensuring articles using symbol formatting (₦111.4bn) and letter formatting (N111.39 billion) compute exact numerical token overlaps.
+- **[Corporate Canonical Synonyms (StoryClusteringService.cs)]**: Added ["transnational"] = "transcorp" mapping to `CanonicalSynonyms` to align Nigerian corporate legal names with media trading identifiers.
+- **[Testing & Verification]**: Executed full unit test run with `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` — all 95/95 tests passing (Failed: 0, Passed: 95).
 ### October 30, 2026 — Admin Settings Contact & WhatsApp Integration with Conditional Public Routing
 Implemented dynamic WhatsApp and Feedback contact configuration in the Admin Dashboard, paired with automated conditional message routing on the public website's Contact page:
 - **[Admin Settings "Contact & WhatsApp" Management (`src/AdminDashboard/Pages/Settings.cshtml`)]**: Added a dedicated "Contact & WhatsApp" tab in the Admin Dashboard Settings view with inputs for WhatsApp Phone Number (`Contact:WhatsAppNumber`), Default Prefilled Message (`Contact:WhatsAppDefaultMessage`), and Recipient Email (`Feedback:RecipientEmail`). Includes live input validation and a dynamic testing link directly launching `wa.me/{cleanNumber}`.
