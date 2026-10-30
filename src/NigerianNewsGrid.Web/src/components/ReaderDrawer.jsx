@@ -95,8 +95,8 @@ export default function ReaderDrawer({
           // Filter out current article
           list = list.filter((item) => item && item.id !== article.id);
 
-          // If fewer than 4 stories, fallback to fetching recent stories in the same category
-          if (list.length < 4 && article.category) {
+          // Only fallback to category articles if the related endpoint returned zero matches
+          if (list.length === 0 && article.category) {
             try {
               const catRes = await api.getArticles({
                 category: article.category !== 'All' ? article.category : '',

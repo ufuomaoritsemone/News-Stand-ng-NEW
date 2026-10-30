@@ -25,3 +25,10 @@ public record FeedbackResponseDto(
     string Message,
     string? FeedbackId = null
 );
+
+public record ContactInfoDto(
+    string WhatsAppNumber,
+    string DefaultMessage,
+    string RecipientEmail,
+    bool HasWhatsApp
+);

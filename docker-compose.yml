@@ -37,6 +37,8 @@ services:
       - LlmEntityExtraction__Enabled=${LLM_ENTITY_EXTRACTION_ENABLED:-false}
       - AiEnrichment__GeminiEnabled=${AiEnrichment__GeminiEnabled:-true}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/gcp-service-account.json
+      - GSC_CREDENTIALS_JSON=${GSC_CREDENTIALS_JSON:-/app/secrets/newsstandng1-bd450287f180.json}
+      - SearchConsole__ServiceAccountKeyPath=${SEARCH_CONSOLE_KEY_PATH:-/app/secrets/newsstandng1-bd450287f180.json}
       - GCP_PROJECT_ID=${GCP_PROJECT_ID:-project-00ae160d-e8ea-44ec-9ff}
       - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-project-00ae160d-e8ea-44ec-9ff}
       - GCP_LOCATION=${GCP_LOCATION:-us-central1}

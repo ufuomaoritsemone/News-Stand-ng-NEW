@@ -37,6 +37,7 @@ export default [
 
   // SEO & Crawler Resource Routes
   route("robots.txt", "routes/robots[.]txt.jsx"),
+  route("ads.txt", "routes/ads[.]txt.jsx"),
   route("sitemap.xml", "routes/sitemap[.]xml.jsx"),
   route("sitemap-news.xml", "routes/sitemap-news[.]xml.jsx"),
   route("sitemap-stories.xml", "routes/sitemap-stories[.]xml.jsx"),

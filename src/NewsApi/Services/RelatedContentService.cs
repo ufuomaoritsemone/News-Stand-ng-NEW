@@ -132,27 +132,42 @@ public class RelatedContentService : IRelatedContentService
                 })
                 .ToListAsync(cancellationToken);
 
-            var rankedArticles = allCandidateArticles
+            var scoredCandidates = allCandidateArticles
                 .Select(a =>
                 {
-                    int score = 0;
-                    var artCat = a.Category?.ToLowerInvariant() ?? "";
-                    if (!string.IsNullOrEmpty(categoryNorm) && artCat == categoryNorm)
-                        score += 3;
-
+                    int keywordScore = 0;
                     var artTitle = a.Title.ToLowerInvariant();
                     var artSummary = (a.Summary ?? "").ToLowerInvariant();
 
                     foreach (var kw in keywords)
                     {
-                        if (artTitle.Contains(kw)) score += 4;
-                        else if (artSummary.Contains(kw)) score += 2;
+                        if (artTitle.Contains(kw)) keywordScore += 5;
+                        else if (artSummary.Contains(kw)) keywordScore += 2;
                     }
 
-                    return new { Article = a, Score = score };
+                    if (StoryClusteringService.AreArticlesRelatedForCluster(title, null, a.Title, a.Summary))
+                    {
+                        keywordScore += 12;
+                    }
+
+                    if (StoryClusteringService.HasConflictingStates(title, a.Title))
+                    {
+                        keywordScore = Math.Max(0, keywordScore - 8);
+                    }
+
+                    var artCat = a.Category?.ToLowerInvariant() ?? "";
+                    int catScore = (!string.IsNullOrEmpty(categoryNorm) && artCat == categoryNorm) ? 2 : 0;
+
+                    return new { Article = a, KeywordScore = keywordScore, TotalScore = keywordScore + catScore };
                 })
-                .Where(x => x.Score > 0 || string.IsNullOrEmpty(categoryNorm))
-                .OrderByDescending(x => x.Score)
+                .ToList();
+
+            var keywordMatchedCount = scoredCandidates.Count(x => x.KeywordScore > 0);
+            var rankedArticles = (keywordMatchedCount >= Math.Min(limitPerType, 2)
+                    ? scoredCandidates.Where(x => x.KeywordScore > 0)
+                    : scoredCandidates.Where(x => x.TotalScore > 0 || string.IsNullOrEmpty(categoryNorm)))
+                .OrderByDescending(x => x.KeywordScore)
+                .ThenByDescending(x => x.TotalScore)
                 .ThenByDescending(x => x.Article.PublishedAt ?? DateTime.MinValue)
                 .Take(limitPerType)
                 .Select(x => new ArticleDto

@@ -38,6 +38,16 @@ public class FeedbackController : ControllerBase
     }
 
     /// <summary>
+    /// Returns public contact configuration (configured WhatsApp number, default message, and admin recipient email).
+    /// </summary>
+    [HttpGet("contact-info")]
+    public async Task<IActionResult> GetContactInfo(CancellationToken cancellationToken = default)
+    {
+        var info = await _feedbackService.GetContactInfoAsync(cancellationToken);
+        return Ok(info);
+    }
+
+    /// <summary>
     /// Returns recent user feedbacks (administrative/audit view).
     /// </summary>
     [HttpGet]

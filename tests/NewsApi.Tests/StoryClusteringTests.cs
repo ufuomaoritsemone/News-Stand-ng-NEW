@@ -263,4 +263,150 @@ public class StoryClusteringTests
         var count = await service.RunClusteringAsync();
         Assert.Equal(1, count);
     }
+
+    [Fact]
+    public async Task RunClustering_DoesNotMerge_UnrelatedPoliceOrStateStories()
+    {
+        using var db = CreateInMemoryDb();
+        var embeddingProvider = new LocalFallbackEmbeddingProvider();
+        var slugService = new SlugService();
+        var config = new ConfigurationBuilder().Build();
+
+        var service = new StoryClusteringService(
+            db,
+            embeddingProvider,
+            slugService,
+            config,
+            NullLogger<StoryClusteringService>.Instance);
+
+        var now = DateTime.UtcNow;
+        db.Articles.AddRange(
+            new Article
+            {
+                Id = "kebbi-1",
+                Title = "Police confirm three deaths, inspector injured in Kebbi violence",
+                Summary = "Kebbi State Police Command confirmed three people died in the clash.",
+                Source = "Daily Post Nigeria",
+                Category = "Crime",
+                PublishedAt = now.AddHours(-2),
+                Slug = "police-confirm-three-deaths-kebbi"
+            },
+            new Article
+            {
+                Id = "kebbi-2",
+                Title = "Police confirm three killed, inspector injured in Kebbi violence",
+                Summary = "Three persons were killed and a police inspector injured in Kebbi.",
+                Source = "Punch Newspaper",
+                Category = "Crime",
+                PublishedAt = now.AddHours(-1),
+                Slug = "police-confirm-three-killed-kebbi"
+            },
+            new Article
+            {
+                Id = "plateau-1",
+                Title = "Police confirm six killed in Plateau attack",
+                Summary = "Six residents lost their lives during an attack in Plateau State.",
+                Source = "Vanguard News",
+                Category = "Crime",
+                PublishedAt = now.AddHours(-1),
+                Slug = "police-confirm-six-killed-plateau"
+            },
+            new Article
+            {
+                Id = "lagos-1",
+                Title = "Police arrest suspected arms courier in Lagos",
+                Summary = "Operatives in Lagos intercepted a suspected gunrunner.",
+                Source = "Channels Television",
+                Category = "Crime",
+                PublishedAt = now.AddHours(-1),
+                Slug = "police-arrest-arms-courier-lagos"
+            });
+        await db.SaveChangesAsync();
+
+        var count = await service.RunClusteringAsync();
+        Assert.Equal(1, count);
+
+        var cluster = await db.StoryClusters
+            .Include(sc => sc.ClusterArticles)
+            .SingleAsync();
+
+        Assert.Equal(2, cluster.ArticleCount);
+        Assert.Contains(cluster.ClusterArticles, ca => ca.ArticleId == "kebbi-1");
+        Assert.Contains(cluster.ClusterArticles, ca => ca.ArticleId == "kebbi-2");
+        Assert.DoesNotContain(cluster.ClusterArticles, ca => ca.ArticleId == "plateau-1");
+        Assert.DoesNotContain(cluster.ClusterArticles, ca => ca.ArticleId == "lagos-1");
+    }
+
+    [Fact]
+    public async Task RunClustering_DoesNotMerge_UnrelatedCorporateEarningsReports()
+    {
+        using var db = CreateInMemoryDb();
+        var embeddingProvider = new LocalFallbackEmbeddingProvider();
+        var slugService = new SlugService();
+        var config = new ConfigurationBuilder().Build();
+
+        var service = new StoryClusteringService(
+            db,
+            embeddingProvider,
+            slugService,
+            config,
+            NullLogger<StoryClusteringService>.Instance);
+
+        var now = DateTime.UtcNow;
+        db.Articles.AddRange(
+            new Article
+            {
+                Id = "transcorp-1",
+                Title = "Transcorp reports pre-tax profit of N111.39 billion in 9M 2026 as revenue falls",
+                Summary = "Transnational Corporation Plc posted N111.39 billion profit before tax in nine months.",
+                Source = "Nairametrics",
+                Category = "Business",
+                PublishedAt = now.AddHours(-2),
+                Slug = "transcorp-pretax-profit-9m-2026"
+            },
+            new Article
+            {
+                Id = "transcorp-2",
+                Title = "Transcorp reports ₦111.4bn profit before tax in 9M 2026 - The Guardian Nigeria News",
+                Summary = "Transcorp Plc recorded strong nine-month pre-tax profit of N111.4 billion.",
+                Source = "The Guardian Nigeria",
+                Category = "Business",
+                PublishedAt = now.AddHours(-1),
+                Slug = "transcorp-reports-111bn-profit-9m-2026"
+            },
+            new Article
+            {
+                Id = "breweries-1",
+                Title = "International Breweries’ 9M 2026 pre-tax profit rises 22% to N90.44 billion",
+                Summary = "International Breweries Plc grew its pre-tax profit in the first nine months of 2026.",
+                Source = "BusinessDay",
+                Category = "Business",
+                PublishedAt = now.AddHours(-1),
+                Slug = "international-breweries-9m-2026-profit"
+            },
+            new Article
+            {
+                Id = "ikeja-1",
+                Title = "Ikeja Hotel reports N8.19 billion pre-tax profit in 9M 2026, up 15%",
+                Summary = "Ikeja Hotel Plc announced N8.19 billion pre-tax profit for 9M 2026.",
+                Source = "Punch Newspaper",
+                Category = "Business",
+                PublishedAt = now.AddHours(-1),
+                Slug = "ikeja-hotel-9m-2026-profit"
+            });
+        await db.SaveChangesAsync();
+
+        var count = await service.RunClusteringAsync();
+        Assert.Equal(1, count);
+
+        var cluster = await db.StoryClusters
+            .Include(sc => sc.ClusterArticles)
+            .SingleAsync();
+
+        Assert.Equal(2, cluster.ArticleCount);
+        Assert.Contains(cluster.ClusterArticles, ca => ca.ArticleId == "transcorp-1");
+        Assert.Contains(cluster.ClusterArticles, ca => ca.ArticleId == "transcorp-2");
+        Assert.DoesNotContain(cluster.ClusterArticles, ca => ca.ArticleId == "breweries-1");
+        Assert.DoesNotContain(cluster.ClusterArticles, ca => ca.ArticleId == "ikeja-1");
+    }
 }

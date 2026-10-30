@@ -133,6 +133,11 @@
                             <i class="bi bi-sliders me-1"></i> Workers & Limits
                         </button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link btn-sm" id="tab-contact" data-bs-toggle="pill" data-bs-target="#content-contact" type="button" role="tab">
+                            <i class="bi bi-whatsapp me-1 text-success"></i> Contact & WhatsApp
+                        </button>
+                    </li>
                 </ul>
             </div>
 
@@ -492,6 +497,102 @@
                                        value="@Model.GetVal("Google:ClientId")" 
                                        class="form-control form-control-glass font-monospace" />
                                 <small class="text-muted">Validates Google Sign-In tokens on <code>/api/v1/auth/google</code> for reader comments and profiles.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 7. Contact Page & WhatsApp Routing -->
+                    <div class="tab-pane fade" id="content-contact" role="tabpanel">
+                        <h5 class="text-white mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-whatsapp text-success"></i> Contact Page &amp; WhatsApp Routing
+                        </h5>
+                        <p class="text-muted small mb-4">
+                            Configure the official WhatsApp support number used on the website's Contact page. When a valid WhatsApp number is present, inquiries prioritize WhatsApp routing with pre-composed messages; otherwise, inquiries default to email dispatch to <strong>Admin@newsstand.ng</strong>.
+                        </p>
+
+                        <div class="row g-3">
+                            <!-- WhatsApp Phone Number -->
+                            <div class="col-12 col-md-8">
+                                <label class="form-label text-light small fw-semibold">
+                                    Official WhatsApp Support Number (International Format)
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark border-secondary text-success"><i class="bi bi-whatsapp"></i></span>
+                                    <input type="text"
+                                           name="FormInputs[Contact:WhatsAppNumber]"
+                                           value="@Model.GetVal("Contact:WhatsAppNumber")"
+                                           class="form-control form-control-glass font-monospace text-light"
+                                           placeholder="+2348031234567 or 2348031234567" />
+                                </div>
+                                <small class="text-muted">
+                                    Include country code (e.g. <code>+234</code> for Nigeria). If left blank, the website contact page defaults to email dispatch.
+                                </small>
+                            </div>
+
+                            <!-- WhatsApp Default Message -->
+                            <div class="col-12 col-md-8 mt-3">
+                                <label class="form-label text-light small fw-semibold">
+                                    WhatsApp Default Preset Greeting
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-chat-text"></i></span>
+                                    <input type="text"
+                                           name="FormInputs[Contact:WhatsAppDefaultMessage]"
+                                           value="@Model.GetVal("Contact:WhatsAppDefaultMessage", "Hello News Stand NG Admin, I have an inquiry.")"
+                                           class="form-control form-control-glass text-light"
+                                           placeholder="Hello News Stand NG Admin..." />
+                                </div>
+                                <small class="text-muted">Initial text greeting inserted when readers initiate a WhatsApp conversation.</small>
+                            </div>
+
+                            <!-- Admin Recipient Email -->
+                            <div class="col-12 col-md-8 mt-3">
+                                <label class="form-label text-light small fw-semibold">
+                                    Admin Notification Email
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-envelope"></i></span>
+                                    <input type="email"
+                                           name="FormInputs[Feedback:RecipientEmail]"
+                                           value="@Model.GetVal("Feedback:RecipientEmail", "Admin@newsstand.ng")"
+                                           class="form-control form-control-glass text-light"
+                                           placeholder="Admin@newsstand.ng" />
+                                </div>
+                                <small class="text-muted">Target email address for web contact form submissions.</small>
+                            </div>
+
+                            <!-- Live WhatsApp Test Link / Status -->
+                            <div class="col-12 col-md-8 mt-3">
+                                @{
+                                    var currentWa = Model.GetVal("Contact:WhatsAppNumber");
+                                    var cleanWa = System.Text.RegularExpressions.Regex.Replace(currentWa ?? "", @"[^\d]", "");
+                                    if (cleanWa.StartsWith("0") && cleanWa.Length == 11)
+                                    {
+                                        cleanWa = "234" + cleanWa.Substring(1);
+                                    }
+                                }
+                                @if (!string.IsNullOrWhiteSpace(cleanWa))
+                                {
+                                    <div class="p-3 rounded border border-success-subtle bg-success-subtle bg-opacity-10 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                        <div>
+                                            <div class="text-success fw-bold small"><i class="bi bi-check-circle me-1"></i> WhatsApp Routing Active (Preferred)</div>
+                                            <div class="text-muted" style="font-size: 0.8rem;">Current Target: <strong>+@cleanWa</strong></div>
+                                        </div>
+                                        <a href="https://wa.me/@cleanWa?text=Test%20message%20from%20News%20Stand%20NG%20Admin"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           class="btn btn-sm btn-success d-inline-flex align-items-center gap-1">
+                                            <i class="bi bi-box-arrow-up-right"></i> Test WhatsApp Chat
+                                        </a>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="p-3 rounded border border-warning-subtle bg-warning-subtle bg-opacity-10">
+                                        <div class="text-warning fw-bold small"><i class="bi bi-info-circle me-1"></i> WhatsApp Routing Inactive</div>
+                                        <div class="text-muted" style="font-size: 0.8rem;">No WhatsApp number configured. Contact page will default to email dispatch to Admin@newsstand.ng.</div>
+                                    </div>
+                                }
                             </div>
                         </div>
                     </div>

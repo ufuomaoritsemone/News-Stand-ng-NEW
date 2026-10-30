@@ -386,6 +386,9 @@ export default function App({ initialData = null, initialCategory = 'All' }) {
     if (initialData?.initialArticles?.length) {
       setArticles(initialData.initialArticles);
     }
+    if (initialData?.initialTrendingStories?.length) {
+      setTrendingStories(initialData.initialTrendingStories);
+    }
   }, [initialCategory, initialData]);
 
   // Fetch Initial Categories, Sources, Videos, and Sponsored Campaigns
@@ -659,37 +662,94 @@ export default function App({ initialData = null, initialCategory = 'All' }) {
     }
     if (!allStories || allStories.length === 0) return [];
 
-    const byCategory = new Map();
+    const stopSet = new Set([
+      'about', 'after', 'again', 'against', 'amid', 'among', 'around', 'because', 'before', 'between',
+      'breaking', 'could', 'despite', 'during', 'every', 'first', 'from', 'government', 'have', 'into',
+      'more', 'most', 'news', 'nigeria', 'nigerian', 'nigerians', 'other', 'over', 'report', 'reports',
+      'says', 'said', 'should', 'since', 'state', 'states', 'their', 'there', 'these', 'they', 'this',
+      'through', 'today', 'under', 'until', 'update', 'updated', 'what', 'when', 'where', 'which',
+      'while', 'with', 'within', 'would', 'year', 'years', 'police', 'arrest', 'arrested', 'suspect',
+      'suspects', 'court', 'remands', 'alleged', 'profit', 'billion', 'million', 'rises', 'the', 'and',
+      'for', 'are', 'was', 'were', 'has', 'had', 'not', 'but', 'who', 'his', 'her', 'out', 'new'
+    ]);
+
+    const extractTokens = (text) => {
+      if (!text) return [];
+      return (text.toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter((w) => !stopSet.has(w));
+    };
+
+    const clusters = [];
     for (const art of allStories) {
-      const cat = (art.category || 'General').trim();
-      if (!byCategory.has(cat)) byCategory.set(cat, []);
-      byCategory.get(cat).push(art);
+      const tokens = extractTokens(art.title);
+      if (tokens.length === 0) continue;
+
+      let matched = null;
+      for (const c of clusters) {
+        const overlap = tokens.filter((t) => c.tokenSet.has(t)).length;
+        const minLen = Math.min(tokens.length, c.tokenSet.size);
+        if (overlap >= 2 && minLen > 0 && overlap / minLen >= 0.34) {
+          matched = c;
+          break;
+        }
+      }
+
+      if (matched) {
+        matched.items.push(art);
+      } else {
+        clusters.push({
+          lead: art,
+          tokenSet: new Set(tokens),
+          items: [art]
+        });
+      }
     }
 
-    const fallback = [];
-    for (const [cat, items] of byCategory.entries()) {
-      if (fallback.length >= 6) break;
-      const lead = items[0];
-      const sources = Array.from(new Set(items.map((i) => i.source).filter(Boolean)));
-      if (sources.length < 2) {
-        sources.push('Verified Nigerian Desk');
-      }
+    const multiSource = clusters
+      .filter((c) => {
+        const distinctSources = new Set(c.items.map((i) => i.source).filter(Boolean));
+        return c.items.length >= 2 && distinctSources.size >= 2;
+      })
+      .slice(0, 6);
+
+    if (multiSource.length > 0) {
+      return multiSource.map((c, idx) => {
+        const sources = Array.from(new Set(c.items.map((i) => i.source).filter(Boolean)));
+        const cat = (c.lead.category || 'General').trim();
+        return {
+          id: c.lead.id || `cluster-${idx}`,
+          slug: c.lead.slug || `trend-${cat.toLowerCase().replace(/\s+/g, '-')}`,
+          title: c.lead.title,
+          summary: c.lead.summary || c.lead.excerpt,
+          imageUrl: c.lead.imageUrl,
+          category: cat,
+          articleCount: c.items.length,
+          sourceCount: sources.length,
+          sources,
+          updatedAt: c.lead.publishedAt || new Date().toISOString(),
+          leadArticle: c.lead
+        };
+      });
+    }
+
+    // Offline single-story fallback (when only 4 static offline fallback items exist)
+    return allStories.slice(0, 4).map((lead) => {
+      const cat = (lead.category || 'General').trim();
       const catSlug = cat.toLowerCase().replace(/\s+/g, '-');
-      fallback.push({
+      const sources = [lead.source || 'News Stand NG', 'Verified Nigerian Desk'];
+      return {
         id: `trend-${catSlug}`,
         slug: `trend-${catSlug}`,
         title: lead.title,
         summary: lead.summary || lead.excerpt,
         imageUrl: lead.imageUrl,
         category: cat,
-        articleCount: Math.max(2, items.length),
-        sourceCount: Math.max(2, sources.length),
+        articleCount: 2,
+        sourceCount: 2,
         sources,
         updatedAt: lead.publishedAt || new Date().toISOString(),
         leadArticle: lead
-      });
-    }
-    return fallback;
+      };
+    });
   }, [trendingStories, allStories]);
 
   // Active Sponsored Feature (Partner Studio)

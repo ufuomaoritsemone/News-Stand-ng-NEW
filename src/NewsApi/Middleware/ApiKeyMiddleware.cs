@@ -130,6 +130,12 @@ public class ApiKeyMiddleware
     /// </summary>
     private static bool IsPublicClientEndpoint(string path, string method)
     {
+        // Public contact info (WhatsApp number & admin email configuration)
+        if (HttpMethods.IsGet(method) && path.Equals("/api/v1/feedback/contact-info", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
         // Public mobile client user feedback submission (POST only)
         if (HttpMethods.IsPost(method) && path.Equals("/api/v1/feedback", StringComparison.OrdinalIgnoreCase))
         {

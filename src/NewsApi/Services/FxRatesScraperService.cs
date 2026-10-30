@@ -14,6 +14,12 @@ public sealed partial class FxRatesScraperService(
     [GeneratedRegex(@"rate-value[^>]*>\s*([\d,\.]+)\s*<", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex RateValueRegex();
 
+    [GeneratedRegex(@"[₦N]?\s*([\d,]+(?:\.\d+)?)\s*black market", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex MetaBlackMarketRegex();
+
+    [GeneratedRegex(@"[₦N]?\s*([\d,]+(?:\.\d+)?)\s*cbn official", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex MetaCbnOfficialRegex();
+
     public async Task<FxScrapeResult> ScrapeLatestFxRatesAsync(CancellationToken ct = default)
     {
         logger.LogInformation("Starting FX rates scrape from AbokiForex and Central Bank of Nigeria (CBN).");
@@ -231,7 +237,7 @@ public sealed partial class FxRatesScraperService(
         var bmIdx = html.IndexOf("Black Market Rates", StringComparison.OrdinalIgnoreCase);
         if (bmIdx != -1)
         {
-            var bmSection = html.Substring(bmIdx, Math.Min(12000, html.Length - bmIdx));
+            var bmSection = html.Substring(bmIdx, Math.Min(35000, html.Length - bmIdx));
 
             // USD
             var (uBuy, uSell) = ExtractCardBuySell(bmSection, "DOLLAR (USD)");
@@ -249,15 +255,35 @@ public sealed partial class FxRatesScraperService(
             result.EurSell = eSell;
         }
 
+        // Secondary fallback: parse from meta description if DOM cards were not matched
+        if (!result.UsdSell.HasValue)
+        {
+            var metaMatch = MetaBlackMarketRegex().Match(html);
+            if (metaMatch.Success && double.TryParse(metaMatch.Groups[1].Value.Replace(",", "").Trim(), NumberStyles.Any, NgCulture, out var metaUsd))
+            {
+                result.UsdSell = metaUsd;
+                result.UsdBuy = Math.Max(0, metaUsd - 6.0); // typical 5-10 naira spread
+            }
+        }
+
         // Parse Official CBN Exchange Rates section
         var cbnIdx = html.IndexOf("Official CBN Exchange Rates", StringComparison.OrdinalIgnoreCase);
         if (cbnIdx != -1)
         {
-            var cbnSection = html.Substring(cbnIdx, Math.Min(12000, html.Length - cbnIdx));
+            var cbnSection = html.Substring(cbnIdx, Math.Min(35000, html.Length - cbnIdx));
             result.UsdCbn = ExtractCbnCardRate(cbnSection, "DOLLAR (USD)");
             result.GbpCbn = ExtractCbnCardRate(cbnSection, "POUND (GBP)");
             result.EurCbn = ExtractCbnCardRate(cbnSection, "EURO (EUR)");
             result.JpyCbn = ExtractCbnCardRate(cbnSection, "JAPANESE YEN (JPN)");
+        }
+
+        if (!result.UsdCbn.HasValue)
+        {
+            var cbnMetaMatch = MetaCbnOfficialRegex().Match(html);
+            if (cbnMetaMatch.Success && double.TryParse(cbnMetaMatch.Groups[1].Value.Replace(",", "").Trim(), NumberStyles.Any, NgCulture, out var metaCbn))
+            {
+                result.UsdCbn = metaCbn;
+            }
         }
 
         return result;
@@ -462,11 +488,16 @@ public sealed partial class FxRatesScraperService(
     private HttpClient CreateHttpClient()
     {
         var client = httpClientFactory.CreateClient("FxScraperClient");
-        client.Timeout = TimeSpan.FromSeconds(12);
+        client.Timeout = TimeSpan.FromSeconds(15);
         if (!client.DefaultRequestHeaders.Contains("User-Agent"))
         {
             client.DefaultRequestHeaders.UserAgent.ParseAdd(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 (compatible; NewsStandNG-FX/1.0)");
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
+        }
+        if (!client.DefaultRequestHeaders.Contains("Accept"))
+        {
+            client.DefaultRequestHeaders.Accept.ParseAdd(
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
         }
         return client;
     }

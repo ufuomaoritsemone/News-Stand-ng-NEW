@@ -59,7 +59,7 @@ The entire production stack runs self-hosted on your VPS:
 6. Choose your instance plan:
    - **Recommended**: **2 vCPU, 4 GB RAM** (\$20/month) or **2 vCPU, 2 GB RAM** (\$10/month).
    - *Note*: If choosing a 2 GB RAM instance, setting up swap space (Section 1.4) is **mandatory** to prevent compiler out-of-memory errors during `docker compose build`.
-7. Name your instance (e.g. `newsgrid-production`) and click **Create instance**.
+7. Name your instance (e.g. `newsstand-production`) and click **Create instance**.
 
 ---
 
@@ -67,7 +67,7 @@ The entire production stack runs self-hosted on your VPS:
 By default, AWS Lightsail instances use dynamic public IP addresses that rotate whenever the instance is stopped and restarted.
 1. In the Lightsail console, click the **Networking** tab.
 2. Click **Create static IP**.
-3. Select your instance and name the static IP (e.g. `newsgrid-static-ip`).
+3. Select your instance and name the static IP (e.g. `newsstand-static-ip`).
 4. Click **Create and attach**.
 5. Note your new **Public IPv4 address** (e.g. `x.x.x.x`). You will point your DNS records to this IP.
 
@@ -110,7 +110,9 @@ echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
 ---
 
 ### 1.5 Configure UFW (Host Firewall)
+*(Minimal AWS Lightsail Ubuntu images do not pre-install `ufw`, so install it first)*:
 ```bash
+sudo apt update && sudo apt install -y ufw
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw allow 22/tcp
@@ -156,31 +158,34 @@ sudo apt update && sudo apt install -y caddy
 
 ### 3.1 Clone the Codebase
 ```bash
-sudo mkdir -p /opt/newsgrid
-sudo chown -R ubuntu:ubuntu /opt/newsgrid
-cd /opt/newsgrid
+sudo mkdir -p /opt/newsstand
+sudo chown -R ubuntu:ubuntu /opt/newsstand
+cd /opt/newsstand
 
 # Clone project repository
-git clone https://github.com/ufuomaoritsemone/News-Stand-ng.git .
+git clone https://github.com/ufuomaoritsemone/News-Stand-ng-NEW.git .
 
 # Create secrets directory for optional GCP service account JSON key
 # Note: Containers run as non-root ($APP_UID 1654), so files in ./secrets must be world-readable (0644)
-mkdir -p /opt/newsgrid/secrets
-touch /opt/newsgrid/secrets/gcp-service-account.json
-chmod 644 /opt/newsgrid/secrets/gcp-service-account.json
+mkdir -p /opt/newsstand/secrets
+touch /opt/newsstand/secrets/gcp-service-account.json
+chmod 644 /opt/newsstand/secrets/*.json 2>/dev/null || true
+# If using Google Search Console service account:
+# scp newsstandng1-bd450287f180.json user@your-vps:/opt/newsstand/secrets/
+# chmod 644 /opt/newsstand/secrets/newsstandng1-bd450287f180.json
 ```
 
 ---
 
-### 3.2 Create Production Environment File (`/opt/newsgrid/.env`)
-Create `/opt/newsgrid/.env` with your secure production keys:
+### 3.2 Create Production Environment File (`/opt/newsstand/.env`)
+Create `/opt/newsstand/.env` with your secure production keys:
 
 ```bash
-cat << 'EOF' > /opt/newsgrid/.env
+cat << 'EOF' > /opt/newsstand/.env
 # ==============================================================================
 # DATABASE (PostgreSQL 16)
 # ==============================================================================
-POSTGRES_DB=newsgrid
+POSTGRES_DB=newsstand
 POSTGRES_USER=newsuser
 POSTGRES_PASSWORD=CreateYourStrongPasswordHere_12345!
 
@@ -233,7 +238,12 @@ INDEXNOW_HOST=newsstand.ng
 INDEXNOW_ENABLED=true
 
 # ==============================================================================
-# 6. READER AUTHENTICATION & SMTP (Community Forum OTP & Feedback)
+# 6. GOOGLE SEARCH CONSOLE API (Live Cockpit & Telemetry)
+# ==============================================================================
+GSC_CREDENTIALS_JSON=/app/secrets/newsstandng1-bd450287f180.json
+
+# ==============================================================================
+# 7. READER AUTHENTICATION & SMTP (Community Forum OTP & Feedback)
 # ==============================================================================
 GOOGLE_CLIENT_ID=434931027697-0ofh3nptkv409vju55od3fhrfbkccu15.apps.googleusercontent.com
 FEEDBACK_RECIPIENT_EMAIL=feedback@newsstand.ng
@@ -259,7 +269,7 @@ VITE_API_BASE=/api/v1
 EOF
 
 # Secure the .env file permissions
-chmod 600 /opt/newsgrid/.env
+chmod 600 /opt/newsstand/.env
 ```
 
 > [!IMPORTANT]
@@ -272,7 +282,7 @@ chmod 600 /opt/newsgrid/.env
 Launch the entire containerized fleet using Docker Compose:
 
 ```bash
-cd /opt/newsgrid
+cd /opt/newsstand
 docker compose up -d --build
 ```
 
@@ -282,12 +292,12 @@ docker compose ps
 ```
 
 Expected containers:
-- `nigeriannewsgrid-postgres` (PostgreSQL 16 Alpine) — Up (healthy)
-- `nigeriannewsgrid-newsapi` (.NET 10 NewsApi) — Up (healthy)
-- `nigeriannewsgrid-web` (React Router v7 SSR Node 22) — Up
-- `nigeriannewsgrid-admindashboard` (.NET 10 Razor Admin UI) — Up
-- `nigeriannewsgrid-scraperservice` (.NET 10 News Scraper) — Up
-- `nigeriannewsgrid-ttsworker` (.NET 10 TTS Worker) — Up
+- `nigeriannewsstand-postgres` (PostgreSQL 16 Alpine) — Up (healthy)
+- `nigeriannewsstand-newsapi` (.NET 10 NewsApi) — Up (healthy)
+- `nigeriannewsstand-web` (React Router v7 SSR Node 22) — Up
+- `nigeriannewsstand-admindashboard` (.NET 10 Razor Admin UI) — Up
+- `nigeriannewsstand-scraperservice` (.NET 10 News Scraper) — Up
+- `nigeriannewsstand-ttsworker` (.NET 10 TTS Worker) — Up
 
 Verify backend, SSR frontend, and internal API proxy locally:
 ```bash
@@ -305,7 +315,7 @@ curl -I http://127.0.0.1:3000/api/v1/sources
 
 # 4. Verify authenticated /api/v1/health/details endpoint (requires X-Api-Key)
 curl -s http://127.0.0.1:5000/api/v1/health/details \
-  -H "X-Api-Key: $(grep '^API_KEY=' /opt/newsgrid/.env | cut -d '=' -f2-)" | jq .status
+  -H "X-Api-Key: $(grep '^API_KEY=' /opt/newsstand/.env | cut -d '=' -f2-)" | jq .status
 # Returns: "Healthy"
 ```
 
@@ -319,9 +329,20 @@ curl -s http://127.0.0.1:5000/api/v1/health/details \
 
 Because you have purchased the **`newsstand.ng`** domain (Nigerian `.ng` ccTLD managed by NiRA registrars like WhoGoHost, QServers, Upperlink, Namecheap, Web4Africa, etc.), configure your DNS records to direct all web, API, and admin traffic to your **AWS Lightsail Static IP**.
 
-There are two primary ways to manage your domain:
-- **Method 1 (Strongly Recommended)**: Point domain nameservers to **Cloudflare (Free)** for instant DNS propagation, free Anycast CDN edge caching, and DDoS shielding.
-- **Method 2 (AWS Native)**: Use **AWS Lightsail DNS Zones** or your registrar's native DNS management.
+There are three ways to manage your domain's DNS:
+- **Method 1 (Strongly Recommended)**: Point domain nameservers to **Cloudflare (Free)** for Nigerian edge caching (Lagos/Abuja PoPs), instant `<30s` DNS propagation, free `@newsstand.ng` email routing, and DDoS/bot shielding.
+- **Method 2 (AWS Native)**: Use **AWS Lightsail DNS Zones** (basic authoritative DNS without CDN or email routing).
+- **Method 3 (Registrar Native)**: Use your `.ng` registrar's built-in DNS manager.
+
+### Why You Should Pick Method 1 (Cloudflare Free) for `newsstand.ng`
+
+| Capability | Method 1: Cloudflare (Recommended) | Method 2: Lightsail DNS | Method 3: `.ng` Registrar DNS |
+| :--- | :--- | :--- | :--- |
+| **Nigerian Edge CDN (Lagos & Abuja PoPs)** | **Yes (Free)** — serves cached WebP thumbnails (`/api/v1/img`) & static JS/CSS in `~15ms` locally instead of `~120ms+` to Europe/US | No (every request hits VPS) | No (every request hits VPS) |
+| **AWS Lightsail Bandwidth Savings** | **High** — offloads image & asset egress from your Lightsail monthly transfer quota | None | None |
+| **DNS Propagation Speed** | **< 30 seconds globally** | ~5–15 minutes | Slow (often 1–24 hours on local `.ng` registrars) |
+| **Free `@newsstand.ng` Email Forwarding** | **Included Free** (Cloudflare Email Routing — Section 4.6 Option 1) | Not included | Rarely included / paid add-on |
+| **VPS Protection & Origin IP Masking** | **Yes** — hides your Lightsail Static IP, blocks bad scraper bots, and protects `admin.newsstand.ng` from brute-force floods | No (Static IP exposed) | No (Static IP exposed) |
 
 ---
 
@@ -343,66 +364,83 @@ Whichever DNS provider you choose, create these records pointing to your AWS Lig
 
 ### 4.2 Method 1: Cloudflare Setup (Recommended for `.ng` Domains)
 
-`.ng` registrars often have slower DNS propagation (up to 24–48 hours) when updating individual A records. Delegating nameservers to Cloudflare provides near-instant DNS updates, global asset caching, and bot mitigation.
+`.ng` registrars often have slower DNS propagation (up to 24–48 hours) when updating individual A records. Delegating nameservers to Cloudflare once gives you near-instant DNS updates, local Nigerian edge caching, and bot mitigation forever.
 
-#### Step 1: Add Site to Cloudflare
-1. Create a free account at [Cloudflare.com](https://dash.cloudflare.com/) and click **Add a site**.
-2. Enter `newsstand.ng` and select the **Free** tier.
-3. Cloudflare will scan for existing records.
+*(Note: The steps below follow the exact screen-by-screen order of the Cloudflare onboarding wizard, where you configure DNS records **before** Cloudflare displays your assigned nameservers).*
 
-#### Step 2: Configure Nameservers at Your `.ng` Registrar
-1. Cloudflare will assign two nameservers (for example: `ada.ns.cloudflare.com` and `bob.ns.cloudflare.com`).
-2. Log into the registrar where you bought `newsstand.ng` (WhoGoHost, QServers, Upperlink, etc.).
-3. Navigate to **Domains** > **Manage Domain** > **Nameservers**.
-4. Select **Use Custom Nameservers** and enter the two Cloudflare nameserver addresses.
-5. Save changes. (Registrar nameserver propagation typically takes 15 minutes to 2 hours).
+#### Step 1: Onboard `newsstand.ng` & Select the Free Plan
+1. Log into the [Cloudflare Dashboard](https://dash.cloudflare.com/).
+2. In the top bar or left sidebar (**Websites** / **Domains**), click **+ Add** > **Connect a domain** (or **Onboard a domain** / **Add a domain**).
+3. Enter `newsstand.ng`, keep **Quick scan for DNS records** selected, and click **Continue**.
+4. Select the **Free** plan card (`$0/month`) and click **Continue**.
 
-#### Step 3: Create DNS Records in Cloudflare
-In your Cloudflare Dashboard under **DNS** > **Records**, add the 4 records:
-- `A` record: Name `@`, IPv4 address `<YOUR_LIGHTSAIL_STATIC_IP>`, Proxy status: **Proxied (Orange Cloud)**.
-- `A` record: Name `www`, IPv4 address `<YOUR_LIGHTSAIL_STATIC_IP>`, Proxy status: **Proxied (Orange Cloud)**.
-- `A` record: Name `api`, IPv4 address `<YOUR_LIGHTSAIL_STATIC_IP>`, Proxy status: **Proxied (Orange Cloud)**.
-- `A` record: Name `admin`, IPv4 address `<YOUR_LIGHTSAIL_STATIC_IP>`, Proxy status: **Proxied (Orange Cloud)**.
+#### Step 2: Review & Add DNS Records (Before Activation)
+Cloudflare will now run a quick scan of your domain and display the **Review your DNS records** screen:
+1. **Delete Registrar Parking Records**: If the scan imported default parking `A`, `AAAA`, or `CNAME` records for `newsstand.ng` (`@`) or `www` from your `.ng` registrar, click **Edit** > **Delete** on those placeholder rows.
+2. **Add the 4 Required `A` Records (Start with "DNS Only" for Initial SSL Bootstrap)**:
+   > [!TIP]
+   > **Why start with "DNS Only (Grey Cloud)" first?**
+   > Setting the Proxy toggle to **DNS Only (Grey Cloud)** during initial setup lets you verify via `dig`/`nslookup` in Section 4.5 that your exact Lightsail Static IP is resolving (Orange Cloud masks your IP behind Cloudflare's `104.21.x.x` Anycast IPs) and allows Caddy in Part 5 to pass Let's Encrypt ACME challenges in `<5 seconds` without Cloudflare edge interception. Once Caddy issues the certificates, you flip the switch to **Proxied (Orange Cloud)**.
 
-#### Step 4: Configure Cloudflare SSL/TLS Encryption Mode (CRITICAL)
+   Click **+ Add record** for each of the following 4 records:
+   - Type: `A` | Name: `@` | IPv4 address: `<YOUR_LIGHTSAIL_STATIC_IP>` | Proxy status: **DNS Only (Grey Cloud)** | TTL: `Auto`
+   - Type: `A` | Name: `www` | IPv4 address: `<YOUR_LIGHTSAIL_STATIC_IP>` | Proxy status: **DNS Only (Grey Cloud)** | TTL: `Auto`
+   - Type: `A` | Name: `api` | IPv4 address: `<YOUR_LIGHTSAIL_STATIC_IP>` | Proxy status: **DNS Only (Grey Cloud)** | TTL: `Auto`
+   - Type: `A` | Name: `admin` | IPv4 address: `<YOUR_LIGHTSAIL_STATIC_IP>` | Proxy status: **DNS Only (Grey Cloud)** | TTL: `Auto`
+3. Click **Continue to activation**.
+
+#### Step 3: Update Nameservers at Your `.ng` Registrar
+Cloudflare will now display your **2 assigned Cloudflare nameservers** (for example: `ada.ns.cloudflare.com` and `bob.ns.cloudflare.com`):
+1. Log into the registrar where you purchased `newsstand.ng` (e.g. **GO54 / formerly WhoGoHost**, **QServers**, **Upperlink**, **Namecheap**, **Web4Africa**).
+2. In your registrar portal (standard WHMCS menu), go to **Domains** > **My Domains** > click the wrench/dropdown next to `newsstand.ng` > **Manage Nameservers** (or **Manage Domain** > **Nameservers**).
+3. If **DNSSEC** is enabled at your registrar, turn it **Off** before switching nameservers.
+4. Select **Use custom nameservers (enter below)**, replace the existing `Nameserver 1` and `Nameserver 2` fields with the two Cloudflare nameservers (clear `Nameserver 3` and `Nameserver 4` if present), and click **Change Nameservers**.
+5. Return to the Cloudflare onboarding screen and click **Check nameservers** (or **Done, check nameservers**).
+   *(Registrar nameserver delegation typically activates within 15 minutes to 2 hours; Cloudflare will email you as soon as `newsstand.ng` is **Active**).*
+
+#### Step 4: Configure Cloudflare SSL/TLS Mode & Enable Orange Cloud (After Part 5)
 > [!CAUTION]
 > **Do NOT use "Flexible" SSL mode in Cloudflare.**
-> Because Caddy on your VPS automatically serves HTTPS, setting Cloudflare to *Flexible* causes an infinite redirect loop (`ERR_TOO_MANY_REDIRECTS`).
-1. In Cloudflare, navigate to **SSL/TLS** > **Overview**.
-2. Select **Full (Strict)** or **Full**.
-3. Under **SSL/TLS** > **Edge Certificates**, enable **Always Use HTTPS** and **Automatic HTTPS Rewrites**.
+> Because Caddy on your VPS automatically serves HTTPS, setting Cloudflare to *Flexible* makes Cloudflare connect to your VPS over HTTP (port 80), which Caddy redirects back to HTTPS—causing an infinite redirect loop (`ERR_TOO_MANY_REDIRECTS`). Additionally, do not enable *Full (Strict)* + *Always Use HTTPS* with Orange Cloud before Caddy has obtained its initial certificate, or Cloudflare will return **Error 526 (Invalid SSL Certificate)** during the ACME challenge.
+
+1. In the Cloudflare sidebar for `newsstand.ng`, navigate to **SSL/TLS** > **Overview**.
+2. Set the SSL/TLS encryption mode to **Full (Strict)**.
+3. Complete **Section 4.5 (Verify DNS)** and **Part 5 (Caddy Reverse Proxy)** so Caddy obtains your Let's Encrypt SSL certificates.
+4. Once `curl -I https://newsstand.ng` returns `HTTP/2 200`:
+   - In Cloudflare **DNS** > **Records**, toggle the **Proxy status** switch on `@`, `www`, `api`, and `admin` from **DNS Only (Grey Cloud)** to **Proxied (Orange Cloud)**.
+   - Under **SSL/TLS** > **Edge Certificates**, enable **Always Use HTTPS** and **Automatic HTTPS Rewrites**.
 
 ---
 
 ### 4.3 Method 2: AWS Lightsail DNS Zones (AWS Native)
 
-If you prefer to manage DNS entirely inside your AWS console:
+If you prefer to manage DNS entirely inside your AWS Lightsail console (note: does not include CDN caching or free email routing):
 
-1. In the [AWS Lightsail Console](https://lightsail.aws.amazon.com/), click the **Networking** tab.
+1. In the [AWS Lightsail Console](https://lightsail.aws.amazon.com/) left navigation sidebar, click **Domains & DNS**.
 2. Click **Create DNS zone**.
-3. Enter your domain: `newsstand.ng` and click **Create DNS zone**.
-4. AWS will display **4 Name servers** (e.g. `ns-123.awsdns-xx.com`, `ns-456.awsdns-xx.org`, etc.).
-5. Copy these 4 nameservers and paste them into your `.ng` registrar's **Custom Nameservers** section.
-6. Back in Lightsail DNS Zone, click **Add record** and create:
-   - A record: Subdomain `None` (or `@`) pointing to your Static IP.
-   - A record: Subdomain `www` pointing to your Static IP.
-   - A record: Subdomain `api` pointing to your Static IP.
-   - A record: Subdomain `admin` pointing to your Static IP.
+3. Under **Domain source**, select **Use a domain from another registrar**, enter `newsstand.ng` under **Domain name**, and click **Create DNS zone**.
+4. On the zone overview page, Lightsail will list **4 AWS Name servers** (e.g. `ns-123.awsdns-xx.com`, `ns-456.awsdns-xx.org`, `ns-789.awsdns-xx.co.uk`, `ns-012.awsdns-xx.net`).
+5. Copy all 4 nameservers and paste them into your `.ng` registrar's **Custom Nameservers** (`Nameserver 1` through `Nameserver 4`).
+6. Back in the Lightsail DNS zone, open the **DNS records** tab, click **+ Add record**, and create the 4 `A` records:
+   - Record type: `A record` | Record name: `@` | Resolves to: select your Lightsail Static IP (e.g. `newsstand-static-ip`) -> **Save**.
+   - Record type: `A record` | Record name: `www` | Resolves to: select your Lightsail Static IP -> **Save**.
+   - Record type: `A record` | Record name: `api` | Resolves to: select your Lightsail Static IP -> **Save**.
+   - Record type: `A record` | Record name: `admin` | Resolves to: select your Lightsail Static IP -> **Save**.
 
 ---
 
-### 4.4 Method 3: Direct Registrar DNS (No Nameserver Change)
+### 4.4 Method 3: Direct `.ng` Registrar DNS (No Nameserver Change)
 
-If your registrar's portal allows adding DNS records without changing nameservers:
-1. Go to your registrar's **DNS Management** or **Zone Editor**.
-2. Ensure existing default parking or placeholder records for `@` and `www` are deleted.
-3. Add the four `A` records from Section 4.1 pointing to your Lightsail Static IP with a TTL of `300` seconds (5 minutes).
+If you want to keep your `.ng` registrar's default nameservers (e.g. GO54/WhoGoHost or QServers):
+1. In your registrar's client area, navigate to **Domains** > **My Domains** > **Manage Domain** > **DNS Management** (or **Zone Editor**).
+2. Delete any default parking `A` or `CNAME` records for `@` (`newsstand.ng`) and `www`.
+3. Add the four `A` records from Section 4.1 (`@`, `www`, `api`, `admin`) pointing to your Lightsail Static IP with a TTL of `300` seconds (or the lowest TTL allowed by your registrar).
 
 ---
 
 ### 4.5 Verify DNS Propagation
 
-Before configuring and reloading Caddy in Part 5, verify that your domain resolves to your Lightsail Static IP (or Cloudflare Edge IP):
+Before configuring and reloading Caddy in Part 5, verify that your domain resolves to your Lightsail Static IP:
 
 ```bash
 # Verify apex domain resolution
@@ -418,7 +456,11 @@ dig +short api.newsstand.ng
 dig +short admin.newsstand.ng
 ```
 
-Once the response returns your AWS Lightsail Static IP (or Cloudflare proxy IP if proxied), proceed to Part 5 so Caddy can immediately obtain Let's Encrypt SSL certificates.
+> [!NOTE]
+> - If using **DNS Only (Grey Cloud)** (or Lightsail / Registrar DNS), `dig +short` will return your exact **AWS Lightsail Static IP**.
+> - If you already enabled **Cloudflare Proxied (Orange Cloud)**, `dig +short` will return two Cloudflare Anycast IPv4 addresses (e.g., `104.21.x.x` and `172.67.x.x`), which is expected.
+
+Once DNS resolution is confirmed, proceed to Part 5 so Caddy can immediately obtain Let's Encrypt SSL certificates.
 
 ---
 
@@ -430,7 +472,7 @@ Once the response returns your AWS Lightsail Static IP (or Cloudflare proxy IP i
 
 Your email setup for `newsstand.ng` covers two needs:
 1. **Inbound Editorial & Feedback Mailboxes** (`feedback@newsstand.ng`, `editor@newsstand.ng`, `admin@newsstand.ng`)
-2. **Outbound Transactional App SMTP** (`no-reply@newsstand.ng` used by `news-api` for Community Forum OTP verification & feedback routing in `/opt/newsgrid/.env`)
+2. **Outbound Transactional App SMTP** (`no-reply@newsstand.ng` used by `news-api` for Community Forum OTP verification & feedback routing in `/opt/newsstand/.env`)
 
 Below are the two recommended production architectures.
 
@@ -456,7 +498,7 @@ Best if you are using **Cloudflare DNS** (Section 4.2) and want all `@newsstand.
 2. Go to **Domains** > **Add Domain** and enter `newsstand.ng` (select region closest to your VPS, e.g. `eu-west-1`).
 3. Add the provided `TXT` (DKIM & SPF) and `MX` (bounce subdomain `send.newsstand.ng`) records in Cloudflare DNS (set Proxy status to **DNS Only / Grey Cloud**).
 4. Once verified, go to **API Keys** > **Create API Key** and copy the key (`re_123456...`).
-5. Update `/opt/newsgrid/.env` with your Resend SMTP credentials:
+5. Update `/opt/newsstand/.env` with your Resend SMTP credentials:
    ```env
    FEEDBACK_RECIPIENT_EMAIL=feedback@newsstand.ng
    SMTP_HOST=smtp.resend.com
@@ -471,7 +513,7 @@ Best if you are using **Cloudflare DNS** (Section 4.2) and want all `@newsstand.
 **Alternative — Using Brevo (Free 300 emails/day):**
 1. Create a free account at [Brevo.com](https://www.brevo.com/) > **Senders, Domains & Dedicated IPs** > **Domains** > Add `newsstand.ng` and verify the DNS `TXT` records.
 2. Go to **SMTP & API** > **SMTP** and generate a new SMTP Master Password.
-3. Update `/opt/newsgrid/.env`:
+3. Update `/opt/newsstand/.env`:
    ```env
    FEEDBACK_RECIPIENT_EMAIL=feedback@newsstand.ng
    SMTP_HOST=smtp-relay.brevo.com
@@ -496,8 +538,8 @@ To compose and reply to emails from `editor@newsstand.ng` or `feedback@newsstand
 #### Option 2: Zoho Mail Dedicated Inbox (`$0` Free Forever or `~$1/user/mo` Mail Lite)
 Best if you want a dedicated business webmail inbox and mobile app (`mail.zoho.com` + Zoho Mail iOS/Android app) separate from your personal email.
 
-- **Zoho Forever Free Plan (`$0/month`)**: Up to **5 users** (`5 GB`/user) with full webmail and Zoho Mail mobile app access. *(Note: The Free tier does not include external IMAP/SMTP relay, so pair it with Resend or Brevo from Option 1 Step 2 for `/opt/newsgrid/.env` app OTP emails).*
-- **Zoho Mail Lite (`~$1/user/month`)**: Includes full **SMTP/IMAP access**, email aliases (`feedback@`, `no-reply@`, `editor@` under 1 user account), and can power both your editorial inbox and `/opt/newsgrid/.env` directly.
+- **Zoho Forever Free Plan (`$0/month`)**: Up to **5 users** (`5 GB`/user) with full webmail and Zoho Mail mobile app access. *(Note: The Free tier does not include external IMAP/SMTP relay, so pair it with Resend or Brevo from Option 1 Step 2 for `/opt/newsstand/.env` app OTP emails).*
+- **Zoho Mail Lite (`~$1/user/month`)**: Includes full **SMTP/IMAP access**, email aliases (`feedback@`, `no-reply@`, `editor@` under 1 user account), and can power both your editorial inbox and `/opt/newsstand/.env` directly.
 
 ##### Step 1: Sign Up & Verify `newsstand.ng` in Zoho Mail
 1. Go to [Zoho Mail Pricing](https://www.zoho.com/mail/zohomail-pricing.html) and select either **Mail Lite** (~`$1/mo`) or the **Forever Free Plan** (at the bottom of the pricing page).
@@ -516,10 +558,10 @@ In your Cloudflare or AWS Lightsail DNS Zone, remove any conflicting `@` `MX` re
 | **TXT** | `@` | `v=spf1 include:zoho.com ~all` | — | Auto / 3600 |
 | **TXT** | `zmail._domainkey` | `<Paste RSA Public Key generated in Zoho Admin > Email Configuration > DKIM>` | — | Auto / 3600 |
 
-##### Step 3: Configure `/opt/newsgrid/.env` for Outbound App SMTP
+##### Step 3: Configure `/opt/newsstand/.env` for Outbound App SMTP
 - **If using Zoho Mail Lite (`~$1/mo` — Direct Zoho SMTP)**:
   1. Log into [Zoho Accounts Security](https://accounts.zoho.com/home#security/security_pwd) > **App Passwords** > **Generate New Password** (required if 2FA is enabled).
-  2. Update `/opt/newsgrid/.env`:
+  2. Update `/opt/newsstand/.env`:
      ```env
      FEEDBACK_RECIPIENT_EMAIL=feedback@newsstand.ng
      SMTP_HOST=smtp.zoho.com
@@ -532,11 +574,11 @@ In your Cloudflare or AWS Lightsail DNS Zone, remove any conflicting `@` `MX` re
      ```
   3. Restart `news-api` to load the new SMTP settings:
      ```bash
-     cd /opt/newsgrid
+     cd /opt/newsstand
      docker compose up -d news-api
      ```
 - **If using Zoho Forever Free Plan (`$0/mo`)**:
-  - Keep the Zoho `MX` records above for receiving emails in your Zoho inbox, and use **Resend** (`smtp.resend.com`) or **Brevo** (`smtp-relay.brevo.com`) from **Option 1, Step 2** for `/opt/newsgrid/.env` outbound OTP emails.
+  - Keep the Zoho `MX` records above for receiving emails in your Zoho inbox, and use **Resend** (`smtp.resend.com`) or **Brevo** (`smtp-relay.brevo.com`) from **Option 1, Step 2** for `/opt/newsstand/.env` outbound OTP emails.
 
 ---
 
@@ -624,9 +666,9 @@ sudo systemctl reload caddy
 
 Ensure your Docker services automatically start after any server maintenance or host reboot:
 
-1. Create `/etc/systemd/system/newsgrid-docker.service`:
+1. Create `/etc/systemd/system/newsstand-docker.service`:
    ```bash
-   sudo nano /etc/systemd/system/newsgrid-docker.service
+   sudo nano /etc/systemd/system/newsstand-docker.service
    ```
 
 2. Add the following unit configuration:
@@ -639,7 +681,7 @@ Ensure your Docker services automatically start after any server maintenance or 
    [Service]
    Type=oneshot
    RemainAfterExit=yes
-   WorkingDirectory=/opt/newsgrid
+   WorkingDirectory=/opt/newsstand
    ExecStart=/usr/bin/docker compose up -d
    ExecStop=/usr/bin/docker compose down
    TimeoutStartSec=0
@@ -651,7 +693,7 @@ Ensure your Docker services automatically start after any server maintenance or 
 3. Enable and activate the service:
    ```bash
    sudo systemctl daemon-reload
-   sudo systemctl enable newsgrid-docker.service
+   sudo systemctl enable newsstand-docker.service
    ```
 
 ---
@@ -662,8 +704,8 @@ Set up an automated daily cron job to back up the PostgreSQL database to local s
 
 1. Create backup directory:
    ```bash
-   sudo mkdir -p /var/backups/newsgrid
-   sudo chown -R ubuntu:ubuntu /var/backups/newsgrid
+   sudo mkdir -p /var/backups/newsstand
+   sudo chown -R ubuntu:ubuntu /var/backups/newsstand
    ```
 
 2. Open crontab:
@@ -673,8 +715,8 @@ Set up an automated daily cron job to back up the PostgreSQL database to local s
 
 3. Add daily backup at 2:00 AM WAT (with automatic 14-day retention cleanup):
    ```cron
-   0 2 * * * docker exec nigeriannewsgrid-postgres pg_dump -U newsuser newsgrid | gzip > /var/backups/newsgrid/newsgrid_$(date +\%F).sql.gz
-   0 3 * * * find /var/backups/newsgrid -name "*.sql.gz" -type f -mtime +14 -delete
+   0 2 * * * docker exec nigeriannewsstand-postgres pg_dump -U newsuser newsstand | gzip > /var/backups/newsstand/newsstand_$(date +\%F).sql.gz
+   0 3 * * * find /var/backups/newsstand -name "*.sql.gz" -type f -mtime +14 -delete
    ```
 
 ---
@@ -695,7 +737,7 @@ Run these commands from your local machine or VPS terminal to verify complete en
 
   # Note: /api/v1/health/details is a protected admin endpoint and requires X-Api-Key
   curl -s https://api.newsstand.ng/api/v1/health/details \
-    -H "X-Api-Key: $(grep '^API_KEY=' /opt/newsgrid/.env | cut -d '=' -f2-)" | jq .
+    -H "X-Api-Key: $(grep '^API_KEY=' /opt/newsstand/.env | cut -d '=' -f2-)" | jq .
   # Returns JSON with database provider ("PostgreSQL"), active Gemini model, scraper status, and storage metrics
   ```
 - [ ] **SEO HTML Hydration & Structured Sitemaps**:
@@ -743,7 +785,7 @@ Run these commands from your local machine or VPS terminal to verify complete en
 ### 9.1 Zero-Downtime Rolling Code Updates
 To deploy new commits from `main` to your AWS Lightsail VPS:
 ```bash
-cd /opt/newsgrid
+cd /opt/newsstand
 git pull origin main
 docker compose up -d --build
 docker image prune -f
@@ -753,24 +795,24 @@ docker image prune -f
 `NewsApi` records every Gemini API dispatch, latency metric, circuit-breaker event, and `TextRank-Extractive` fallback in persistent volume `ai-logs` (`/app/logs`):
 ```bash
 # View human-readable formatted audit log
-docker exec nigeriannewsgrid-newsapi tail -n 50 /app/logs/gemini_ai_audit.log
+docker exec nigeriannewsstand-newsapi tail -n 50 /app/logs/gemini_ai_audit.log
 
 # View machine-parseable JSONL audit telemetry
-docker exec nigeriannewsgrid-newsapi tail -n 20 /app/logs/gemini_ai_audit.jsonl | jq .
+docker exec nigeriannewsstand-newsapi tail -n 20 /app/logs/gemini_ai_audit.jsonl | jq .
 ```
 
 ### 9.3 Managing Image Proxy Cache
 Optimized WebP thumbnails are cached in the `img-cache` volume (`/app/data/img_cache`). You can inspect cache size or purge it directly from `https://admin.newsstand.ng/SystemHealth` or via CLI:
 ```bash
 curl -X POST http://127.0.0.1:5000/api/v1/health/purge-cache \
-  -H "X-Api-Key: $(grep '^API_KEY=' /opt/newsgrid/.env | cut -d '=' -f2-)"
+  -H "X-Api-Key: $(grep '^API_KEY=' /opt/newsstand/.env | cut -d '=' -f2-)"
 ```
 
 ### 9.4 Non-Root Container Permissions (`$APP_UID` / `node`) when Migrating Existing Volumes
 All .NET 10 containers execute as the non-root `$APP_UID` (`1654`) user and `news-web` executes as `node` (`1000`). Fresh Docker named volumes (`audio-data`, `img-cache`, `ai-logs`) automatically inherit `1654:1654` ownership from the image. However, if you are upgrading an older VPS where volumes were previously created by `root`, fix volume ownership once with:
 ```bash
 for vol in audio-data img-cache ai-logs; do
-  docker run --rm -v "newsgrid_${vol}:/mnt" alpine chown -R 1654:1654 /mnt
+  docker run --rm -v "newsstand_${vol}:/mnt" alpine chown -R 1654:1654 /mnt
 done
-chmod 644 /opt/newsgrid/secrets/gcp-service-account.json
+chmod 644 /opt/newsstand/secrets/*.json 2>/dev/null || true
 ```

@@ -39,7 +39,7 @@ public class SystemSettingsService(
         ["Google:ClientId"] = ("Security", "Google OAuth 2.0 Web Client ID for reader authentication and comments", false, "434931027697-0ofh3nptkv409vju55od3fhrfbkccu15.apps.googleusercontent.com"),
 
         // Email & Notifications
-        ["Feedback:RecipientEmail"] = ("Email", "Email address that receives user feedback alerts", false, "feedback@nigeriannewsgrid.com"),
+        ["Feedback:RecipientEmail"] = ("Email", "Email address that receives user feedback alerts", false, "Admin@newsstand.ng"),
         ["Feedback:Smtp:Host"] = ("Email", "SMTP outgoing server host (e.g. smtp.mailgun.org or smtp.gmail.com)", false, null),
         ["Feedback:Smtp:Port"] = ("Email", "SMTP outgoing port (usually 587 for STARTTLS or 465 for SSL)", false, "587"),
         ["Feedback:Smtp:EnableSsl"] = ("Email", "Enable SSL/TLS encryption for outgoing SMTP emails", false, "true"),
@@ -47,6 +47,10 @@ public class SystemSettingsService(
         ["Feedback:Smtp:Password"] = ("Email", "SMTP server authentication password / API key secret", true, null),
         ["Feedback:Smtp:FromEmail"] = ("Email", "Sender email address displayed on outgoing emails", false, "no-reply@nigeriannewsgrid.com"),
         ["Feedback:Smtp:FromName"] = ("Email", "Sender display name (e.g. 'News Stand NG')", false, "News Stand NG"),
+
+        // Contact Page & WhatsApp
+        ["Contact:WhatsAppNumber"] = ("Contact", "WhatsApp phone number for direct contact chat routing (e.g. +2348031234567)", false, ""),
+        ["Contact:WhatsAppDefaultMessage"] = ("Contact", "Default greeting prepended to WhatsApp contact messages", false, "Hello News Stand NG Admin, I have an inquiry."),
 
         // Scraper & Background Workers
         ["Scraper:IntervalMinutes"] = ("Scraper", "Frequency in minutes between automated RSS news scraping cycles", false, "15"),

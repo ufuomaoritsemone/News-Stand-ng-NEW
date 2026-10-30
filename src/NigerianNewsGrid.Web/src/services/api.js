@@ -611,6 +611,43 @@ export const api = {
       // Non-blocking telemetry
     }
   },
+
+  /**
+   * Fetch public contact information (configured WhatsApp number, default message, and admin email).
+   */
+  async getContactInfo() {
+    try {
+      const data = await fetchJson(`${API_BASE}/feedback/contact-info`);
+      if (data && typeof data === 'object') return data;
+    } catch {
+      // Fallback
+    }
+    return {
+      whatsAppNumber: '',
+      defaultMessage: 'Hello News Stand NG Admin, I have an inquiry.',
+      recipientEmail: 'Admin@newsstand.ng',
+      hasWhatsApp: false,
+    };
+  },
+
+  /**
+   * Submit contact / feedback form to News API, which records it and routes an email notification to Admin@newsstand.ng.
+   */
+  async submitFeedback({ rating = 5, category = 'General', message = '', userEmail = '', userName = '', platform = 'Web' } = {}) {
+    return fetchJson(`${API_BASE}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rating,
+        category,
+        message,
+        userEmail: userEmail || undefined,
+        userName: userName || undefined,
+        platform: platform || 'Web',
+        appVersion: 'Web-1.0',
+      }),
+    });
+  },
 };
 
 export const FALLBACK_NEWS_VIDEOS = [

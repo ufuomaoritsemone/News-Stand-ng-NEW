@@ -11,6 +11,7 @@ public interface IFeedbackService
     Task<FeedbackResponseDto> SubmitFeedbackAsync(FeedbackRequestDto request, CancellationToken cancellationToken = default);
     Task<List<FeedbackItem>> GetRecentFeedbacksAsync(int limit = 50, CancellationToken cancellationToken = default);
     Task<bool> DeleteFeedbackAsync(string id, CancellationToken cancellationToken = default);
+    Task<ContactInfoDto> GetContactInfoAsync(CancellationToken cancellationToken = default);
 }
 
 public class FeedbackService : IFeedbackService
@@ -107,6 +108,30 @@ public class FeedbackService : IFeedbackService
 
         _logger.LogInformation("Feedback {FeedbackId} deleted by administrator.", id);
         return true;
+    }
+
+    public async Task<ContactInfoDto> GetContactInfoAsync(CancellationToken cancellationToken = default)
+    {
+        var whatsApp = _settingsService != null
+            ? await _settingsService.GetSettingAsync("Contact:WhatsAppNumber", _config["Contact:WhatsAppNumber"], cancellationToken)
+            : _config["Contact:WhatsAppNumber"];
+
+        var defaultMsg = _settingsService != null
+            ? await _settingsService.GetSettingAsync("Contact:WhatsAppDefaultMessage", _config["Contact:WhatsAppDefaultMessage"] ?? "Hello News Stand NG Admin, I have an inquiry.", cancellationToken)
+            : _config["Contact:WhatsAppDefaultMessage"];
+
+        var recipientEmail = _settingsService != null
+            ? await _settingsService.GetSettingAsync("Feedback:RecipientEmail", _config["Feedback:RecipientEmail"] ?? "Admin@newsstand.ng", cancellationToken)
+            : _config["Feedback:RecipientEmail"];
+
+        var cleanNumber = whatsApp?.Trim() ?? string.Empty;
+
+        return new ContactInfoDto(
+            cleanNumber,
+            defaultMsg?.Trim() ?? "Hello News Stand NG Admin, I have an inquiry.",
+            string.IsNullOrWhiteSpace(recipientEmail) ? "Admin@newsstand.ng" : recipientEmail.Trim(),
+            !string.IsNullOrWhiteSpace(cleanNumber)
+        );
     }
 
     private async Task<bool> TrySendFeedbackEmailAsync(FeedbackItem feedback, CancellationToken cancellationToken)

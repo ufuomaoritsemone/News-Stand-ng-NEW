@@ -1,4 +1,4 @@
-# Nigerian News Grid
+﻿# Nigerian News Grid
 
 > 🎙️ **Featured Architecture: Tri-Tier Neural Audio & Speech Synthesis Engine**
 > - **Tier 1 (Google Cloud Text-to-Speech)**: Pluggable Neural2 provider (`en-NG-Neural2-A`) dynamically activated whenever an API key is configured via `GoogleCloud:ApiKey` or `GCP_TTS_API_KEY`.
@@ -23,6 +23,22 @@ Projects:
 
 ## Updates
 
+### October 30, 2026 — Admin Settings Contact & WhatsApp Integration with Conditional Public Routing
+Implemented dynamic WhatsApp and Feedback contact configuration in the Admin Dashboard, paired with automated conditional message routing on the public website's Contact page:
+- **[Admin Settings "Contact & WhatsApp" Management (`src/AdminDashboard/Pages/Settings.cshtml`)]**: Added a dedicated "Contact & WhatsApp" tab in the Admin Dashboard Settings view with inputs for WhatsApp Phone Number (`Contact:WhatsAppNumber`), Default Prefilled Message (`Contact:WhatsAppDefaultMessage`), and Recipient Email (`Feedback:RecipientEmail`). Includes live input validation and a dynamic testing link directly launching `wa.me/{cleanNumber}`.
+- **[System Settings & Public Contact Endpoint (`src/NewsApi`)]**: Registered settings defaults (`Admin@newsstand.ng` and WhatsApp keys) in `SystemSettingsService`. Created `GET /api/v1/feedback/contact-info` returning `ContactInfoDto` (`whatsAppNumber`, `defaultMessage`, `recipientEmail`, `hasWhatsApp`). Whitelisted the route in `ApiKeyMiddleware.IsPublicClientEndpoint` so mobile and web clients can retrieve routing metadata without requiring an API key.
+- **[Conditional Routing on Public Web (`src/NigerianNewsGrid.Web/app/routes/contact.jsx` & `src/NigerianNewsGrid.Web/src/services/api.js`)]**: Integrated `api.getContactInfo()` into route loaders. If a WhatsApp number is configured, the primary action button becomes **"Send via WhatsApp (Preferred)"** (`#25D366`) with normalized international dialing (`234...`), while email acts as secondary. If no WhatsApp number is set, the primary action seamlessly switches to direct form submission to `Admin@newsstand.ng`.
+- **[Testing & Verification]**: Verified backend compilation (`NewsApi` & `AdminDashboard`) with 0 warnings/errors, and validated frontend production bundle with `npm run build`.
+
+### October 30, 2026 — Google AdSense Integration & Authorized Digital Sellers (ds.txt) Endpoint
+Integrated Google AdSense publisher verification and monetization across News Stand NG with account verification meta tags, responsive auto-ads asynchronous scripts, and a dual-layer Authorized Digital Sellers (/ads.txt) handler:
+- **[AdSense Script & Account Verification (
+oot.jsx)]**: Added Google AdSense account verification meta tag (google-adsense-account: ca-pub-0810356418854639) and asynchronous AdSense client library script (pagead2.googlesyndication.com/...) inside document <head> in src/NigerianNewsGrid.Web/app/root.jsx.
+- **[Dedicated Ads.txt Route & Static Asset (ds.txt, 
+outes/ads[.]txt.jsx, 
+outes.js)]**: Created /ads.txt with publisher verification record (google.com, pub-0810356418854639, DIRECT, f08c47fec0942fa0) both as a static file in src/NigerianNewsGrid.Web/public/ads.txt and as an explicit React Router resource route in src/NigerianNewsGrid.Web/app/routes/ads[.]txt.jsx, ensuring strict 	ext/plain; charset=utf-8 header delivery, 24-hour caching, and avoiding route parameter conflicts.
+- **[Testing & Verification]**: Verified complete production build with 
+pm --prefix src/NigerianNewsGrid.Web run build (client and SSR chunks compiled cleanly) and verified 0 lint errors.
 ### October 28, 2026 — Lighthouse CI Workflow & Mock API Process Lifecycle Hardening
 Reviewed and hardened [`.github/workflows/lighthouse.yml`](file:///h:/News-Stand-ng-main/News-Stand-ng-main/.github/workflows/lighthouse.yml) and [`src/NigerianNewsGrid.Web/scripts/lhci-mock-api.mjs`](file:///h:/News-Stand-ng-main/News-Stand-ng-main/src/NigerianNewsGrid.Web/scripts/lhci-mock-api.mjs) to eliminate port `3000` `EADDRINUSE` conflicts and cross-step process termination on GitHub Actions runners:
 - **[Port `3000` `EADDRINUSE` Resolution]**: Removed the separate warm-up step (`npm start & SERVER_PID=$!; kill $SERVER_PID`), where `kill` only terminated the outer `npm` CLI wrapper while leaving the child `react-router-serve` Express process bound to port `3000` when `@lhci/cli autorun` launched `startServerCommand`.
@@ -3165,6 +3181,5 @@ Implemented sequential architectural improvements and code quality fixes address
   - Automatically derives dynamic recency tags: `⚡ Breaking` (< 45 min with pulse effect), `Just In` (< 3 hours), and `Today` (< 24 hours).
 - **Streamlined Home Layout & Card Styling**:
   - Removed top 3 headlines section and source credibility tags per user preference, restoring full focus to the hero carousel, category pills, and standard news grid.
-
 
 

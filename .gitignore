@@ -11,6 +11,8 @@ out/
 **/.env.local
 secrets/
 *gserviceaccount*.json
+*newsstandng1*.json
+*credentials*.json
 *.pfx
 *.p12
 
@@ -65,6 +67,10 @@ TestResults/
 *.coverage
 coverage-report/
 
-## ── Logs ─────────────────────────────────────────────────────────
+## ── Logs & Local Cache Data ─────────────────────────────────────
 *.log
 logs/
+**/img_cache/
+**/data/audio/
+**/data/img_cache/
+Script and meta tags.txt

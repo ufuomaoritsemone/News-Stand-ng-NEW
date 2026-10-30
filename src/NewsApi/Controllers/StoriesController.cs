@@ -83,7 +83,7 @@ public class StoriesController : ControllerBase
             var fallbackClusters = await _db.StoryClusters
                 .AsNoTracking()
                 .Where(sc => sc.ArticleCount >= 2 && sc.SourceCount >= 2 && sc.UpdatedAt >= fallbackCutoff && !existingIds.Contains(sc.Id))
-                .OrderByDescending(sc => sc.ArticleCount)
+                .OrderByDescending(sc => sc.SourceCount)
                 .ThenByDescending(sc => sc.UpdatedAt)
                 .Take(safeLimit - candidateClusters.Count)
                 .Include(sc => sc.ClusterArticles)
@@ -462,8 +462,17 @@ public class StoriesController : ControllerBase
 
         foreach (var group in groups)
         {
-            var topArticles = group.OrderByDescending(a => a.PublishedAt).Take(6).ToList();
-            var lead = topArticles[0];
+            var ordered = group.OrderByDescending(a => a.PublishedAt).ToList();
+            var lead = ordered[0];
+            var relatedToLead = ordered
+                .Where(a => a.Id == lead.Id || StoryClusteringService.AreArticlesRelatedForCluster(lead.Title, lead.Summary ?? lead.Excerpt, a.Title, a.Summary ?? a.Excerpt))
+                .Take(6)
+                .ToList();
+
+            var topArticles = relatedToLead.Count >= 2
+                ? relatedToLead
+                : ordered.Take(2).ToList();
+
             var sources = topArticles
                 .Select(a => a.Source)
                 .Where(s => !string.IsNullOrWhiteSpace(s))
@@ -480,7 +489,7 @@ public class StoriesController : ControllerBase
             {
                 Id = $"trend-{catSlug}",
                 Slug = $"trend-{catSlug}",
-                Title = lead.Title,
+                Title = StoryClusteringService.CleanClusterHeadline(lead.Title),
                 Summary = lead.Summary ?? lead.Excerpt,
                 ImageUrl = CategoryImageMap.Resolve(lead.ImageUrl, group.Key),
                 Category = group.Key,
@@ -508,15 +517,23 @@ public class StoriesController : ControllerBase
             .Take(80)
             .ToListAsync(ct);
 
-        var matched = recentArticles
+        var categoryArticles = recentArticles
             .Where(a => string.Equals(a.Category?.Trim(), categoryKey, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (categoryArticles.Count == 0)
+            return null;
+
+        var lead = categoryArticles[0];
+        var relatedToLead = categoryArticles
+            .Where(a => a.Id == lead.Id || StoryClusteringService.AreArticlesRelatedForCluster(lead.Title, lead.Summary ?? lead.Excerpt, a.Title, a.Summary ?? a.Excerpt))
             .Take(8)
             .ToList();
 
-        if (matched.Count == 0)
-            return null;
+        var matched = relatedToLead.Count >= 2
+            ? relatedToLead
+            : categoryArticles.Take(2).ToList();
 
-        var lead = matched[0];
         var category = lead.Category ?? "General";
         var articles = matched.Select(a => new StoryClusterArticleDto
         {
