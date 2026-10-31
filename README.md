@@ -23,6 +23,11 @@ Projects:
 
 ## Updates
 
+### October 31, 2026 — Docker Build Restoration Resilience & Persistent Data Protection Keys
+Hardened Dockerfile build pipelines and persisted ASP.NET Core Data Protection & Antiforgery key rings for the Admin Dashboard:
+- **[Dockerfile Build Resilience (NewsApi, NewsScraperService, TtsWorker, AdminDashboard)]**: Removed `--no-restore` flags from `dotnet publish` in all .NET Dockerfiles. This ensures transient BuildKit NuGet cache misses (e.g. for implicit analyzer packages like `Microsoft.CodeAnalysis.Analyzers`) never fail multi-stage container builds.
+- **[ASP.NET Core Data Protection Key Ring Persistence (AdminDashboard/Program.cs, Dockerfile, docker-compose.yml)]**: Configured `builder.Services.AddDataProtection().PersistKeysToFileSystem(...)` pointing to `/app/data/keys` with a persistent named Docker volume (`admin-keys:/app/data/keys`). Resolves Antiforgery/Cookie decryption warnings and keeps admin session tokens valid across container updates and restarts.
+- **[Testing & Verification]**: Verified clean project compilation for `AdminDashboard` and ran full test suite with `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 95/95 tests passing).
 ### October 30, 2026 — Corporate Earnings Clustering Token Normalization & CI Test Suite Fix
 Resolved a CI unit test failure in `NewsApi.Tests` (`RunClustering_DoesNotMerge_UnrelatedCorporateEarningsReports`) by hardening token extraction for Nigerian financial earnings reports:
 - **[Naira Currency Prefix Normalization (StoryClusteringService.cs)]**: In `NormalizeAndStemToken`, added stripping of leading 'n'/'N' currency prefixes when followed by digits (e.g. N111 -> 111), ensuring articles using symbol formatting (₦111.4bn) and letter formatting (N111.39 billion) compute exact numerical token overlaps.

@@ -11,10 +11,11 @@ RUN --mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages \
 COPY src/ ./
 WORKDIR /src/AdminDashboard
 RUN --mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages \
-    dotnet publish "AdminDashboard.csproj" -c Release -o /app/publish --no-restore /p:UseAppHost=false
+    dotnet publish "AdminDashboard.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
+RUN mkdir -p /app/data/keys && chown -R $APP_UID:$APP_UID /app
 COPY --from=build --chown=$APP_UID:$APP_UID /app/publish ./
 
 ENV ASPNETCORE_HTTP_PORTS=8080 \

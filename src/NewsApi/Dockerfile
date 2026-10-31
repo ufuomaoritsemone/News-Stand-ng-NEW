@@ -11,7 +11,7 @@ RUN --mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages \
 COPY src/ ./
 WORKDIR /src/NewsApi
 RUN --mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages \
-    dotnet publish "NewsApi.csproj" -c Release -o /app/publish --no-restore /p:UseAppHost=false
+    dotnet publish "NewsApi.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app

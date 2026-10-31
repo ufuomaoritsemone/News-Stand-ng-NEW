@@ -11,7 +11,7 @@ RUN --mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages \
 COPY src/ ./
 WORKDIR /src/NewsScraperService
 RUN --mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages \
-    dotnet publish "NewsScraperService.csproj" -c Release -o /app/publish --no-restore /p:UseAppHost=false
+    dotnet publish "NewsScraperService.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
 WORKDIR /app

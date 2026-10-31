@@ -1,6 +1,7 @@
 namespace AdminDashboard;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 
 public class Program
@@ -11,6 +12,12 @@ public class Program
         NigerianNewsGrid.Client.EnvLoader.Load();
 
         var builder = WebApplication.CreateBuilder(args);
+
+        // Persist ASP.NET Core Data Protection & Antiforgery keys to a dedicated persistent path
+        var dataProtectionDir = new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "data", "keys"));
+        builder.Services.AddDataProtection()
+            .PersistKeysToFileSystem(dataProtectionDir)
+            .SetApplicationName("NigerianNewsGrid.AdminDashboard");
 
         // Fix #7: Configure Cookie Authentication for Admin Portal
         builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

@@ -93,6 +93,8 @@ services:
       - ApiKey=${API_KEY:?Set API_KEY in .env}
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-AdminPass123!}
+    volumes:
+      - admin-keys:/app/data/keys
     depends_on:
       news-api:
         condition: service_healthy
@@ -168,4 +170,5 @@ volumes:
   audio-data:
   img-cache:
   ai-logs:
+  admin-keys:
 
