@@ -75,15 +75,19 @@ public class BriefingCacheService(
             var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(url ?? title))).ToLowerInvariant();
             return new()
             {
-                Id          = $"fallback_{category.ToLowerInvariant()}_{hash[..12]}",
-                Title       = title,
-                Summary     = summary,
-                Url         = url,
-                Source      = source,
-                Category    = category,
-                ImageUrl    = ResolveCategory(category),
-                PublishedAt = DateTime.UtcNow.AddHours(-2),
-                VoiceName   = $"{language} Female"
+                Id              = $"fallback_{category.ToLowerInvariant()}_{hash[..12]}",
+                Title           = title,
+                Summary         = summary,
+                Url             = url,
+                Source          = source,
+                Category        = category,
+                ImageUrl        = ResolveCategory(category),
+                PublishedAt     = DateTime.UtcNow.AddHours(-2),
+                VoiceName       = $"{language} Female",
+                HasAiSummary    = true,
+                AiSummary       = summary,
+                AiSummaryEngine = "AI Quick Read",
+                KeyTakeaways    = [summary]
             };
         }
 

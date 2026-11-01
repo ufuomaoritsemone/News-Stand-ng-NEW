@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Android.Content;
+using NigerianNewGrid.Constants;
 
 namespace NigerianNewGrid.Platforms.Android;
 
@@ -65,10 +66,10 @@ internal static class WidgetAnalyticsHelper
         if (!analyticsEnabled) return;
 
         var baseUrl = prefs?.GetString(ApiBaseUrlKey, null);
-        if (string.IsNullOrWhiteSpace(baseUrl))
+        if (string.IsNullOrWhiteSpace(baseUrl) ||
+            baseUrl.Contains("nigeriannewsgrid.com", StringComparison.OrdinalIgnoreCase))
         {
-            // Widget background process — fall back to standard Android emulator loopback
-            baseUrl = "http://10.0.2.2:56193";
+            baseUrl = AppNetworkConstants.ProductionApiUrl;
         }
 
         // Re-use the same stable device ID that IAnalyticsService uses

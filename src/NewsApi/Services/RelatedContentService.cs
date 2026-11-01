@@ -163,25 +163,47 @@ public class RelatedContentService : IRelatedContentService
                 .ToList();
 
             var keywordMatchedCount = scoredCandidates.Count(x => x.KeywordScore > 0);
-            var rankedArticles = (keywordMatchedCount >= Math.Min(limitPerType, 2)
+            var selectedCandidates = (keywordMatchedCount >= Math.Min(limitPerType, 2)
                     ? scoredCandidates.Where(x => x.KeywordScore > 0)
                     : scoredCandidates.Where(x => x.TotalScore > 0 || string.IsNullOrEmpty(categoryNorm)))
                 .OrderByDescending(x => x.KeywordScore)
                 .ThenByDescending(x => x.TotalScore)
                 .ThenByDescending(x => x.Article.PublishedAt ?? DateTime.MinValue)
                 .Take(limitPerType)
-                .Select(x => new ArticleDto
+                .ToList();
+
+            var selectedIds = selectedCandidates.Select(x => x.Article.Id).ToList();
+            var enrichmentMap = selectedIds.Count > 0
+                ? await _db.ArticleEnrichments.AsNoTracking()
+                    .Where(e => selectedIds.Contains(e.ArticleId))
+                    .ToDictionaryAsync(e => e.ArticleId, cancellationToken)
+                : new Dictionary<string, ArticleEnrichment>();
+
+            var rankedArticles = selectedCandidates
+                .Select(x =>
                 {
-                    Id = x.Article.Id,
-                    Title = x.Article.Title,
-                    Summary = x.Article.Summary,
-                    Content = null,
-                    Url = x.Article.Url,
-                    ImageUrl = CategoryImageMap.Resolve(x.Article.ImageUrl, x.Article.Category),
-                    Source = string.IsNullOrWhiteSpace(x.Article.Source) ? "General News" : x.Article.Source,
-                    Category = string.IsNullOrWhiteSpace(x.Article.Category) ? "General" : x.Article.Category,
-                    PublishedAt = x.Article.PublishedAt ?? DateTime.UtcNow,
-                    AudioUrl = x.Article.AudioUrl
+                    var enr = enrichmentMap.GetValueOrDefault(x.Article.Id);
+                    return new ArticleDto
+                    {
+                        Id = x.Article.Id,
+                        Title = x.Article.Title,
+                        Summary = x.Article.Summary,
+                        Content = null,
+                        Url = x.Article.Url,
+                        ImageUrl = CategoryImageMap.Resolve(x.Article.ImageUrl, x.Article.Category),
+                        Source = string.IsNullOrWhiteSpace(x.Article.Source) ? "General News" : x.Article.Source,
+                        Category = string.IsNullOrWhiteSpace(x.Article.Category) ? "General" : x.Article.Category,
+                        PublishedAt = x.Article.PublishedAt ?? DateTime.UtcNow,
+                        AudioUrl = x.Article.AudioUrl,
+                        HasAiSummary = enr != null,
+                        AiSummaryEngine = enr?.Engine,
+                        AiSummary = enr?.FullSummary?.ExecutiveOverview ?? enr?.KeyTakeaways.FirstOrDefault(),
+                        KeyTakeaways = enr?.KeyTakeaways ?? [],
+                        ContextAndBackground = enr?.FullSummary?.ContextAndBackground ?? [],
+                        KeyFiguresAndEntities = enr?.FullSummary?.KeyFiguresAndEntities ?? [],
+                        OutlookOrNextSteps = enr?.FullSummary?.OutlookOrNextSteps,
+                        Enrichment = ArticleIngestionService.MapToEnrichmentDto(enr)
+                    };
                 })
                 .ToList();
 

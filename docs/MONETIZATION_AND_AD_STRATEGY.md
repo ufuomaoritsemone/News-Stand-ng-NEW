@@ -105,7 +105,7 @@ graph TD
    - Register mobile apps: *Nigerian News Grid (Android)* & *Nigerian News Grid (iOS)*.
    - Generate Ad Unit IDs: Banner, Native Advanced, Interstitial, and Rewarded.
 2. **`app-ads.txt` Hosting**:
-   - Serve static `app-ads.txt` via `NewsApi` root domain (e.g. `https://api.nigeriannewsgrid.com/app-ads.txt`) to protect publisher inventory from domain spoofing.
+   - Serve static `app-ads.txt` via `NewsApi` root domain (e.g. `https://api.newsstand.ng/app-ads.txt`) to protect publisher inventory from domain spoofing.
 3. **Store Developer Accounts**:
    - Google Play Console & Apple Developer Program accounts configured for In-App Purchases and Merchant Profiles.
 

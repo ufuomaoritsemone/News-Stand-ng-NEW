@@ -41,10 +41,59 @@ public sealed record BriefingItem
     public bool IsSpecialPlacement => TargetPosition is >= 1 and <= 3;
 
     // AI Summary & Executive Briefing Fields for Mobile
-    public bool HasAiSummary { get; init; } = false;
-    public string? AiSummary { get; init; }
-    public string? AiSummaryEngine { get; init; }
-    public List<string> KeyTakeaways { get; init; } = [];
+    private bool _hasAiSummary;
+    private string? _aiSummary;
+    private string? _aiSummaryEngine;
+    private List<string> _keyTakeaways = [];
+    private List<string> _contextAndBackground = [];
+    private List<string> _keyFiguresAndEntities = [];
+    private string? _outlookOrNextSteps;
+
+    public bool HasAiSummary
+    {
+        get => _hasAiSummary || !string.IsNullOrWhiteSpace(AiSummary) || Enrichment != null;
+        init => _hasAiSummary = value;
+    }
+
+    public string? AiSummary
+    {
+        get => !string.IsNullOrWhiteSpace(_aiSummary)
+            ? _aiSummary
+            : (Enrichment?.FullSummary?.ExecutiveOverview ?? Enrichment?.KeyTakeaways?.FirstOrDefault());
+        init => _aiSummary = value;
+    }
+
+    public string? AiSummaryEngine
+    {
+        get => !string.IsNullOrWhiteSpace(_aiSummaryEngine) ? _aiSummaryEngine : Enrichment?.Engine;
+        init => _aiSummaryEngine = value;
+    }
+
+    public List<string> KeyTakeaways
+    {
+        get => _keyTakeaways.Count > 0 ? _keyTakeaways : (Enrichment?.KeyTakeaways ?? []);
+        init => _keyTakeaways = value ?? [];
+    }
+
+    public List<string> ContextAndBackground
+    {
+        get => _contextAndBackground.Count > 0 ? _contextAndBackground : (Enrichment?.FullSummary?.ContextAndBackground ?? []);
+        init => _contextAndBackground = value ?? [];
+    }
+
+    public List<string> KeyFiguresAndEntities
+    {
+        get => _keyFiguresAndEntities.Count > 0 ? _keyFiguresAndEntities : (Enrichment?.FullSummary?.KeyFiguresAndEntities ?? []);
+        init => _keyFiguresAndEntities = value ?? [];
+    }
+
+    public string? OutlookOrNextSteps
+    {
+        get => !string.IsNullOrWhiteSpace(_outlookOrNextSteps) ? _outlookOrNextSteps : Enrichment?.FullSummary?.OutlookOrNextSteps;
+        init => _outlookOrNextSteps = value;
+    }
+
+    public ClientArticleEnrichmentDto? Enrichment { get; init; }
     public int CommentCount { get; init; } = 0;
 
     [System.Text.Json.Serialization.JsonIgnore]
@@ -83,5 +132,28 @@ public sealed record AudioBriefingMetadata
     public DateTime PublishedAt { get; init; }
     public string Provider { get; init; } = string.Empty;
     public bool Available { get; init; }
+}
+
+/// <summary>
+/// Client-side DTO for structured AI enrichment attached to an article.
+/// </summary>
+public sealed record ClientArticleEnrichmentDto
+{
+    public List<string> KeyTakeaways { get; init; } = [];
+    public ClientFullSummaryDto? FullSummary { get; init; }
+    public string? Engine { get; init; }
+    public DateTime? UpdatedAt { get; init; }
+}
+
+/// <summary>
+/// Client-side DTO for full structured AI executive summary returned by /api/v1/articles/{id}/ai-summary.
+/// </summary>
+public sealed record ClientFullSummaryDto
+{
+    public string ExecutiveOverview { get; init; } = string.Empty;
+    public List<string> ContextAndBackground { get; init; } = [];
+    public List<string> KeyFiguresAndEntities { get; init; } = [];
+    public string OutlookOrNextSteps { get; init; } = string.Empty;
+    public int ReadingTimeSeconds { get; init; } = 45;
 }
 

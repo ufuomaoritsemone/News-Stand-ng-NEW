@@ -154,11 +154,14 @@ public class BriefingService : IBriefingService
                             PriorityWeight  = a.PriorityWeight,
                             PlacementZone   = a.PlacementZone ?? "MainPage_InFeed",
                             TargetPlatform  = a.TargetPlatform ?? "All",
-                            HasAiSummary    = enr != null,
-                            AiSummary       = aiSummary,
-                            AiSummaryEngine = enr?.Engine,
-                            KeyTakeaways    = enr?.KeyTakeaways ?? new List<string>(),
-                            CommentCount    = commentCounts.GetValueOrDefault(a.Id, 0)
+                            HasAiSummary          = enr != null,
+                            AiSummary             = aiSummary,
+                            AiSummaryEngine       = enr?.Engine,
+                            KeyTakeaways          = enr?.KeyTakeaways ?? new List<string>(),
+                            ContextAndBackground  = enr?.FullSummary?.ContextAndBackground ?? new List<string>(),
+                            KeyFiguresAndEntities = enr?.FullSummary?.KeyFiguresAndEntities ?? new List<string>(),
+                            OutlookOrNextSteps    = enr?.FullSummary?.OutlookOrNextSteps,
+                            CommentCount          = commentCounts.GetValueOrDefault(a.Id, 0)
                         };
                     }).ToList()
             })

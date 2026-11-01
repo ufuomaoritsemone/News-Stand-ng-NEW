@@ -1,4 +1,4 @@
-﻿# Nigerian News Grid
+# Nigerian News Grid
 
 > 🎙️ **Featured Architecture: Tri-Tier Neural Audio & Speech Synthesis Engine**
 > - **Tier 1 (Google Cloud Text-to-Speech)**: Pluggable Neural2 provider (`en-NG-Neural2-A`) dynamically activated whenever an API key is configured via `GoogleCloud:ApiKey` or `GCP_TTS_API_KEY`.
@@ -22,6 +22,32 @@ Projects:
 > 📈 **SEO Roadmap & Status Tracker**: See [`docs/SEO_IMPLEMENTATION_STATUS.md`](file:///c:/Users/ufuom/source/repos/NigerianNewGrid/docs/SEO_IMPLEMENTATION_STATUS.md) for live progress across all 10 SEO phases and the next prompt to run.
 
 ## Updates
+
+### October 31, 2026 — Always-On AI Summary Experience in .NET MAUI Mobile Article Reader
+Ensured that whenever a user taps any story article across the `.NET MAUI` mobile app (`NigerianNewGrid`) — including the home feed, category tabs, search results, story clusters, related stories, sponsored stories, and push notifications — they always see the structured **AI Summary** (`AiExecutiveBriefingCard`) as the primary view:
+- **[On-Demand Article Enrichment & Top-Level AI DTO Mapping (`ArticlesController.cs`, `ArticleIngestionService.cs`, `BriefingService.cs`, `ArticleSearchService.cs`, `RelatedContentService.cs`, `Dtos.cs`, `BriefingDto.cs`)]**:
+  - Updated `GET /api/v1/articles/{id}` (`ArticlesController.GetArticleById`) to automatically trigger `_enrichmentService.EnrichArticleAsync` on-demand when an article has not yet been enriched by the background worker.
+  - Added top-level `KeyTakeaways`, `ContextAndBackground`, `KeyFiguresAndEntities`, and `OutlookOrNextSteps` fields to `ArticleDto` and `BriefingItemDto`, and populated enrichment data across `BriefingService`, `ArticleSearchService`, and `RelatedContentService`.
+- **[Client SDK Enrichment Resolution & AI Summary Endpoint (`BriefingCategory.cs`, `NewsApiClient.cs`)]**:
+  - Enhanced `BriefingItem` in `NigerianNewsGrid.Client` with `ClientArticleEnrichmentDto` and `ClientFullSummaryDto` support so `HasAiSummary`, `AiSummary`, `AiSummaryEngine`, `KeyTakeaways`, `ContextAndBackground`, `KeyFiguresAndEntities`, and `OutlookOrNextSteps` automatically resolve from either top-level JSON fields or nested `enrichment.fullSummary`.
+  - Added `NewsApiClient.GetOrGenerateAiSummaryAsync(string articleId)` calling `GET /api/v1/articles/{id}/ai-summary` for on-demand AI summary synthesis.
+- **[Mobile Reader ViewModel Hydration & Instant AI Fallback (`ArticleViewModel.cs`, `ArticleNavigationParams.cs`, `CachedStoryEntity.cs`, `RelatedStoryDisplayItem.cs`, `ArticleInteractionService.cs`, `MainActivity.cs`)]**:
+  - Updated `ArticleViewModel.Initialize`, `ApplyStoryData`, and `EnsureAiSummaryPresent` so every non-video story article immediately displays the AI Summary card upon opening, synthesizing an instant AI Quick Read overview and takeaways when opening unenriched or offline items while hydrating the full server AI summary (`GetArticleByIdAsync` + `GetOrGenerateAiSummaryAsync`) in the background.
+  - Fixed `HydrateContentIfMissingAsync` so articles without full body `Content` still apply hydrated AI Summary data from `GetArticleByIdAsync`.
+  - Preserved AI Summary fields across SQLite caching (`CachedStoryEntity`), related story navigation (`RelatedStoryDisplayItem`, `ArticleWebPage.xaml.cs`), sponsored stories (`ArticleInteractionService`), and Android push notification intents (`MainActivity.cs`).
+- **[Mobile Reader UI Enhancements (`ArticleWebPage.xaml`)]**:
+  - Upgraded `AiExecutiveBriefingCard` with an AI engine header badge (`⚡ Gemini 1.5 Flash` / `⚡ AI Quick Read`), expand/collapse toggle, **Executive Overview**, **Key Takeaways**, **Context & Background**, and **What to Watch Next** (`OutlookOrNextSteps`) sections, and hid the redundant raw `"Publisher Lead Coverage"` box (`ShowPublisherExcerpt`) whenever the AI Summary is displayed.
+- **[Testing & Verification]**: Added unit tests in `NewsApiClient.Tests` (`314/314` passing), verified `NewsApi.Tests` (`95/95` passing), and built `NigerianNewGrid` (`net10.0-android`) with 0 errors.
+
+### October 31, 2026 — .NET MAUI Mobile App Live Production API Integration (https://api.newsstand.ng)
+Updated the .NET MAUI mobile app (`NigerianNewGrid`) and shared client library (`NigerianNewsGrid.Client`) to seamlessly connect to the live production API at `https://api.newsstand.ng`:
+- **[Shared API Client Defaults (`NewsApiClient.cs`)]**: Updated `NewsApiClient.BaseUrl` and `NormalizeBaseUrl` default fallback from legacy local port `56193` to `DefaultProductionUrl = "https://api.newsstand.ng"`, ensuring any unconfigured client instances resolve to the production cloud API out-of-the-box.
+- **[Network Constants & Hardware-Aware Resolution (`AppNetworkConstants.cs`)]**: Updated `ProductionApiUrl` to `https://api.newsstand.ng`. Hardened `GetConfiguredApiBaseUrl()` to migrate stale legacy domains (`nigeriannewsgrid.com`) to `https://api.newsstand.ng`, and automatically sanitized dead emulator loopbacks (`10.0.2.2`, `localhost`) on physical devices (`DeviceInfo.DeviceType == DeviceType.Physical`).
+- **[Main ViewModel API Discovery Waterfall (`MainViewModel.cs`)]**: Refactored `ResolveApiBaseUrlAsync` to prioritize `ProductionApiUrl` on physical devices, lengthened probe timeouts (2500ms for HTTPS/cloud endpoints), purged dead loopbacks, and replaced the final probe fallback with `AppNetworkConstants.ProductionApiUrl`.
+- **[MVVM ViewModels & Interactive Subsystems (`ArticleViewModel.cs`, `StoryClusterViewModel.cs`, `ArticleInteractionService.cs`)]**: Bound all secondary ViewModels and interaction services to `AppNetworkConstants.GetConfiguredApiBaseUrl()` so comments, story clusters, and telemetry target the live production backend.
+- **[Background Services & Widgets (`AnalyticsService.cs`, `NewsSyncReceiver.cs`, `WidgetAnalyticsHelper.cs`, `NewsWidgetService.cs`)]**: Updated background alarms, widget factories, and telemetry workers to consume `AppNetworkConstants.GetConfiguredApiBaseUrl()` / `ProductionApiUrl`, eliminating hardcoded emulator IP fallbacks.
+- **[Android Network Security (`network_security_config.xml`)]**: Whitelisted subdomain routing for `newsstand.ng` in Android XML configuration.
+- **[Testing & Verification]**: Built `NigerianNewGrid` for Android (`net10.0-android`) with 0 errors; executed the complete client test suite with `dotnet test tests/NewsApiClient.Tests/NewsApiClient.Tests.csproj` (all 312/312 tests passing).
 
 ### October 31, 2026 — Docker Build Restoration Resilience & Persistent Data Protection Keys
 Hardened Dockerfile build pipelines and persisted ASP.NET Core Data Protection & Antiforgery key rings for the Admin Dashboard:

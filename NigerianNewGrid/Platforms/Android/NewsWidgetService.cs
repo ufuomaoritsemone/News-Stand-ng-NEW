@@ -51,10 +51,11 @@ public class NewsWidgetFactory : Java.Lang.Object, RemoteViewsService.IRemoteVie
         // 2. Refresh from API in the background if network is reachable
         try
         {
-            var baseUrl = Preferences.Get(AppPreferenceKeys.ApiBaseUrl, string.Empty);
-            if (!string.IsNullOrWhiteSpace(baseUrl) && !baseUrl.Contains("10.0.2.2"))
+            var baseUrl = AppNetworkConstants.GetConfiguredApiBaseUrl();
+            if (!string.IsNullOrWhiteSpace(baseUrl) &&
+                !(DeviceInfo.DeviceType == DeviceType.Physical && baseUrl.Contains("10.0.2.2")))
             {
-                using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+                using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
                 var requestUrl = $"{baseUrl.TrimEnd('/')}/api/v1/articles?pageSize=10";
                 var response = Task.Run(() => httpClient.GetAsync(requestUrl)).GetAwaiter().GetResult();
 

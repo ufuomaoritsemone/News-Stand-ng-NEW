@@ -13,8 +13,13 @@ public class AdminDashboardWebApplicationFactory : WebApplicationFactory<AdminDa
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        Environment.SetEnvironmentVariable("ADMIN_PASSWORD", TestPass);
+        Environment.SetEnvironmentVariable("ADMIN_USERNAME", TestUser);
+        builder.UseEnvironment("Development");
         builder.UseSetting("AdminAuth:Username", TestUser);
         builder.UseSetting("AdminAuth:Password", TestPass);
+        builder.UseSetting("ADMIN_USERNAME", TestUser);
+        builder.UseSetting("ADMIN_PASSWORD", TestPass);
         builder.UseSetting("ApiBaseUrl", "http://localhost:56193");
     }
 }

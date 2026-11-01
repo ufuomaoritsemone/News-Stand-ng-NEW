@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
+using NigerianNewGrid.Constants;
 
 namespace NigerianNewGrid.Services;
 
@@ -143,19 +144,7 @@ public class AnalyticsService : IAnalyticsService
         // Return cached value if we already resolved it
         if (!string.IsNullOrWhiteSpace(_cachedApiBase)) return _cachedApiBase;
 
-        // Check Preferences (set by MainPage's resolver)
-        var saved = Preferences.Get("api_base_url", string.Empty);
-        if (!string.IsNullOrWhiteSpace(saved))
-        {
-            _cachedApiBase = saved;
-            return saved;
-        }
-
-        // Fallback: platform-appropriate default
-        _cachedApiBase = DeviceInfo.Platform == DevicePlatform.Android
-            ? "http://10.0.2.2:56193"
-            : "http://localhost:56193";
-
+        _cachedApiBase = AppNetworkConstants.GetConfiguredApiBaseUrl();
         return _cachedApiBase;
     }
 }

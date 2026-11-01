@@ -78,11 +78,20 @@ public partial class ArticleViewModel : ObservableObject
     [ObservableProperty] public partial bool HasRelatedVideos { get; set; }
 
     // AI Executive Briefing / Quick Read State
+    private bool _hasVerifiedServerAiSummary;
+
     [ObservableProperty] public partial bool HasAiSummary { get; set; }
     [ObservableProperty] public partial string? AiSummary { get; set; }
     [ObservableProperty] public partial string? AiSummaryEngine { get; set; }
     [ObservableProperty] public partial ObservableCollection<string> KeyTakeaways { get; set; } = [];
     [ObservableProperty] public partial bool HasKeyTakeaways { get; set; }
+    [ObservableProperty] public partial ObservableCollection<string> ContextAndBackground { get; set; } = [];
+    [ObservableProperty] public partial bool HasContextAndBackground { get; set; }
+    [ObservableProperty] public partial ObservableCollection<string> KeyFiguresAndEntities { get; set; } = [];
+    [ObservableProperty] public partial bool HasKeyFiguresAndEntities { get; set; }
+    [ObservableProperty] public partial string? OutlookOrNextSteps { get; set; }
+    [ObservableProperty] public partial bool HasOutlookOrNextSteps { get; set; }
+    [ObservableProperty] public partial bool ShowPublisherExcerpt { get; set; }
     [ObservableProperty] public partial bool IsAiSummaryExpanded { get; set; } = true;
     [ObservableProperty] public partial string AiSummaryToggleIcon { get; set; } = "▲";
     [ObservableProperty] public partial string AiEngineBadgeText { get; set; } = "⚡ AI Quick Read";
@@ -119,6 +128,7 @@ public partial class ArticleViewModel : ObservableObject
         ILogger<ArticleViewModel> logger)
     {
         _apiClient = apiClient;
+        _apiClient.BaseUrl = AppNetworkConstants.GetConfiguredApiBaseUrl();
         _storyRepository = storyRepository;
         _bookmarkService = bookmarkService;
         _recentlyReadService = recentlyReadService;
@@ -146,7 +156,10 @@ public partial class ArticleViewModel : ObservableObject
             aiSummary: parameters.AiSummary,
             aiSummaryEngine: parameters.AiSummaryEngine,
             keyTakeaways: parameters.KeyTakeaways,
-            slug: parameters.Slug);
+            slug: parameters.Slug,
+            contextAndBackground: parameters.ContextAndBackground,
+            keyFiguresAndEntities: parameters.KeyFiguresAndEntities,
+            outlookOrNextSteps: parameters.OutlookOrNextSteps);
     }
 
     public void Initialize(
@@ -166,7 +179,10 @@ public partial class ArticleViewModel : ObservableObject
         string? aiSummaryEngine = null,
         IReadOnlyList<string>? keyTakeaways = null,
         int commentCount = 0,
-        string? slug = null)
+        string? slug = null,
+        IReadOnlyList<string>? contextAndBackground = null,
+        IReadOnlyList<string>? keyFiguresAndEntities = null,
+        string? outlookOrNextSteps = null)
     {
         ArticleUrl = url ?? string.Empty;
         Title = title;
@@ -181,9 +197,11 @@ public partial class ArticleViewModel : ObservableObject
         IsSponsored = isSponsored;
         SponsorName = sponsorName;
 
+        _hasVerifiedServerAiSummary = hasAiSummary || !string.IsNullOrWhiteSpace(aiSummary) || (keyTakeaways is { Count: > 0 });
         HasAiSummary = hasAiSummary || !string.IsNullOrWhiteSpace(aiSummary);
         AiSummary = aiSummary;
         AiSummaryEngine = aiSummaryEngine;
+        OutlookOrNextSteps = outlookOrNextSteps;
         CommentCount = commentCount;
 
         KeyTakeaways.Clear();
@@ -193,11 +211,28 @@ public partial class ArticleViewModel : ObservableObject
         }
         HasKeyTakeaways = KeyTakeaways.Count > 0;
 
+        ContextAndBackground.Clear();
+        if (contextAndBackground != null)
+        {
+            foreach (var c in contextAndBackground) ContextAndBackground.Add(c);
+        }
+        HasContextAndBackground = ContextAndBackground.Count > 0;
+
+        KeyFiguresAndEntities.Clear();
+        if (keyFiguresAndEntities != null)
+        {
+            foreach (var f in keyFiguresAndEntities) KeyFiguresAndEntities.Add(f);
+        }
+        HasKeyFiguresAndEntities = KeyFiguresAndEntities.Count > 0;
+        HasOutlookOrNextSteps = !string.IsNullOrWhiteSpace(OutlookOrNextSteps);
+
         IsVideoStory = string.Equals(category, "Video", StringComparison.OrdinalIgnoreCase) ||
                        (!string.IsNullOrWhiteSpace(url) && (url.Contains("youtube.com") || url.Contains("youtu.be")));
 
         Publisher = ArticleDistillerService.IdentifyPublisher(ArticleUrl);
         PublisherDomain = GetPublisherDomain(ArticleUrl);
+
+        EnsureAiSummaryPresent();
 
         var (_, readTime) = ArticleDistillerService.CalculateReadingTime(!string.IsNullOrWhiteSpace(Content) ? Content : Title);
         ReadingTimeLabel = readTime;
@@ -222,7 +257,9 @@ public partial class ArticleViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(articleId))
         {
-            HasNoContent = string.IsNullOrWhiteSpace(Content);
+            EnsureAiSummaryPresent();
+            RefreshUiBindings();
+            HasNoContent = string.IsNullOrWhiteSpace(Content) && !HasAiSummary && string.IsNullOrWhiteSpace(Summary);
             return;
         }
 
@@ -232,31 +269,41 @@ public partial class ArticleViewModel : ObservableObject
 
             // 1. Check local SQLite cache first (instant, 0KB network, works offline)
             var cachedStory = await _storyRepository.GetStoryByIdAsync(articleId);
-            if (cachedStory != null && !string.IsNullOrWhiteSpace(cachedStory.Content))
+            if (cachedStory != null)
             {
                 ApplyStoryData(cachedStory);
-                return;
-            }
-
-            // 2. Fetch from backend API by Guid if missing or incomplete in local cache
-            var article = await _apiClient.GetArticleByIdAsync(articleId);
-            if (article != null)
-            {
-                _storyRepository.SaveStoryAsync(article).SafeFireAndForget(_logger, "SaveHydratedArticle");
-
-                if (!string.IsNullOrWhiteSpace(article.Content))
+                if (!string.IsNullOrWhiteSpace(cachedStory.Content) && _hasVerifiedServerAiSummary && KeyTakeaways.Count > 0)
                 {
-                    ApplyStoryData(article);
                     return;
                 }
             }
 
-            HasNoContent = string.IsNullOrWhiteSpace(Content);
+            // 2. Fetch from backend API by Guid (which auto-enriches on demand if unenriched)
+            var article = await _apiClient.GetArticleByIdAsync(articleId);
+            if (article != null)
+            {
+                _storyRepository.SaveStoryAsync(article).SafeFireAndForget(_logger, "SaveHydratedArticle");
+                ApplyStoryData(article);
+            }
+
+            // 3. If full AI summary sections are still missing, explicitly call /ai-summary endpoint
+            if (!_hasVerifiedServerAiSummary || (KeyTakeaways.Count == 0 && ContextAndBackground.Count == 0))
+            {
+                var fullSummary = await _apiClient.GetOrGenerateAiSummaryAsync(articleId);
+                if (fullSummary != null)
+                {
+                    ApplyFullAiSummary(fullSummary);
+                }
+            }
+
+            HasNoContent = string.IsNullOrWhiteSpace(Content) && !HasAiSummary && string.IsNullOrWhiteSpace(Summary);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to hydrate article content for ID {ArticleId}", articleId);
-            HasNoContent = string.IsNullOrWhiteSpace(Content);
+            EnsureAiSummaryPresent();
+            RefreshUiBindings();
+            HasNoContent = string.IsNullOrWhiteSpace(Content) && !HasAiSummary && string.IsNullOrWhiteSpace(Summary);
         }
         finally
         {
@@ -266,9 +313,9 @@ public partial class ArticleViewModel : ObservableObject
 
     public void ApplyStoryData(BriefingItem story)
     {
-        Content = story.Content;
-        if (string.IsNullOrWhiteSpace(Summary)) Summary = story.Summary;
-        if (string.IsNullOrWhiteSpace(Title)) Title = story.Title;
+        if (!string.IsNullOrWhiteSpace(story.Content)) Content = story.Content;
+        if (string.IsNullOrWhiteSpace(Summary) && !string.IsNullOrWhiteSpace(story.Summary)) Summary = story.Summary;
+        if (string.IsNullOrWhiteSpace(Title) && !string.IsNullOrWhiteSpace(story.Title)) Title = story.Title;
         if (string.IsNullOrWhiteSpace(ArticleUrl) && !string.IsNullOrWhiteSpace(story.Url)) ArticleUrl = story.Url;
         if (string.IsNullOrWhiteSpace(ImageUrl) && !string.IsNullOrWhiteSpace(story.ImageUrl)) ImageUrl = story.ImageUrl;
         if (string.IsNullOrWhiteSpace(Author) && !string.IsNullOrWhiteSpace(story.Author)) Author = story.Author;
@@ -277,9 +324,10 @@ public partial class ArticleViewModel : ObservableObject
 
         if (story.HasAiSummary || !string.IsNullOrWhiteSpace(story.AiSummary))
         {
+            _hasVerifiedServerAiSummary = true;
             HasAiSummary = true;
-            AiSummary = story.AiSummary ?? AiSummary;
-            AiSummaryEngine = story.AiSummaryEngine ?? AiSummaryEngine;
+            if (!string.IsNullOrWhiteSpace(story.AiSummary)) AiSummary = story.AiSummary;
+            if (!string.IsNullOrWhiteSpace(story.AiSummaryEngine)) AiSummaryEngine = story.AiSummaryEngine;
         }
 
         if (story.KeyTakeaways.Count > 0)
@@ -287,6 +335,26 @@ public partial class ArticleViewModel : ObservableObject
             KeyTakeaways.Clear();
             foreach (var k in story.KeyTakeaways) KeyTakeaways.Add(k);
             HasKeyTakeaways = true;
+        }
+
+        if (story.ContextAndBackground.Count > 0)
+        {
+            ContextAndBackground.Clear();
+            foreach (var c in story.ContextAndBackground) ContextAndBackground.Add(c);
+            HasContextAndBackground = true;
+        }
+
+        if (story.KeyFiguresAndEntities.Count > 0)
+        {
+            KeyFiguresAndEntities.Clear();
+            foreach (var f in story.KeyFiguresAndEntities) KeyFiguresAndEntities.Add(f);
+            HasKeyFiguresAndEntities = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(story.OutlookOrNextSteps))
+        {
+            OutlookOrNextSteps = story.OutlookOrNextSteps;
+            HasOutlookOrNextSteps = true;
         }
 
         if (story.CommentCount > 0)
@@ -300,6 +368,8 @@ public partial class ArticleViewModel : ObservableObject
             PublisherDomain = GetPublisherDomain(ArticleUrl);
         }
 
+        EnsureAiSummaryPresent();
+
         var (_, readTime) = ArticleDistillerService.CalculateReadingTime(Content);
         ReadingTimeLabel = readTime;
         HasNoContent = string.IsNullOrWhiteSpace(Content) && !HasAiSummary && string.IsNullOrWhiteSpace(Summary);
@@ -307,6 +377,124 @@ public partial class ArticleViewModel : ObservableObject
         RecordRead();
         RefreshUiBindings();
         StoryDataApplied?.Invoke();
+    }
+
+    public void ApplyFullAiSummary(ClientFullSummaryDto fullSummary)
+    {
+        if (fullSummary == null) return;
+
+        if (!string.IsNullOrWhiteSpace(fullSummary.ExecutiveOverview))
+        {
+            AiSummary = fullSummary.ExecutiveOverview;
+            HasAiSummary = true;
+            _hasVerifiedServerAiSummary = true;
+        }
+
+        if (fullSummary.ContextAndBackground is { Count: > 0 })
+        {
+            ContextAndBackground.Clear();
+            foreach (var c in fullSummary.ContextAndBackground) ContextAndBackground.Add(c);
+            HasContextAndBackground = true;
+
+            if (KeyTakeaways.Count == 0)
+            {
+                foreach (var c in fullSummary.ContextAndBackground.Take(3)) KeyTakeaways.Add(c);
+                HasKeyTakeaways = KeyTakeaways.Count > 0;
+            }
+        }
+
+        if (fullSummary.KeyFiguresAndEntities is { Count: > 0 })
+        {
+            KeyFiguresAndEntities.Clear();
+            foreach (var f in fullSummary.KeyFiguresAndEntities) KeyFiguresAndEntities.Add(f);
+            HasKeyFiguresAndEntities = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(fullSummary.OutlookOrNextSteps))
+        {
+            OutlookOrNextSteps = fullSummary.OutlookOrNextSteps;
+            HasOutlookOrNextSteps = true;
+        }
+
+        EnsureAiSummaryPresent();
+        RefreshUiBindings();
+        StoryDataApplied?.Invoke();
+    }
+
+    /// <summary>
+    /// Ensures that every non-video story article opened on the mobile app immediately displays
+    /// an AI Summary card, even before remote enrichment finishes or when offline.
+    /// </summary>
+    private void EnsureAiSummaryPresent()
+    {
+        if (IsVideoStory) return;
+
+        if (string.IsNullOrWhiteSpace(AiSummary))
+        {
+            if (!string.IsNullOrWhiteSpace(Summary))
+            {
+                AiSummary = Summary.Trim();
+            }
+            else if (!string.IsNullOrWhiteSpace(Content))
+            {
+                var sentences = ExtractCleanSentences(Content, maxSentences: 2);
+                AiSummary = sentences.Count > 0
+                    ? string.Join(" ", sentences)
+                    : (Content.Length > 280 ? Content[..280].Trim() + "…" : Content.Trim());
+            }
+            else if (!string.IsNullOrWhiteSpace(Title))
+            {
+                AiSummary = Title.Trim();
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(AiSummary))
+        {
+            HasAiSummary = true;
+            if (string.IsNullOrWhiteSpace(AiSummaryEngine))
+            {
+                AiSummaryEngine = "AI Quick Read";
+            }
+        }
+
+        if (KeyTakeaways.Count == 0)
+        {
+            var sourceText = !string.IsNullOrWhiteSpace(Content) ? Content : Summary;
+            var takeaways = ExtractCleanSentences(sourceText, maxSentences: 3);
+            foreach (var t in takeaways)
+            {
+                if (!string.Equals(t, AiSummary, StringComparison.OrdinalIgnoreCase))
+                {
+                    KeyTakeaways.Add(t);
+                }
+            }
+            HasKeyTakeaways = KeyTakeaways.Count > 0;
+        }
+    }
+
+    private static List<string> ExtractCleanSentences(string? text, int maxSentences)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return [];
+
+        var parts = text
+            .Replace("\r\n", " ")
+            .Replace("\n", " ")
+            .Split([". ", "! ", "? "], StringSplitOptions.RemoveEmptyEntries);
+
+        var results = new List<string>();
+        foreach (var raw in parts)
+        {
+            var cleaned = raw.Trim();
+            if (cleaned.Length < 30) continue;
+            if (!cleaned.EndsWith('.') && !cleaned.EndsWith('!') && !cleaned.EndsWith('?'))
+            {
+                cleaned += ".";
+            }
+            results.Add(cleaned);
+            if (results.Count >= maxSentences) break;
+        }
+
+        return results;
     }
 
     public void RecordRead()
@@ -339,6 +527,9 @@ public partial class ArticleViewModel : ObservableObject
             AiSummary = AiSummary,
             AiSummaryEngine = AiSummaryEngine,
             KeyTakeaways = KeyTakeaways.ToList(),
+            ContextAndBackground = ContextAndBackground.ToList(),
+            KeyFiguresAndEntities = KeyFiguresAndEntities.ToList(),
+            OutlookOrNextSteps = OutlookOrNextSteps,
             CommentCount = CommentCount
         };
 
@@ -468,6 +659,10 @@ public partial class ArticleViewModel : ObservableObject
         HasHeroImage = !string.IsNullOrWhiteSpace(ImageUrl);
         HasSummary = !string.IsNullOrWhiteSpace(Summary);
         HasKeyTakeaways = KeyTakeaways.Count > 0;
+        HasContextAndBackground = ContextAndBackground.Count > 0;
+        HasKeyFiguresAndEntities = KeyFiguresAndEntities.Count > 0;
+        HasOutlookOrNextSteps = !string.IsNullOrWhiteSpace(OutlookOrNextSteps);
+        ShowPublisherExcerpt = !HasAiSummary && HasSummary;
         AiEngineBadgeText = !string.IsNullOrWhiteSpace(AiSummaryEngine) && AiSummaryEngine.Contains("gemini", StringComparison.OrdinalIgnoreCase)
             ? "⚡ Gemini 1.5 Flash"
             : "⚡ AI Quick Read";
@@ -565,6 +760,13 @@ public partial class ArticleViewModel : ObservableObject
                         Url = art.Url ?? string.Empty,
                         Content = art.Content,
                         Summary = art.Summary,
+                        HasAiSummary = art.HasAiSummary,
+                        AiSummary = art.AiSummary,
+                        AiSummaryEngine = art.AiSummaryEngine,
+                        KeyTakeaways = art.KeyTakeaways,
+                        ContextAndBackground = art.ContextAndBackground,
+                        KeyFiguresAndEntities = art.KeyFiguresAndEntities,
+                        OutlookOrNextSteps = art.OutlookOrNextSteps,
                         PublishedAt = art.PublishedAt ?? DateTime.UtcNow,
                         TimeAgo = FormatTimeAgo(art.PublishedAt ?? DateTime.UtcNow)
                     });
@@ -739,6 +941,13 @@ public partial class ArticleViewModel : ObservableObject
                     Url = art.Url ?? string.Empty,
                     Content = art.Content,
                     Summary = art.Summary,
+                    HasAiSummary = art.HasAiSummary,
+                    AiSummary = art.AiSummary,
+                    AiSummaryEngine = art.AiSummaryEngine,
+                    KeyTakeaways = art.KeyTakeaways,
+                    ContextAndBackground = art.ContextAndBackground,
+                    KeyFiguresAndEntities = art.KeyFiguresAndEntities,
+                    OutlookOrNextSteps = art.OutlookOrNextSteps,
                     PublishedAt = art.PublishedAt ?? DateTime.UtcNow,
                     TimeAgo = FormatTimeAgo(art.PublishedAt ?? DateTime.UtcNow)
                 });

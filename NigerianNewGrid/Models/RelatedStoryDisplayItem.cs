@@ -16,6 +16,13 @@ public class RelatedStoryDisplayItem
     public string Url { get; set; } = string.Empty;
     public string? Content { get; set; }
     public string? Summary { get; set; }
+    public bool HasAiSummary { get; set; }
+    public string? AiSummary { get; set; }
+    public string? AiSummaryEngine { get; set; }
+    public IReadOnlyList<string> KeyTakeaways { get; set; } = [];
+    public IReadOnlyList<string> ContextAndBackground { get; set; } = [];
+    public IReadOnlyList<string> KeyFiguresAndEntities { get; set; } = [];
+    public string? OutlookOrNextSteps { get; set; }
     public bool IsVideo => Type == "Video";
     public bool IsSocial => Type == "Social";
     public string TimeAgo { get; set; } = "recently";

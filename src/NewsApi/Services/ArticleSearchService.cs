@@ -329,6 +329,10 @@ public class ArticleSearchService : IArticleSearchService
                 HasAiSummary = enr != null,
                 AiSummaryEngine = enr?.Engine,
                 AiSummary = enr?.FullSummary?.ExecutiveOverview ?? enr?.KeyTakeaways.FirstOrDefault(),
+                KeyTakeaways = enr?.KeyTakeaways ?? [],
+                ContextAndBackground = enr?.FullSummary?.ContextAndBackground ?? [],
+                KeyFiguresAndEntities = enr?.FullSummary?.KeyFiguresAndEntities ?? [],
+                OutlookOrNextSteps = enr?.FullSummary?.OutlookOrNextSteps,
                 Enrichment = enr != null ? new ArticleEnrichmentDto
                 {
                     KeyTakeaways = enr.KeyTakeaways,

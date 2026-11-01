@@ -48,6 +48,9 @@ public class CachedStoryEntity
     public string? AiSummary { get; set; }
     public string? AiSummaryEngine { get; set; }
     public string? KeyTakeawaysJson { get; set; }
+    public string? ContextAndBackgroundJson { get; set; }
+    public string? KeyFiguresAndEntitiesJson { get; set; }
+    public string? OutlookOrNextSteps { get; set; }
     public int CommentCount { get; set; }
 
     // Local tracking state
@@ -93,6 +96,13 @@ public class CachedStoryEntity
         KeyTakeaways = !string.IsNullOrWhiteSpace(KeyTakeawaysJson)
             ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(KeyTakeawaysJson) ?? []
             : [],
+        ContextAndBackground = !string.IsNullOrWhiteSpace(ContextAndBackgroundJson)
+            ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(ContextAndBackgroundJson) ?? []
+            : [],
+        KeyFiguresAndEntities = !string.IsNullOrWhiteSpace(KeyFiguresAndEntitiesJson)
+            ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(KeyFiguresAndEntitiesJson) ?? []
+            : [],
+        OutlookOrNextSteps = OutlookOrNextSteps,
         CommentCount = CommentCount
     };
 
@@ -128,6 +138,9 @@ public class CachedStoryEntity
         AiSummary = item.AiSummary,
         AiSummaryEngine = item.AiSummaryEngine,
         KeyTakeawaysJson = item.KeyTakeaways.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(item.KeyTakeaways) : null,
+        ContextAndBackgroundJson = item.ContextAndBackground.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(item.ContextAndBackground) : null,
+        KeyFiguresAndEntitiesJson = item.KeyFiguresAndEntities.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(item.KeyFiguresAndEntities) : null,
+        OutlookOrNextSteps = item.OutlookOrNextSteps,
         CommentCount = item.CommentCount,
         CachedAtUtc = DateTime.UtcNow
     };

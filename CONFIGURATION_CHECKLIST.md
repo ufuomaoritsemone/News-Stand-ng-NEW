@@ -227,7 +227,7 @@ These keys power intelligent features: vector embeddings, storyline clustering, 
 
 ### - [ ] 17. Mobile App API Base URL
 - **Where to Provide**:
-  - Code constant: [`AppNetworkConstants.cs`](file:///c:/Users/ufuom/source/repos/NigerianNewGrid/NigerianNewGrid/Constants/AppNetworkConstants.cs) (`ProductionApiUrl = "https://api.nigeriannewsgrid.com"`)
+  - Code constant: [`AppNetworkConstants.cs`](file:///c:/Users/ufuom/source/repos/NigerianNewGrid/NigerianNewGrid/Constants/AppNetworkConstants.cs) (`ProductionApiUrl = "https://api.newsstand.ng"`)
   - Runtime override: Accessible inside the MAUI app via **Settings > Server Endpoint**.
 
 ---

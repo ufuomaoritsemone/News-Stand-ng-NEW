@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using NigerianNewsGrid.Client;
 using NigerianNewsGrid.Client.Models;
+using NigerianNewGrid.Constants;
 using NigerianNewGrid.Models;
 using NigerianNewGrid.Services;
 
@@ -68,6 +69,7 @@ public partial class StoryClusterViewModel : ObservableObject
         ILogger<StoryClusterViewModel> logger)
     {
         _apiClient = apiClient;
+        _apiClient.BaseUrl = AppNetworkConstants.GetConfiguredApiBaseUrl();
         _analyticsService = analyticsService;
         _logger = logger;
     }

@@ -728,9 +728,24 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var saved = Preferences.Get(AppPreferenceKeys.ApiBaseUrl, string.Empty);
         var probe = _httpClientFactory.CreateClient("ProbeClient");
 
-        // Fast path: if we already have a working URL, verify it quickly (1.5s timeout)
+        // Clean up obsolete domain or impossible loopbacks on physical devices
+        if (!string.IsNullOrWhiteSpace(saved))
+        {
+            if (saved.Contains("nigeriannewsgrid.com", StringComparison.OrdinalIgnoreCase) ||
+                (DeviceInfo.DeviceType == DeviceType.Physical &&
+                 (saved.Contains("10.0.2.2", StringComparison.OrdinalIgnoreCase) ||
+                  saved.Contains("localhost", StringComparison.OrdinalIgnoreCase) ||
+                  saved.Contains("127.0.0.1", StringComparison.OrdinalIgnoreCase) ||
+                  saved.Contains("host.docker.internal", StringComparison.OrdinalIgnoreCase))))
+            {
+                Preferences.Remove(AppPreferenceKeys.ApiBaseUrl);
+                saved = string.Empty;
+            }
+        }
+
+        // Fast path: if we already have a working URL, verify it quickly (2.5s timeout)
         // and return immediately on success. Only fall through to the full probe waterfall
-        // if the saved URL fails — avoids the 8-10s probe delay on every pull-to-refresh.
+        // if the saved URL fails — avoids the probe delay on every pull-to-refresh.
         if (!string.IsNullOrWhiteSpace(saved))
         {
             if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
@@ -742,7 +757,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             try
             {
                 using var quickCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                quickCts.CancelAfter(TimeSpan.FromMilliseconds(1500));
+                quickCts.CancelAfter(TimeSpan.FromMilliseconds(2500));
                 var resp = await probe.GetAsync($"{saved.TrimEnd('/')}/healthz/liveness", quickCts.Token);
                 if (resp.IsSuccessStatusCode)
                 {
@@ -757,34 +772,38 @@ public partial class MainViewModel : ObservableObject, IDisposable
             Preferences.Remove(AppPreferenceKeys.ApiBaseUrl);
         }
 
-        // If offline and no working saved URL, return the platform default without probing
+        // If offline and no working saved URL, return production endpoint without probing
         if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
         {
-            var offlineFallback = AppNetworkConstants.DefaultLocalApiUrl;
+            var offlineFallback = AppNetworkConstants.GetConfiguredApiBaseUrl();
             _resolvedApiBaseUrl = offlineFallback;
             return offlineFallback;
         }
 
-        string[] candidates = DeviceInfo.Platform == DevicePlatform.Android
-            ? [
-                "http://10.0.2.2:56193",
-                "http://localhost:56193",
-                "http://127.0.0.1:56193",
-                "http://10.0.2.2:5000",
-                "http://localhost:5000",
-                "http://host.docker.internal:56193",
-                "http://10.0.2.2:8080",
-                AppNetworkConstants.ProductionApiUrl
-              ]
-            : [
-                "http://localhost:56193",
-                "http://127.0.0.1:56193",
-                "http://localhost:5000",
-                "http://127.0.0.1:5000",
-                "http://host.docker.internal:56193",
-                "http://localhost:8080",
-                AppNetworkConstants.ProductionApiUrl
-              ];
+        // Candidate endpoints: On physical devices, always prioritize live production API.
+        // On emulators/simulators, check production API and local dev loopbacks.
+        string[] candidates = DeviceInfo.DeviceType == DeviceType.Physical
+            ? [ AppNetworkConstants.ProductionApiUrl ]
+            : DeviceInfo.Platform == DevicePlatform.Android
+                ? [
+                    AppNetworkConstants.ProductionApiUrl,
+                    "http://10.0.2.2:56193",
+                    "http://localhost:56193",
+                    "http://127.0.0.1:56193",
+                    "http://10.0.2.2:5000",
+                    "http://localhost:5000",
+                    "http://host.docker.internal:56193",
+                    "http://10.0.2.2:8080"
+                  ]
+                : [
+                    AppNetworkConstants.ProductionApiUrl,
+                    "http://localhost:56193",
+                    "http://127.0.0.1:56193",
+                    "http://localhost:5000",
+                    "http://127.0.0.1:5000",
+                    "http://host.docker.internal:56193",
+                    "http://localhost:8080"
+                  ];
 
         string? resolved = null;
         using var probeCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -812,7 +831,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             return resolved;
         }
 
-        var fallback = AppNetworkConstants.DefaultLocalApiUrl;
+        var fallback = AppNetworkConstants.ProductionApiUrl;
         Preferences.Set(AppPreferenceKeys.ApiBaseUrl, fallback);
         _resolvedApiBaseUrl = fallback;
         return fallback;
@@ -823,7 +842,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         try
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeoutCts.CancelAfter(TimeSpan.FromMilliseconds(800));
+            var timeoutMs = candidate.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ? 2500 : 1000;
+            timeoutCts.CancelAfter(TimeSpan.FromMilliseconds(timeoutMs));
             var response = await client.GetAsync($"{candidate.TrimEnd('/')}/healthz/liveness", timeoutCts.Token);
             return response.IsSuccessStatusCode ? candidate : null;
         }

@@ -312,7 +312,14 @@ public partial class ArticleWebPage : ContentPage
                     Category: targetCategory,
                     ArticleId: item.Id,
                     Content: item.Content,
-                    Summary: item.Subtitle)));
+                    Summary: !string.IsNullOrWhiteSpace(item.Summary) ? item.Summary : item.Subtitle,
+                    HasAiSummary: item.HasAiSummary,
+                    AiSummary: item.AiSummary,
+                    AiSummaryEngine: item.AiSummaryEngine,
+                    KeyTakeaways: item.KeyTakeaways,
+                    ContextAndBackground: item.ContextAndBackground,
+                    KeyFiguresAndEntities: item.KeyFiguresAndEntities,
+                    OutlookOrNextSteps: item.OutlookOrNextSteps)));
             }
         }
         catch (Exception ex)

@@ -44,6 +44,10 @@ public class ArticleDto
     public bool HasAiSummary { get; set; }
     public string? AiSummaryEngine { get; set; }
     public string? AiSummary { get; set; }
+    public List<string> KeyTakeaways { get; set; } = [];
+    public List<string> ContextAndBackground { get; set; } = [];
+    public List<string> KeyFiguresAndEntities { get; set; } = [];
+    public string? OutlookOrNextSteps { get; set; }
     public ArticleEnrichmentDto? Enrichment { get; set; }
 }
 

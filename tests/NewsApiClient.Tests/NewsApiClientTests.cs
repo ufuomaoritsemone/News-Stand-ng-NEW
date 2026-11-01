@@ -268,5 +268,61 @@ namespace NigerianNewsGrid.Tests
             Assert.True(metric.Currencies!.ContainsKey("USD"));
             Assert.Equal(1655m, metric.Currencies["USD"].ParallelSell);
         }
+
+        [Fact]
+        public async Task GetArticleByIdAsync_ResolvesAiSummaryAndTakeaways_FromNestedEnrichment()
+        {
+            var json = "{\"id\":\"art-enr-1\",\"title\":\"Enriched Story\",\"summary\":\"RSS snippet\",\"enrichment\":{\"engine\":\"gemini-1.5-flash\",\"keyTakeaways\":[\"Takeaway 1\",\"Takeaway 2\"],\"fullSummary\":{\"executiveOverview\":\"Gemini executive overview\",\"contextAndBackground\":[\"Context point 1\"],\"keyFiguresAndEntities\":[\"CBN\"],\"outlookOrNextSteps\":\"Rate decision next month\",\"readingTimeSeconds\":45}}}";
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+            };
+
+            var handler = new FakeHandler(response);
+            var client = new HttpClient(handler)
+            {
+                BaseAddress = new System.Uri("http://localhost")
+            };
+
+            var api = new NigerianNewsGrid.Client.NewsApiClient(client);
+            var article = await api.GetArticleByIdAsync("art-enr-1");
+
+            Assert.NotNull(article);
+            Assert.True(article!.HasAiSummary);
+            Assert.Equal("Gemini executive overview", article.AiSummary);
+            Assert.Equal("gemini-1.5-flash", article.AiSummaryEngine);
+            Assert.Equal(2, article.KeyTakeaways.Count);
+            Assert.Equal("Takeaway 1", article.KeyTakeaways[0]);
+            Assert.Single(article.ContextAndBackground);
+            Assert.Equal("Context point 1", article.ContextAndBackground[0]);
+            Assert.Single(article.KeyFiguresAndEntities);
+            Assert.Equal("CBN", article.KeyFiguresAndEntities[0]);
+            Assert.Equal("Rate decision next month", article.OutlookOrNextSteps);
+        }
+
+        [Fact]
+        public async Task GetOrGenerateAiSummaryAsync_ReturnsFullSummary_WhenApiReturnsOk()
+        {
+            var json = "{\"executiveOverview\":\"On-demand AI summary\",\"contextAndBackground\":[\"Background 1\",\"Background 2\"],\"keyFiguresAndEntities\":[\"NNPC\"],\"outlookOrNextSteps\":\"Implementation in Q4\",\"readingTimeSeconds\":45}";
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+            };
+
+            var handler = new FakeHandler(response);
+            var client = new HttpClient(handler)
+            {
+                BaseAddress = new System.Uri("http://localhost")
+            };
+
+            var api = new NigerianNewsGrid.Client.NewsApiClient(client);
+            var summary = await api.GetOrGenerateAiSummaryAsync("art-123");
+
+            Assert.NotNull(summary);
+            Assert.Equal("On-demand AI summary", summary!.ExecutiveOverview);
+            Assert.Equal(2, summary.ContextAndBackground.Count);
+            Assert.Single(summary.KeyFiguresAndEntities);
+            Assert.Equal("Implementation in Q4", summary.OutlookOrNextSteps);
+        }
     }
 }

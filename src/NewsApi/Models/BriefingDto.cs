@@ -34,6 +34,9 @@ public class BriefingItemDto
     public string? AiSummary { get; set; }
     public string? AiSummaryEngine { get; set; }
     public List<string> KeyTakeaways { get; set; } = new();
+    public List<string> ContextAndBackground { get; set; } = new();
+    public List<string> KeyFiguresAndEntities { get; set; } = new();
+    public string? OutlookOrNextSteps { get; set; }
     public int CommentCount { get; set; }
 }
 

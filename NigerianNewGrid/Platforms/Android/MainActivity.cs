@@ -113,7 +113,7 @@ public class MainActivity : MauiAppCompatActivity
                 if (persistenceService != null)
                 {
                     var story = await persistenceService.GetStoryByIdAsync(articleId);
-                    if (story != null && !string.IsNullOrWhiteSpace(story.Content))
+                    if (story != null)
                     {
                         await Shell.Current.Navigation.PushAsync(new ArticleWebPage(story));
                         return;

@@ -10,6 +10,8 @@ out/
 **/.env
 **/.env.local
 secrets/
+data/keys/
+src/AdminDashboard/data/
 *gserviceaccount*.json
 *newsstandng1*.json
 *credentials*.json

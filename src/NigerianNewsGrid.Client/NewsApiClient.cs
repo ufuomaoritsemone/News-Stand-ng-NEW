@@ -20,7 +20,9 @@ public class NewsApiClient
         _httpClient = httpClient;
     }
 
-    public string BaseUrl { get; set; } = "http://localhost:56193";
+    public const string DefaultProductionUrl = "https://api.newsstand.ng";
+
+    public string BaseUrl { get; set; } = DefaultProductionUrl;
 
     public async Task<List<BriefingCategory>> GetDailyBriefingAsync(string? language = null, CancellationToken cancellationToken = default)
     {
@@ -381,6 +383,29 @@ public class NewsApiClient
     }
 
     /// <summary>
+    /// Fetches or generates on-demand the AI executive summary for a specific article ID.
+    /// </summary>
+    public async Task<ClientFullSummaryDto?> GetOrGenerateAiSummaryAsync(string articleId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(articleId)) return null;
+
+        try
+        {
+            var normalizedBaseUrl = NormalizeBaseUrl(BaseUrl);
+            var uri = new Uri(new Uri(normalizedBaseUrl), $"api/v1/articles/{Uri.EscapeDataString(articleId.Trim())}/ai-summary");
+            var response = await _httpClient.GetAsync(uri, cancellationToken);
+            if (!response.IsSuccessStatusCode) return null;
+
+            return await response.Content.ReadFromJsonAsync<ClientFullSummaryDto>(JsonOptions, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [NewsApiClient] Failed to fetch/generate AI summary for '{articleId}': {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Fetches direct sponsored campaigns and PR briefings from the backend API.
     /// Can filter by platform ("Mobile", "Web") and placement zone ("MainPage_HeroSpotlight", "InArticle_Header", etc.).
     /// </summary>
@@ -597,7 +622,7 @@ public class NewsApiClient
 
     private static string NormalizeBaseUrl(string baseUrl)
     {
-        return string.IsNullOrWhiteSpace(baseUrl) ? "http://localhost:56193" : baseUrl.Trim().TrimEnd('/');
+        return string.IsNullOrWhiteSpace(baseUrl) ? DefaultProductionUrl : baseUrl.Trim().TrimEnd('/');
     }
 }
 

@@ -4,6 +4,7 @@ using Microsoft.Maui.ApplicationModel.DataTransfer;
 using NigerianNewsGrid.Client;
 using NigerianNewsGrid.Client.Helpers;
 using NigerianNewsGrid.Client.Models;
+using NigerianNewGrid.Constants;
 using NigerianNewGrid.Extensions;
 
 namespace NigerianNewGrid.Services;
@@ -31,6 +32,7 @@ public class ArticleInteractionService : IArticleInteractionService
         ILogger<ArticleInteractionService> logger)
     {
         _apiClient           = apiClient;
+        _apiClient.BaseUrl   = AppNetworkConstants.GetConfiguredApiBaseUrl();
         _recentlyReadService = recentlyReadService;
         _bookmarkService     = bookmarkService;
         _xShareService       = xShareService;
@@ -55,16 +57,15 @@ public class ArticleInteractionService : IArticleInteractionService
                 var targetUrl = !string.IsNullOrWhiteSpace(item.SponsorUrl) ? item.SponsorUrl.Trim() : item.Url?.Trim();
                 if (string.IsNullOrWhiteSpace(targetUrl) || !Uri.TryCreate(targetUrl, UriKind.Absolute, out _)) return;
 
-                var sponsoredPage = new ArticleWebPage(
-                    targetUrl,
-                    item.Title,
-                    item.ImageUrl,
-                    item.Category,
-                    item.Id,
+                var navParams = Models.ArticleNavigationParams.FromBriefingItem(
+                    item,
                     isSponsored: true,
-                    sponsorName: item.SponsorName,
-                    content: item.Content,
-                    summary: item.Summary);
+                    sponsorName: item.SponsorName) with
+                {
+                    Url = targetUrl
+                };
+
+                var sponsoredPage = new ArticleWebPage(navParams);
 
                 await PushPageAsync(sponsoredPage);
                 return;

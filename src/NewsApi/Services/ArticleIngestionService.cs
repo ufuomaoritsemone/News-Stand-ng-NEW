@@ -582,12 +582,14 @@ public class ArticleIngestionService : IArticleIngestionService
         int commentCount = 0,
         ArticleEnrichment? enr = null)
     {
+        var excerpt = a.Excerpt ?? slugService.GenerateExcerpt(a.Content, a.Summary, 300);
+
         return new ArticleDto
         {
             Id                = a.Id,
             Title             = a.Title,
             Slug              = !string.IsNullOrEmpty(a.Slug) ? a.Slug : slugService.GenerateArticleSlug(a.Title, a.Id),
-            Excerpt           = a.Excerpt ?? slugService.GenerateExcerpt(a.Content, a.Summary, 300),
+            Excerpt           = excerpt,
             SeoTitle          = a.SeoTitle,
             SeoDescription    = a.SeoDescription,
             Summary           = a.Summary,
@@ -613,6 +615,10 @@ public class ArticleIngestionService : IArticleIngestionService
             HasAiSummary      = enr != null,
             AiSummaryEngine   = enr?.Engine,
             AiSummary         = enr?.FullSummary?.ExecutiveOverview ?? enr?.KeyTakeaways.FirstOrDefault(),
+            KeyTakeaways      = enr?.KeyTakeaways ?? [],
+            ContextAndBackground  = enr?.FullSummary?.ContextAndBackground ?? [],
+            KeyFiguresAndEntities = enr?.FullSummary?.KeyFiguresAndEntities ?? [],
+            OutlookOrNextSteps    = enr?.FullSummary?.OutlookOrNextSteps,
             Enrichment        = MapToEnrichmentDto(enr)
         };
     }

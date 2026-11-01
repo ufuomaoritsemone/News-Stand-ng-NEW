@@ -230,12 +230,7 @@ public class NewsSyncReceiver : BroadcastReceiver
 
     private static NewsApiClient CreateFallbackApiClient()
     {
-        var baseUrl = Preferences.Get(AppPreferenceKeys.ApiBaseUrl, string.Empty);
-        if (string.IsNullOrWhiteSpace(baseUrl))
-        {
-            baseUrl = DeviceInfo.Platform == DevicePlatform.Android ? "http://10.0.2.2:56193" : "http://localhost:56193";
-        }
-
+        var baseUrl = AppNetworkConstants.GetConfiguredApiBaseUrl();
         var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
         return new NewsApiClient(client) { BaseUrl = baseUrl };
     }

@@ -266,6 +266,18 @@ public class ArticlesController : ControllerBase
         var enr = await _db.ArticleEnrichments.AsNoTracking()
             .FirstOrDefaultAsync(x => x.ArticleId == a.Id, cancellationToken);
 
+        if (enr == null && _enrichmentService != null)
+        {
+            try
+            {
+                enr = await _enrichmentService.EnrichArticleAsync(a.Id, cancellationToken);
+            }
+            catch
+            {
+                // Non-fatal: MapToArticleDto still synthesizes fallback AiSummary
+            }
+        }
+
         var dto = ArticleIngestionService.MapToArticleDto(
             a, _slugService, includeContent: true, resolvedAudioUrl: audio, commentCount: commentCount, enr: enr);
 

@@ -22,7 +22,10 @@ public record ArticleNavigationParams(
     string? AiSummary = null,
     string? AiSummaryEngine = null,
     IReadOnlyList<string>? KeyTakeaways = null,
-    string? Slug = null)
+    string? Slug = null,
+    IReadOnlyList<string>? ContextAndBackground = null,
+    IReadOnlyList<string>? KeyFiguresAndEntities = null,
+    string? OutlookOrNextSteps = null)
 {
     public static ArticleNavigationParams FromBriefingItem(BriefingItem item, bool isSponsored = false, string? sponsorName = null) =>
         new(
@@ -41,5 +44,8 @@ public record ArticleNavigationParams(
             AiSummary: item.AiSummary,
             AiSummaryEngine: item.AiSummaryEngine,
             KeyTakeaways: item.KeyTakeaways,
-            Slug: item.Slug);
+            Slug: item.Slug,
+            ContextAndBackground: item.ContextAndBackground,
+            KeyFiguresAndEntities: item.KeyFiguresAndEntities,
+            OutlookOrNextSteps: item.OutlookOrNextSteps);
 }
