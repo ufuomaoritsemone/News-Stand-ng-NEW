@@ -58,6 +58,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowConfiguredOrigins");          // Fix #2 — named policy
 app.UseAuthorization();
+app.UseOutputCache();
 app.MapControllers();
 
 // ── Health Checks ─────────────────────────────────────────────────────────────

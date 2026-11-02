@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using NewsApi.Data;
 using NewsApi.Infrastructure;
@@ -19,6 +20,7 @@ public class ArticleIngestionService : IArticleIngestionService
     private readonly ILogger _logger;
     private readonly ICategorizerTrainingService? _categorizerTrainingService;
     private readonly IIndexNowService? _indexNowService;
+    private readonly IOutputCacheStore? _outputCacheStore;
 
     public ArticleIngestionService(
         NewsDbContext db,
@@ -26,8 +28,9 @@ public class ArticleIngestionService : IArticleIngestionService
         IBriefingService briefingService,
         ILogger<ArticleIngestionService> logger,
         ICategorizerTrainingService? categorizerTrainingService = null,
-        IIndexNowService? indexNowService = null)
-        : this(db, slugService, briefingService, (ILogger)logger, categorizerTrainingService, indexNowService)
+        IIndexNowService? indexNowService = null,
+        IOutputCacheStore? outputCacheStore = null)
+        : this(db, slugService, briefingService, (ILogger)logger, categorizerTrainingService, indexNowService, outputCacheStore)
     {
     }
 
@@ -37,7 +40,8 @@ public class ArticleIngestionService : IArticleIngestionService
         IBriefingService briefingService,
         ILogger logger,
         ICategorizerTrainingService? categorizerTrainingService = null,
-        IIndexNowService? indexNowService = null)
+        IIndexNowService? indexNowService = null,
+        IOutputCacheStore? outputCacheStore = null)
     {
         _db = db;
         _slugService = slugService;
@@ -45,6 +49,7 @@ public class ArticleIngestionService : IArticleIngestionService
         _logger = logger;
         _categorizerTrainingService = categorizerTrainingService;
         _indexNowService = indexNowService;
+        _outputCacheStore = outputCacheStore;
     }
 
     public async Task<IngestArticlesResponse> IngestArticlesAsync(
@@ -189,6 +194,12 @@ public class ArticleIngestionService : IArticleIngestionService
             await _db.SaveChangesAsync(cancellationToken);
             _briefingService.InvalidateBriefingCache();
 
+            if (_outputCacheStore != null)
+            {
+                await _outputCacheStore.EvictByTagAsync("articles", cancellationToken);
+                await _outputCacheStore.EvictByTagAsync("stories", cancellationToken);
+            }
+
             if (_indexNowService != null && ingestedSlugs.Count > 0)
             {
                 var host = _indexNowService.GetConfiguration().Host;
@@ -223,6 +234,12 @@ public class ArticleIngestionService : IArticleIngestionService
 
         await SaveCorrectionFeedbackAsync(article, oldCategory, cancellationToken);
         _briefingService.InvalidateBriefingCache();
+
+        if (_outputCacheStore != null)
+        {
+            await _outputCacheStore.EvictByTagAsync("articles", cancellationToken);
+            await _outputCacheStore.EvictByTagAsync("stories", cancellationToken);
+        }
 
         _logger.LogInformation(
             "Updated category for article '{ArticleId}' from '{Old}' to '{New}'.",
@@ -354,6 +371,11 @@ public class ArticleIngestionService : IArticleIngestionService
         await _db.SaveChangesAsync(ct);
         _briefingService.InvalidateBriefingCache();
 
+        if (_outputCacheStore != null)
+        {
+            await _outputCacheStore.EvictByTagAsync("articles", ct);
+        }
+
         _logger.LogInformation(
             "Created new sponsored campaign '{Title}' for sponsor '{Sponsor}' in zone '{Zone}' on platform '{Platform}'.",
             article.Title, article.SponsorName, article.PlacementZone, article.TargetPlatform);
@@ -404,6 +426,11 @@ public class ArticleIngestionService : IArticleIngestionService
         await _db.SaveChangesAsync(ct);
         _briefingService.InvalidateBriefingCache();
 
+        if (_outputCacheStore != null)
+        {
+            await _outputCacheStore.EvictByTagAsync("articles", ct);
+        }
+
         _logger.LogInformation("Updated sponsored campaign '{Id}'.", id);
         return (article, NotFound: false, null);
     }
@@ -416,6 +443,11 @@ public class ArticleIngestionService : IArticleIngestionService
         _db.Articles.Remove(article);
         await _db.SaveChangesAsync(ct);
         _briefingService.InvalidateBriefingCache();
+
+        if (_outputCacheStore != null)
+        {
+            await _outputCacheStore.EvictByTagAsync("articles", ct);
+        }
 
         _logger.LogInformation("Deleted sponsored campaign '{Id}'.", id);
         return true;

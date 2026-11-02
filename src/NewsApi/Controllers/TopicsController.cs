@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using NewsApi.Data;
 using NewsApi.Infrastructure;
@@ -20,6 +21,7 @@ public class TopicsController(
     /// Sets Cache-Control: public, max-age=60 with ETag support.
     /// </summary>
     [HttpGet("{slug}")]
+    [OutputCache(PolicyName = "PublicTopics")]
     [ProducesResponseType(typeof(TopicDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status304NotModified)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -87,6 +89,7 @@ public class TopicsController(
     /// Returns paginated articles tagged under a specific topic hub.
     /// </summary>
     [HttpGet("{slug}/articles")]
+    [OutputCache(PolicyName = "PublicTopics")]
     [ProducesResponseType(typeof(PagedResponse<ArticleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status304NotModified)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

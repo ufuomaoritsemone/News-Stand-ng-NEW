@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using NewsApi.Data;
@@ -25,6 +26,7 @@ public class ArticlesController : ControllerBase
     private readonly IBriefingService _briefingService;
     private readonly IArticleIngestionService _ingestionService;
     private readonly IConfiguration? _config;
+    private readonly IOutputCacheStore? _outputCacheStore;
 
     public ArticlesController(
         NewsDbContext db,
@@ -40,7 +42,8 @@ public class ArticlesController : ControllerBase
         IStoryClusteringService? clusteringService = null,
         IArticleEnrichmentService? enrichmentService = null,
         IBriefingService? briefingService = null,
-        IArticleIngestionService? ingestionService = null)
+        IArticleIngestionService? ingestionService = null,
+        IOutputCacheStore? outputCacheStore = null)
     {
         _db                 = db;
         _relatedService     = relatedService;
@@ -50,9 +53,10 @@ public class ArticlesController : ControllerBase
         _clusteringService  = clusteringService;
         _enrichmentService  = enrichmentService;
         _config             = config;
+        _outputCacheStore   = outputCacheStore;
         _briefingService    = briefingService ?? new BriefingService(db, cache, logger);
         _ingestionService   = ingestionService ?? new ArticleIngestionService(
-            db, slugService, _briefingService, logger, categorizerTrainingService, indexNowService);
+            db, slugService, _briefingService, logger, categorizerTrainingService, indexNowService, outputCacheStore);
     }
 
     private bool IsAuthorizedInternal()
@@ -125,6 +129,7 @@ public class ArticlesController : ControllerBase
     }
 
     [HttpGet]
+    [OutputCache(PolicyName = "PublicArticles")]
     public async Task<IActionResult> GetArticles(
         [FromQuery] string? source = null,
         [FromQuery] string? category = null,
@@ -710,6 +715,10 @@ public class ArticlesController : ControllerBase
         }
 
         var result = await _seoBackfillService.BackfillArticleSeoAsync(batchSize, cancellationToken);
+        if (_outputCacheStore != null && (result.SlugsGenerated > 0 || result.ExcerptsGenerated > 0))
+        {
+            await _outputCacheStore.EvictByTagAsync("articles", cancellationToken);
+        }
         return Ok(result);
     }
 }

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -18,6 +19,7 @@ public partial class StoryClusteringService : IStoryClusteringService
     private readonly IConfiguration _config;
     private readonly ILogger<StoryClusteringService> _logger;
     private readonly IMemoryCache? _cache;
+    private readonly IOutputCacheStore? _outputCacheStore;
 
     public StoryClusteringService(
         NewsDbContext db,
@@ -25,7 +27,8 @@ public partial class StoryClusteringService : IStoryClusteringService
         ISlugService slugService,
         IConfiguration config,
         ILogger<StoryClusteringService> logger,
-        IMemoryCache? cache = null)
+        IMemoryCache? cache = null,
+        IOutputCacheStore? outputCacheStore = null)
     {
         _db = db;
         _embeddingProvider = embeddingProvider;
@@ -33,6 +36,7 @@ public partial class StoryClusteringService : IStoryClusteringService
         _config = config;
         _logger = logger;
         _cache = cache;
+        _outputCacheStore = outputCacheStore;
     }
 
     private static readonly HashSet<string> StopWords = new(StringComparer.OrdinalIgnoreCase)
@@ -406,6 +410,10 @@ public partial class StoryClusteringService : IStoryClusteringService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+        if (_outputCacheStore != null)
+        {
+            await _outputCacheStore.EvictByTagAsync("stories", cancellationToken);
+        }
         _logger.LogInformation("StoryClusteringService: Successfully saved {Count} story clusters (pruned {PrunedCount} stale clusters)",
             updatedClustersCount, obsoleteClusters.Count);
         return updatedClustersCount;

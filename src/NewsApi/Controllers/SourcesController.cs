@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using NewsApi.Data;
 using NewsApi.Models;
@@ -39,6 +40,7 @@ public class SourcesController : ControllerBase
         };
 
     [HttpGet]
+    [OutputCache(PolicyName = "PublicSources")]
     public async Task<IActionResult> GetSources(CancellationToken cancellationToken = default)
     {
         var sources = await _db.Sources.AsNoTracking().ToListAsync(cancellationToken);
@@ -94,6 +96,7 @@ public class SourcesController : ControllerBase
     /// </summary>
     [HttpGet("{slug}")]
     [HttpGet("by-slug/{slug}")]
+    [OutputCache(PolicyName = "PublicSources")]
     public async Task<IActionResult> GetSourceBySlug(string slug, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(slug))

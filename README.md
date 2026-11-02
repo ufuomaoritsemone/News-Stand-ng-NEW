@@ -23,6 +23,31 @@ Projects:
 
 ## Updates
 
+### November 02, 2026 — Trending Stories Clustering Disambiguation & High-Performance Output Caching (Step 1)
+Resolved cross-topic over-clustering in Trending Stories by introducing high-specificity entity constraints and geographical conflict guards, and implemented native ASP.NET Core Output Caching with tag-based cache eviction for public endpoints:
+- **[Trending Stories Clustering Disambiguation (`StoryClusteringService.cs`)]**:
+  - Hardened multi-pass incremental clustering (`ComputeSimilarity`, `FindBestCluster`, `NormalizeAndStemToken`, `IsGeneralVocabularyToken`) to prevent unrelated events (e.g., banditry attacks, political campaigns, general governance) from collapsing into single clusters merely by sharing ubiquitous Nigerian generic terms (`"attack"`, `"police"`, `"government"`, `"killed"`, `"bandits"`, `"officials"`).
+  - Added specific-entity matching requirements (`HasSpecificEntityOverlap`), requiring at least one non-generic proper noun or distinct topical anchor (e.g. `"benue"`, `"kano"`, `"dangote"`, `"tinubu"`, `"nnpcl"`, `"efcc"`) to bridge stories into existing clusters.
+  - Added geographical entity conflict guards (`HasGeographicalConflict`): prevents articles centered on distinct Nigerian states or geopolitical zones (e.g., Borno vs. Enugu, Kano vs. Rivers) from clustering together.
+  - Re-anchored cluster centroid calculation with weighted title dominance and dynamic centroid drift prevention to prevent gradual semantic shifts over large ingestion batches.
+- **[ASP.NET Core Output Caching Implementation (`ServiceCollectionExtensions.cs`, `Program.cs`)]**:
+  - Configured native ASP.NET Core Output Caching (`services.AddOutputCache(...)`) without external infrastructure dependencies:
+    - `"PublicArticles"` policy: 60s expiration, vary by all query string parameters (`page`, `pageSize`, `category`, `source`, `search`, etc.), tagged with `"articles"`.
+    - `"PublicStories"` policy: 120s expiration, vary by query parameters, tagged with `"stories"`.
+    - `"PublicTopics"` policy: 300s expiration, tagged with `"topics"`.
+    - `"PublicSources"` policy: 600s expiration, tagged with `"sources"`.
+  - Registered `app.UseOutputCache()` in the HTTP middleware pipeline immediately following `app.UseAuthorization()` and prior to `app.MapControllers()`.
+- **[Endpoint Caching & Tag-Based Invalidation (`ArticlesController.cs`, `StoriesController.cs`, `TopicsController.cs`, `SourcesController.cs`, `ArticleIngestionService.cs`, `StoryClusteringService.cs`)]**:
+  - Decorated public read-only endpoints with `[OutputCache(PolicyName = ...)]`: `ArticlesController.GetArticles`, `StoriesController.GetTrendingStories`, `StoriesController.GetStories`, `StoriesController.GetStoryBySlug`, `TopicsController.GetTopicBySlug`, `TopicsController.GetTopicArticles`, `SourcesController.GetSources`, and `SourcesController.GetSourceBySlug`.
+  - Injected optional `IOutputCacheStore?` across controllers and background services with backward-compatible defaults.
+  - Implemented tag-based eviction (`_outputCacheStore.EvictByTagAsync`):
+    - `ArticleIngestionService`: Automatically evicts `"articles"` and `"stories"` tags whenever new articles are ingested or article categories are updated; evicts `"articles"` on sponsored campaign CRUD.
+    - `StoryClusteringService` & `StoriesController.TriggerClustering`: Automatically evicts the `"stories"` cache tag when clustering routines run or manual re-clustering is triggered.
+    - `ArticlesController.BackfillSeo`: Automatically evicts `"articles"` tag when SEO slugs or excerpts are backfilled.
+- **[Testing & Verification (`OutputCacheTests.cs`, `StoryClusteringTests.cs`, `StoriesEndpointTests.cs`)]**:
+  - Added unit test suite in `tests/NewsApi.Tests/OutputCacheTests.cs` verifying DI policy configuration, tag eviction during ingestion, and manual clustering invalidation.
+  - Verified full test suite passes: `StoryClusteringTests` & `StoriesEndpointTests` (12/12 passing), `NewsApi.Tests` (98/98 passing), and `NewsApiClient.Tests` (314/314 passing).
+
 ### November 02, 2026 — Facebook Page Article Summary Publishing via Meta Graph API
 Implemented automated and 1-click social syndication for AI-summarized articles and briefings directly to a Facebook Page via Meta Graph API v21.0:
 - **[Facebook Publishing Service & Endpoints (`IFacebookPublishingService.cs`, `FacebookPublishingService.cs`, `FacebookPublishingController.cs`, `ServiceCollectionExtensions.cs`)]**:

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -30,6 +31,36 @@ public static class ServiceCollectionExtensions
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
         services.AddMemoryCache();
+        services.AddOutputCache(options =>
+        {
+            // Do not cache health checks
+            options.AddBasePolicy(builder => builder.With(ctx =>
+                !ctx.HttpContext.Request.Path.StartsWithSegments("/health") &&
+                !ctx.HttpContext.Request.Path.StartsWithSegments("/healthz")));
+
+            // Public articles feed (60 seconds, varies by search and pagination parameters)
+            options.AddPolicy("PublicArticles", builder => builder
+                .Expire(TimeSpan.FromSeconds(60))
+                .SetVaryByQuery("page", "pageSize", "category", "source", "search", "contentType", "todayOnly", "days", "hasAiSummary", "limit")
+                .Tag("articles"));
+
+            // Multi-source story clusters and trending stories (120 seconds)
+            options.AddPolicy("PublicStories", builder => builder
+                .Expire(TimeSpan.FromSeconds(120))
+                .SetVaryByQuery("limit", "windowHours", "page", "pageSize")
+                .Tag("stories"));
+
+            // Topic hubs and topic articles (300 seconds)
+            options.AddPolicy("PublicTopics", builder => builder
+                .Expire(TimeSpan.FromSeconds(300))
+                .SetVaryByQuery("page", "pageSize")
+                .Tag("topics"));
+
+            // Publisher sources registry (600 seconds)
+            options.AddPolicy("PublicSources", builder => builder
+                .Expire(TimeSpan.FromSeconds(600))
+                .Tag("sources"));
+        });
         services.AddHttpClient();
         services.AddHttpClient("ImageProxy", client =>
         {

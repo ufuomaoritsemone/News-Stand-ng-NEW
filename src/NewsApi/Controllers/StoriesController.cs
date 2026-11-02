@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using NewsApi.Data;
@@ -18,19 +19,22 @@ public class StoriesController : ControllerBase
     private readonly IConfiguration _config;
     private readonly ILogger<StoriesController> _logger;
     private readonly IMemoryCache? _cache;
+    private readonly IOutputCacheStore? _outputCacheStore;
 
     public StoriesController(
         NewsDbContext db,
         IStoryClusteringService clusteringService,
         IConfiguration config,
         ILogger<StoriesController> logger,
-        IMemoryCache? cache = null)
+        IMemoryCache? cache = null,
+        IOutputCacheStore? outputCacheStore = null)
     {
         _db = db;
         _clusteringService = clusteringService;
         _config = config;
         _logger = logger;
         _cache = cache;
+        _outputCacheStore = outputCacheStore;
     }
 
     /// <summary>
@@ -39,6 +43,7 @@ public class StoriesController : ControllerBase
     /// Sets Cache-Control: public, max-age=300 with ETag support.
     /// </summary>
     [HttpGet("trending")]
+    [OutputCache(PolicyName = "PublicStories")]
     [ProducesResponseType(typeof(TrendingStoryListResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status304NotModified)]
     public async Task<IActionResult> GetTrendingStories(
@@ -253,6 +258,7 @@ public class StoriesController : ControllerBase
     /// Returns paginated active story clusters (multi-source news events).
     /// </summary>
     [HttpGet]
+    [OutputCache(PolicyName = "PublicStories")]
     [ProducesResponseType(typeof(StoryClusterListResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status304NotModified)]
     public async Task<IActionResult> GetStories(
@@ -327,6 +333,7 @@ public class StoriesController : ControllerBase
     /// Returns full details for a story cluster, including cross-publisher articles and coverage timeline.
     /// </summary>
     [HttpGet("{slug}")]
+    [OutputCache(PolicyName = "PublicStories")]
     [ProducesResponseType(typeof(StoryClusterDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status304NotModified)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -434,6 +441,10 @@ public class StoriesController : ControllerBase
     public async Task<IActionResult> TriggerClustering(CancellationToken ct = default)
     {
         var count = await _clusteringService.RunClusteringAsync(ct);
+        if (_outputCacheStore != null)
+        {
+            await _outputCacheStore.EvictByTagAsync("stories", ct);
+        }
         return Ok(new { success = true, activeClusters = count, timestamp = DateTime.UtcNow });
     }
 
