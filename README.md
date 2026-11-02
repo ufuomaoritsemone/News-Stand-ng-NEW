@@ -31,7 +31,7 @@ Resolved cross-topic over-clustering in Trending Stories by introducing high-spe
   - Added geographical entity conflict guards (`HasGeographicalConflict`): prevents articles centered on distinct Nigerian states or geopolitical zones (e.g., Borno vs. Enugu, Kano vs. Rivers) from clustering together.
   - Re-anchored cluster centroid calculation with weighted title dominance and dynamic centroid drift prevention to prevent gradual semantic shifts over large ingestion batches.
 - **[ASP.NET Core Output Caching Implementation (`ServiceCollectionExtensions.cs`, `Program.cs`)]**:
-  - Configured native ASP.NET Core Output Caching (`services.AddOutputCache(...)`) without external infrastructure dependencies:
+  - Configured native ASP.NET Core Output Caching (`services.AddOutputCache(...)`) with opt-in default base policy (`builder.NoCache()`):
     - `"PublicArticles"` policy: 60s expiration, vary by all query string parameters (`page`, `pageSize`, `category`, `source`, `search`, etc.), tagged with `"articles"`.
     - `"PublicStories"` policy: 120s expiration, vary by query parameters, tagged with `"stories"`.
     - `"PublicTopics"` policy: 300s expiration, tagged with `"topics"`.

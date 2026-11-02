@@ -33,10 +33,8 @@ public static class ServiceCollectionExtensions
         services.AddMemoryCache();
         services.AddOutputCache(options =>
         {
-            // Do not cache health checks
-            options.AddBasePolicy(builder => builder.With(ctx =>
-                !ctx.HttpContext.Request.Path.StartsWithSegments("/health") &&
-                !ctx.HttpContext.Request.Path.StartsWithSegments("/healthz")));
+            // Default base policy: do not cache unless explicitly opted-in via policy or attribute
+            options.AddBasePolicy(builder => builder.NoCache());
 
             // Public articles feed (60 seconds, varies by search and pagination parameters)
             options.AddPolicy("PublicArticles", builder => builder

@@ -552,6 +552,28 @@ public class ArticlesControllerTests : IClassFixture<CustomWebApplicationFactory
     [Fact]
     public async Task GetBriefings_CustomParameters_AreAtomicallyInvalidatedOnIngest()
     {
+        // 0. Ensure at least one article exists in database so briefings can be computed and cached
+        var setupPayload = new IngestArticlesRequest
+        {
+            Articles =
+            [
+                new ArticleIngestItem
+                {
+                    Title = $"Setup Article for Briefing Test {Guid.NewGuid():N}",
+                    Summary = "Setup summary for briefing cache test",
+                    Source = "Setup Source",
+                    Category = "Politics"
+                }
+            ]
+        };
+        var setupReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/articles/ingest")
+        {
+            Content = JsonContent.Create(setupPayload)
+        };
+        setupReq.Headers.Add("X-Api-Key", CustomWebApplicationFactory.TestApiKey);
+        var setupResp = await _client.SendAsync(setupReq);
+        Assert.Equal(HttpStatusCode.OK, setupResp.StatusCode);
+
         // 1. Initial call with custom topPerCategory = 25
         var initialResp = await _client.GetAsync("/api/v1/articles/briefings?language=English&topPerCategory=25");
         Assert.Equal(HttpStatusCode.OK, initialResp.StatusCode);
