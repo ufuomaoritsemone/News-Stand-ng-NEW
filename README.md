@@ -23,6 +23,21 @@ Projects:
 
 ## Updates
 
+### November 02, 2026 — Facebook Page Article Summary Publishing via Meta Graph API
+Implemented automated and 1-click social syndication for AI-summarized articles and briefings directly to a Facebook Page via Meta Graph API v21.0:
+- **[Facebook Publishing Service & Endpoints (`IFacebookPublishingService.cs`, `FacebookPublishingService.cs`, `FacebookPublishingController.cs`, `ServiceCollectionExtensions.cs`)]**:
+  - Implemented `IFacebookPublishingService` with automated caption formatting (Headline, AI Executive Overview, Key Takeaways bullets, canonical call-to-action link, and hashtags).
+  - Implemented Meta documentation best practice Open Graph pre-scraping (`POST /?id={url}&scrape=true`) prior to publishing to guarantee preview cards never render with empty thumbnails.
+  - Supports both standard Feed Link posts (`POST /{page-id}/feed`) and native high-resolution photo uploads (`POST /{page-id}/photos`).
+  - Added REST API routes under `/api/v1/social/facebook`: `GET preview/{articleId}`, `POST publish/{articleId}`, and `POST scrape-og`.
+- **[System Settings Hot-Reload (`SystemSettingsService.cs`, `Settings.cshtml`)]**:
+  - Added `Facebook:PageId`, `Facebook:PageAccessToken` (secret masked), and `Facebook:AutoPublish` to known system settings.
+  - Added a dedicated "Facebook & Social" tab in the Admin Dashboard Settings view with step-by-step guidance on creating a permanent Page Access Token.
+- **[Admin Dashboard One-Click Facebook Publishing (`Index.cshtml`, `Index.cshtml.cs`)]**:
+  - Added a `Post FB` button on every article card in the Admin Dashboard with an interactive modal previewing the formatted caption and canonical Open Graph link.
+  - Allows editing the caption prior to posting and toggling native photo upload mode with live feedback and direct links to the published post on Facebook.
+- **[Testing & Verification]**: Verified build of `NewsApi` and `AdminDashboard`, and executed full unit test suite with `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 95/95 tests passing).
+
 ### October 31, 2026 — Always-On AI Summary Experience in .NET MAUI Mobile Article Reader
 Ensured that whenever a user taps any story article across the `.NET MAUI` mobile app (`NigerianNewGrid`) — including the home feed, category tabs, search results, story clusters, related stories, sponsored stories, and push notifications — they always see the structured **AI Summary** (`AiExecutiveBriefingCard`) as the primary view:
 - **[On-Demand Article Enrichment & Top-Level AI DTO Mapping (`ArticlesController.cs`, `ArticleIngestionService.cs`, `BriefingService.cs`, `ArticleSearchService.cs`, `RelatedContentService.cs`, `Dtos.cs`, `BriefingDto.cs`)]**:
@@ -1683,6 +1698,21 @@ run-services.bat
  
 ## Updates
 
+### November 02, 2026 — Facebook Page Article Summary Publishing via Meta Graph API
+Implemented automated and 1-click social syndication for AI-summarized articles and briefings directly to a Facebook Page via Meta Graph API v21.0:
+- **[Facebook Publishing Service & Endpoints (`IFacebookPublishingService.cs`, `FacebookPublishingService.cs`, `FacebookPublishingController.cs`, `ServiceCollectionExtensions.cs`)]**:
+  - Implemented `IFacebookPublishingService` with automated caption formatting (Headline, AI Executive Overview, Key Takeaways bullets, canonical call-to-action link, and hashtags).
+  - Implemented Meta documentation best practice Open Graph pre-scraping (`POST /?id={url}&scrape=true`) prior to publishing to guarantee preview cards never render with empty thumbnails.
+  - Supports both standard Feed Link posts (`POST /{page-id}/feed`) and native high-resolution photo uploads (`POST /{page-id}/photos`).
+  - Added REST API routes under `/api/v1/social/facebook`: `GET preview/{articleId}`, `POST publish/{articleId}`, and `POST scrape-og`.
+- **[System Settings Hot-Reload (`SystemSettingsService.cs`, `Settings.cshtml`)]**:
+  - Added `Facebook:PageId`, `Facebook:PageAccessToken` (secret masked), and `Facebook:AutoPublish` to known system settings.
+  - Added a dedicated "Facebook & Social" tab in the Admin Dashboard Settings view with step-by-step guidance on creating a permanent Page Access Token.
+- **[Admin Dashboard One-Click Facebook Publishing (`Index.cshtml`, `Index.cshtml.cs`)]**:
+  - Added a `Post FB` button on every article card in the Admin Dashboard with an interactive modal previewing the formatted caption and canonical Open Graph link.
+  - Allows editing the caption prior to posting and toggling native photo upload mode with live feedback and direct links to the published post on Facebook.
+- **[Testing & Verification]**: Verified build of `NewsApi` and `AdminDashboard`, and executed full unit test suite with `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 95/95 tests passing).
+
 ### October 3, 2026 — UI/UX: Comprehensive Mobile View Optimization & Reader Drawer Overhaul
 Optimized the complete mobile viewport experience across 360px–768px screens to deliver a native-app-grade reading experience for mobile news consumers:
 - **[Header & Navigation Compaction ([`Navbar.jsx`](file:///c:/Users/ufuom/source/repos/NigerianNewGrid/src/NigerianNewsGrid.Web/src/components/Navbar.jsx), [`index.css`](file:///c:/Users/ufuom/source/repos/NigerianNewGrid/src/NigerianNewsGrid.Web/src/styles/index.css))]**:
@@ -3156,6 +3186,21 @@ Implemented an end-to-end anonymised user behaviour analytics pipeline across th
     - Updated `BriefingCacheService.SaveBriefingAsync` and Android background sync (`NewsSyncReceiver.cs`) to persist `DateTime.UtcNow` upon saving updates.
 ## Updates
 
+### November 02, 2026 — Facebook Page Article Summary Publishing via Meta Graph API
+Implemented automated and 1-click social syndication for AI-summarized articles and briefings directly to a Facebook Page via Meta Graph API v21.0:
+- **[Facebook Publishing Service & Endpoints (`IFacebookPublishingService.cs`, `FacebookPublishingService.cs`, `FacebookPublishingController.cs`, `ServiceCollectionExtensions.cs`)]**:
+  - Implemented `IFacebookPublishingService` with automated caption formatting (Headline, AI Executive Overview, Key Takeaways bullets, canonical call-to-action link, and hashtags).
+  - Implemented Meta documentation best practice Open Graph pre-scraping (`POST /?id={url}&scrape=true`) prior to publishing to guarantee preview cards never render with empty thumbnails.
+  - Supports both standard Feed Link posts (`POST /{page-id}/feed`) and native high-resolution photo uploads (`POST /{page-id}/photos`).
+  - Added REST API routes under `/api/v1/social/facebook`: `GET preview/{articleId}`, `POST publish/{articleId}`, and `POST scrape-og`.
+- **[System Settings Hot-Reload (`SystemSettingsService.cs`, `Settings.cshtml`)]**:
+  - Added `Facebook:PageId`, `Facebook:PageAccessToken` (secret masked), and `Facebook:AutoPublish` to known system settings.
+  - Added a dedicated "Facebook & Social" tab in the Admin Dashboard Settings view with step-by-step guidance on creating a permanent Page Access Token.
+- **[Admin Dashboard One-Click Facebook Publishing (`Index.cshtml`, `Index.cshtml.cs`)]**:
+  - Added a `Post FB` button on every article card in the Admin Dashboard with an interactive modal previewing the formatted caption and canonical Open Graph link.
+  - Allows editing the caption prior to posting and toggling native photo upload mode with live feedback and direct links to the published post on Facebook.
+- **[Testing & Verification]**: Verified build of `NewsApi` and `AdminDashboard`, and executed full unit test suite with `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 95/95 tests passing).
+
 ### October 1, 2026 — MAUI App Experience & Performance Smoothing
 Audited and resolved performance blockers, UI thread contention, and reliability risks across the .NET MAUI mobile client without breaking functional parity:
 - **Centralized Safe Fire-and-Forget (`TaskExtensions.cs`)**: Implemented `SafeFireAndForget(this Task, ILogger?, string?)` extension method with structured error logging and exception handling. Replaced unobserved fire-and-forget task calls across `App.xaml.cs`, `MainViewModel.cs`, `ArticleViewModel.cs`, and `BookmarkService.cs` to eliminate silent unhandled task crashes.
@@ -3209,6 +3254,21 @@ Implemented sequential architectural improvements and code quality fixes address
   - Extracted verbose service registrations into structured extension methods (`AddNewsHttpClients`, `AddNewsServices`, `AddPlatformServices`, `AddViewModels`, `AddPages`), reducing `MauiProgram.cs` to clean, readable configuration.
 
 ## Updates
+
+### November 02, 2026 — Facebook Page Article Summary Publishing via Meta Graph API
+Implemented automated and 1-click social syndication for AI-summarized articles and briefings directly to a Facebook Page via Meta Graph API v21.0:
+- **[Facebook Publishing Service & Endpoints (`IFacebookPublishingService.cs`, `FacebookPublishingService.cs`, `FacebookPublishingController.cs`, `ServiceCollectionExtensions.cs`)]**:
+  - Implemented `IFacebookPublishingService` with automated caption formatting (Headline, AI Executive Overview, Key Takeaways bullets, canonical call-to-action link, and hashtags).
+  - Implemented Meta documentation best practice Open Graph pre-scraping (`POST /?id={url}&scrape=true`) prior to publishing to guarantee preview cards never render with empty thumbnails.
+  - Supports both standard Feed Link posts (`POST /{page-id}/feed`) and native high-resolution photo uploads (`POST /{page-id}/photos`).
+  - Added REST API routes under `/api/v1/social/facebook`: `GET preview/{articleId}`, `POST publish/{articleId}`, and `POST scrape-og`.
+- **[System Settings Hot-Reload (`SystemSettingsService.cs`, `Settings.cshtml`)]**:
+  - Added `Facebook:PageId`, `Facebook:PageAccessToken` (secret masked), and `Facebook:AutoPublish` to known system settings.
+  - Added a dedicated "Facebook & Social" tab in the Admin Dashboard Settings view with step-by-step guidance on creating a permanent Page Access Token.
+- **[Admin Dashboard One-Click Facebook Publishing (`Index.cshtml`, `Index.cshtml.cs`)]**:
+  - Added a `Post FB` button on every article card in the Admin Dashboard with an interactive modal previewing the formatted caption and canonical Open Graph link.
+  - Allows editing the caption prior to posting and toggling native photo upload mode with live feedback and direct links to the published post on Facebook.
+- **[Testing & Verification]**: Verified build of `NewsApi` and `AdminDashboard`, and executed full unit test suite with `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 95/95 tests passing).
 
 - **Hot Discussion 🔥 Fire Badge for Active Stories (`ArticlesController.cs`, `Dtos.cs`, Web Components)**:
   - Extended backend `ArticleDto` and `ArticlesController` to aggregate real-time comment counts from `StoryComments` (excluding hidden/moderated items).

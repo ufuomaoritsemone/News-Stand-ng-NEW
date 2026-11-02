@@ -74,6 +74,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IArticleSeoBackfillService, ArticleSeoBackfillService>();
         services.AddScoped<IBriefingService,        BriefingService>();
         services.AddScoped<IArticleIngestionService, ArticleIngestionService>();
+        services.AddScoped<IFacebookPublishingService, FacebookPublishingService>();
         services.AddSingleton<IndexNowBackgroundService>();
         services.AddSingleton<IIndexNowService>(sp => sp.GetRequiredService<IndexNowBackgroundService>());
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();

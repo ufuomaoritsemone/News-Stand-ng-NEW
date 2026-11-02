@@ -255,6 +255,63 @@ public class IndexModel : PageModel
         }
     }
 
+    public async Task<IActionResult> OnGetFacebookPreviewAsync(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return new JsonResult(new { success = false, message = "Article ID is required." });
+        }
+
+        var client = _httpClientFactory.CreateClient("NewsApiClient");
+        var apiBaseUrl = _configuration["ApiBaseUrl"] ?? "http://localhost:56193";
+
+        try
+        {
+            var response = await client.GetAsync($"{apiBaseUrl.TrimEnd('/')}/api/v1/social/facebook/preview/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                var preview = await response.Content.ReadFromJsonAsync<FacebookPreviewDto>();
+                return new JsonResult(new { success = true, preview });
+            }
+
+            var errBody = await response.Content.ReadAsStringAsync();
+            return new JsonResult(new { success = false, message = $"Failed to get Facebook preview ({response.StatusCode}): {errBody}" });
+        }
+        catch (Exception ex)
+        {
+            return new JsonResult(new { success = false, message = $"Error getting Facebook preview: {ex.Message}" });
+        }
+    }
+
+    public async Task<IActionResult> OnPostPublishToFacebookAsync([FromForm] string articleId, [FromForm] string? customMessage, [FromForm] bool asPhotoPost)
+    {
+        if (string.IsNullOrWhiteSpace(articleId))
+        {
+            return new JsonResult(new { success = false, message = "Article ID is required." });
+        }
+
+        var client = _httpClientFactory.CreateClient("NewsApiClient");
+        var apiBaseUrl = _configuration["ApiBaseUrl"] ?? "http://localhost:56193";
+
+        try
+        {
+            var payload = new { customMessage, asPhotoPost };
+            var response = await client.PostAsJsonAsync($"{apiBaseUrl.TrimEnd('/')}/api/v1/social/facebook/publish/{articleId}", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<FacebookPublishResponseDto>();
+                return new JsonResult(new { success = true, postId = result?.PostId, permalinkUrl = result?.PermalinkUrl });
+            }
+
+            var errBody = await response.Content.ReadAsStringAsync();
+            return new JsonResult(new { success = false, message = $"Facebook publishing failed ({response.StatusCode}): {errBody}" });
+        }
+        catch (Exception ex)
+        {
+            return new JsonResult(new { success = false, message = $"Error publishing to Facebook: {ex.Message}" });
+        }
+    }
+
     private async Task LoadDataAsync()
     {
         var client = _httpClientFactory.CreateClient("NewsApiClient");
@@ -432,4 +489,21 @@ public class FullSummaryDto
     public List<string> KeyFiguresAndEntities { get; set; } = [];
     public string OutlookOrNextSteps { get; set; } = string.Empty;
     public int ReadingTimeSeconds { get; set; } = 45;
+}
+
+public class FacebookPreviewDto
+{
+    public string Title { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string CanonicalUrl { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
+    public bool HasAiSummary { get; set; }
+    public string? AiEngine { get; set; }
+}
+
+public class FacebookPublishResponseDto
+{
+    public bool Success { get; set; }
+    public string? PostId { get; set; }
+    public string? PermalinkUrl { get; set; }
 }

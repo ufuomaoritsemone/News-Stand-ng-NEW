@@ -52,6 +52,11 @@ public class SystemSettingsService(
         ["Contact:WhatsAppNumber"] = ("Contact", "WhatsApp phone number for direct contact chat routing (e.g. +2348031234567)", false, ""),
         ["Contact:WhatsAppDefaultMessage"] = ("Contact", "Default greeting prepended to WhatsApp contact messages", false, "Hello News Stand NG Admin, I have an inquiry."),
 
+        // Social & Meta Publishing
+        ["Facebook:PageId"] = ("Social", "Facebook Page ID for automated or 1-click article summary publishing", false, ""),
+        ["Facebook:PageAccessToken"] = ("Social", "Never-expiring Facebook Page Access Token with pages_manage_posts permission", true, null),
+        ["Facebook:AutoPublish"] = ("Social", "Automatically publish enriched top story articles to Facebook Page", false, "false"),
+
         // Scraper & Background Workers
         ["Scraper:IntervalMinutes"] = ("Scraper", "Frequency in minutes between automated RSS news scraping cycles", false, "15"),
 

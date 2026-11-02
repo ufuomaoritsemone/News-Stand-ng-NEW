@@ -138,6 +138,11 @@
                             <i class="bi bi-whatsapp me-1 text-success"></i> Contact & WhatsApp
                         </button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link btn-sm" id="tab-social" data-bs-toggle="pill" data-bs-target="#content-social" type="button" role="tab">
+                            <i class="bi bi-facebook me-1 text-primary"></i> Facebook & Social
+                        </button>
+                    </li>
                 </ul>
             </div>
 
@@ -593,6 +598,70 @@
                                         <div class="text-muted" style="font-size: 0.8rem;">No WhatsApp number configured. Contact page will default to email dispatch to Admin@newsstand.ng.</div>
                                     </div>
                                 }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 8. Facebook & Social Syndication -->
+                    <div class="tab-pane fade" id="content-social" role="tabpanel">
+                        <h5 class="text-white mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-facebook text-primary"></i> Facebook Page &amp; Social Syndication
+                        </h5>
+                        <p class="text-muted small mb-4">
+                            Configure your Facebook Page credentials to publish AI-summarized articles and briefings directly to your Facebook Page with Open Graph rich previews and native photos.
+                        </p>
+
+                        <div class="row g-3">
+                            <!-- Facebook Page ID -->
+                            <div class="col-12 col-md-8">
+                                <label class="form-label text-light small fw-semibold">
+                                    Facebook Page ID
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark border-secondary text-primary"><i class="bi bi-person-badge"></i></span>
+                                    <input type="text"
+                                           name="FormInputs[Facebook:PageId]"
+                                           value="@Model.GetVal("Facebook:PageId")"
+                                           class="form-control form-control-glass font-monospace text-light"
+                                           placeholder="e.g. 102938475610293" />
+                                </div>
+                                <small class="text-muted">
+                                    The unique numeric ID of your Facebook Page (find in Meta Business Suite or Page About section).
+                                </small>
+                            </div>
+
+                            <!-- Facebook Page Access Token -->
+                            <div class="col-12 col-md-8 mt-3">
+                                <label class="form-label text-light small fw-semibold">
+                                    Facebook Page Access Token (Never-Expiring)
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-key-fill"></i></span>
+                                    <input type="password"
+                                           id="input_fb_token"
+                                           name="FormInputs[Facebook:PageAccessToken]"
+                                           value="@Model.GetVal("Facebook:PageAccessToken")"
+                                           class="form-control form-control-glass font-monospace text-light"
+                                           placeholder="EAA..." />
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('input_fb_token', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">
+                                    Permanent Page Access Token with <code>pages_manage_posts</code> and <code>pages_read_engagement</code> permissions.
+                                </small>
+                            </div>
+
+                            <!-- Meta Documentation Quick Guide -->
+                            <div class="col-12 col-md-8 mt-3">
+                                <div class="p-3 rounded border border-info border-opacity-25 bg-info bg-opacity-10">
+                                    <div class="text-info fw-bold small mb-1"><i class="bi bi-info-circle me-1"></i> How to generate your Page Token:</div>
+                                    <ol class="small text-muted ps-3 mb-0" style="line-height: 1.6;">
+                                        <li>In <a href="https://developers.facebook.com/tools/explorer/" target="_blank" class="text-info">Graph API Explorer</a>, request <code>pages_show_list</code> and <code>pages_manage_posts</code>.</li>
+                                        <li>Generate a User Token and extend it via <a href="https://developers.facebook.com/tools/debug/accesstoken/" target="_blank" class="text-info">Access Token Debugger</a>.</li>
+                                        <li>Call <code>GET /me/accounts</code> with the extended token — copy the <code>access_token</code> assigned to your Page.</li>
+                                    </ol>
+                                </div>
                             </div>
                         </div>
                     </div>
