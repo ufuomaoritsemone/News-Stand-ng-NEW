@@ -105,7 +105,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<DiscoverPage>();
         services.AddTransient<SettingsPage>();
         services.AddTransient<OnboardingPage>();
-        services.AddSingleton<AppShell>();
+        services.AddTransient<AppShell>();
         return services;
     }
 }

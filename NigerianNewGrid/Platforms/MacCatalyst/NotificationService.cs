@@ -119,6 +119,7 @@ public class NotificationService : INotificationService
         };
 
         var dict = new NSMutableDictionary();
+        if (!string.IsNullOrEmpty(action)) dict.SetValueForKey(new NSString(action), new NSString("action"));
         if (!string.IsNullOrEmpty(articleId)) dict.SetValueForKey(new NSString(articleId), new NSString("article_id"));
         if (!string.IsNullOrEmpty(articleUrl)) dict.SetValueForKey(new NSString(articleUrl), new NSString("article_url"));
         if (!string.IsNullOrEmpty(title)) dict.SetValueForKey(new NSString(title), new NSString("article_title"));

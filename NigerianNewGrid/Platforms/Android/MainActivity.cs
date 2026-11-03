@@ -14,6 +14,11 @@ public class MainActivity : MauiAppCompatActivity
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         Android.Util.Log.Info("APP_DEBUG", "MainActivity.OnCreate START");
+        // Prevent Android FragmentManager from restoring stale ElementBasedFragment view IDs
+        // across process restarts or wireless debug redeployments (MAUI Shell manages navigation state).
+        savedInstanceState?.Remove("android:support:fragments");
+        savedInstanceState?.GetBundle("androidx.lifecycle.BundlableSavedStateRegistry.key")
+            ?.Remove("android:support:fragments");
         base.OnCreate(savedInstanceState);
         Android.Util.Log.Info("APP_DEBUG", "MainActivity.OnCreate base.OnCreate DONE");
         HandleNotificationIntent(Intent);
