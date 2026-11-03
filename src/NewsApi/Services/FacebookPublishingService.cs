@@ -297,15 +297,12 @@ public class FacebookPublishingService(
             host = new Uri(host).Host;
         }
 
-        var category = !string.IsNullOrWhiteSpace(article.Category)
-            ? article.Category.Trim().ToLowerInvariant()
-            : "general";
-
         var slug = !string.IsNullOrWhiteSpace(article.Slug)
             ? article.Slug
             : slugService.GenerateSlug(article.Title);
 
-        return $"https://{host}/news/{category}/{slug}";
+        // Canonical route in NigerianNewsGrid.Web is /news/:slug
+        return $"https://{host}/news/{slug}";
     }
 
     private async Task<string?> ResolveSettingAsync(string dbKey, string envKey, CancellationToken ct)
