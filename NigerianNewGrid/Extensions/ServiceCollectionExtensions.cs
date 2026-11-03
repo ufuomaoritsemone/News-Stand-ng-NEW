@@ -15,18 +15,23 @@ public static class ServiceCollectionExtensions
     {
         services.AddHttpClient<NewsApiClient>((sp, client) =>
         {
-            client.Timeout = TimeSpan.FromSeconds(15);
+            client.Timeout = TimeSpan.FromSeconds(30);
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AutomaticDecompression = System.Net.DecompressionMethods.All
         })
         .AddPolicyHandler(HttpPolicyExtensions
             .HandleTransientHttpError()
-            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
-        .AddPolicyHandler(Policy<HttpResponseMessage>
-            .Handle<Exception>()
-            .CircuitBreakerAsync(5, TimeSpan.FromSeconds(10)));
+            .WaitAndRetryAsync(1, _ => TimeSpan.FromMilliseconds(800)));
 
         services.AddHttpClient("ProbeClient", client =>
         {
-            client.Timeout = TimeSpan.FromSeconds(5);
+            client.Timeout = TimeSpan.FromSeconds(6);
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AutomaticDecompression = System.Net.DecompressionMethods.All
         });
 
         return services;

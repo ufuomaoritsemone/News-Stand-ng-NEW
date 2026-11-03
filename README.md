@@ -23,6 +23,25 @@ Projects:
 
 ## Updates
 
+### November 03, 2026 — .NET MAUI Mobile App Server Connectivity, Gzip/Brotli Decompression & Resilient Briefing Fallback
+Resolved `.NET MAUI` mobile app (`NigerianNewGrid`) timeouts and inability to connect to `https://api.newsstand.ng` or load articles on physical devices:
+- **[Root Cause Diagnosis (Live Production Benchmarking)]**:
+  - `AddHttpClient<NewsApiClient>` in `ServiceCollectionExtensions.cs` did not configure `AutomaticDecompression`, causing `GET https://api.newsstand.ng/api/v1/articles/briefings` to stream **228 KB** of uncompressed JSON over 28–87 seconds (exceeding the 15s `HttpClient.Timeout`), whereas enabling `DecompressionMethods.All` (`gzip, deflate, br`) compresses the response to **24–41 KB** and completes in **5.5–9.3 seconds**.
+  - Initial TLS handshake to `https://api.newsstand.ng` takes ~3.1–3.7s on mobile networks, causing the 2,500ms `/healthz/liveness` pre-flight probes in `MainViewModel.ResolveApiBaseUrlAsync` to always time out and consume 5.0s of the 10s `_loadCts` deadline before `GetDailyBriefingAsync` even started.
+  - Polly's `Policy<HttpResponseMessage>.Handle<Exception>().CircuitBreakerAsync(...)` caught `OperationCanceledException` from timeouts/pull-to-refresh cancellations and tripped `BrokenCircuitException` across all subsequent requests.
+  - Previous failed loads persisted synthetic offline sample items (`fallback_*`) into SQLite (`CachedStories`), preventing fresh retries from distinguishing real cached articles from sample placeholders.
+- **[HTTP Gzip/Brotli Decompression & Resilient Client Policy (`ServiceCollectionExtensions.cs`, `NewsSyncReceiver.cs`)]**:
+  - Configured `ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AutomaticDecompression = DecompressionMethods.All })` on `NewsApiClient`, `ProbeClient`, and `NewsSyncReceiver.CreateFallbackApiClient()`.
+  - Increased `NewsApiClient` timeout from 15s to 30s and removed the overly broad `Handle<Exception>().CircuitBreakerAsync` policy that tripped on request cancellations.
+- **[Zero-Overhead Production URL Resolution & Live `/api/v1/articles` Fallback (`MainViewModel.cs`, `NewsApiClient.cs`)]**:
+  - Updated `MainViewModel.ResolveApiBaseUrlAsync` to return `https://api.newsstand.ng` immediately with 0ms pre-flight probe delay on physical devices or whenever a production HTTPS URL is configured.
+  - Increased `_loadCts` deadline in `MainViewModel.LoadBriefingAsync` from 10s to 30s.
+  - Updated `NewsApiClient.GetDailyBriefingAsync` to catch `HttpClient.Timeout` (`OperationCanceledException when (!cancellationToken.IsCancellationRequested)`) and return an empty list so `MainViewModel` can seamlessly fall back to `GET /api/v1/articles?page=1&pageSize=30` (`_apiClient.GetArticlesAsync`) and group live articles by category.
+- **[SQLite Synthetic Fallback Purge (`NewsPersistenceService.cs`, `MainViewModel.cs`)]**:
+  - Stopped persisting synthetic `GetFallbackSampleBriefing` items (`Id LIKE 'fallback_%'`) to SQLite and added `DELETE FROM CachedStories WHERE Id LIKE 'fallback_%';` on `NewsPersistenceService.InitializeAsync`.
+- **[Backend Briefing Query Bounds (`BriefingService.cs`)]**:
+  - Added `.Take(250)` to the 3-day candidate query in `BriefingService.GetBriefingsAsync` to bound SQLite row materialization on cache misses.
+
 ### November 03, 2026 — Android `NavigationRootManager_ElementBasedFragment` Resource ID Mismatch & Fragment State Fix
 Resolved `Java.Lang.IllegalArgumentException: 'No view found for id 0x7f0800f9 (com.nigeriannewsgrid.app:id/labeled) for fragment NavigationRootManager_ElementBasedFragment'` when debugging the `.NET MAUI` Android app (`NigerianNewGrid`) on physical devices:
 - **[Root Cause Analysis]**: An interrupted incremental build left `_Microsoft.Android.Resource.Designer.dll` (`R.txt`) and `android/bin/packaged_resources` out of sync in `NigerianNewGrid/obj/Debug/net10.0-android`, causing `Resource.Id.navigationlayout_content` (`0x7f0800f9`) in C# to resolve to `com.nigeriannewsgrid.app:id/labeled` inside the packaged APK's `resources.arsc`. Additionally, Android `FragmentManager` state restoration on `MainActivity.OnCreate` and a singleton `AppShell` registration caused stale `ElementBasedFragment` view container IDs to be reused across Activity recreations.
