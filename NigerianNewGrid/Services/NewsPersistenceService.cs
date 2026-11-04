@@ -56,6 +56,16 @@ public class NewsPersistenceService(
 #endif
             await _database.CreateTableAsync<CachedStoryEntity>().ConfigureAwait(false);
 
+            // Purge any synthetic fallback_* placeholder items that may have been persisted by older builds
+            try
+            {
+                await _database.ExecuteAsync("DELETE FROM CachedStories WHERE Id LIKE 'fallback_%';").ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "Non-fatal cleanup of legacy fallback_* rows in SQLite");
+            }
+
             _initialized = true;
             logger.LogInformation("SQLite NewsPersistenceService initialized successfully at {Path}", DbPath);
 #if DEBUG && ANDROID

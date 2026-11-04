@@ -154,9 +154,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _loadCts?.Dispose();
         _loadCts = new CancellationTokenSource();
 
-        // Hard 10-second deadline so the spinner is GUARANTEED to stop even if
-        // the network hangs or the URL probe waterfall takes too long.
-        _loadCts.CancelAfter(TimeSpan.FromSeconds(10));
+        // Allow 30 seconds for mobile TLS handshake + compressed JSON payload download
+        // before cancelling, so slower mobile/Wi-Fi networks aren't cut off mid-flight.
+        _loadCts.CancelAfter(TimeSpan.FromSeconds(30));
         var ct = _loadCts.Token;
 
         try
@@ -211,8 +211,26 @@ public partial class MainViewModel : ObservableObject, IDisposable
             try
             {
                 categories = await _apiClient.GetDailyBriefingAsync(language, ct);
+
+                // If /api/v1/articles/briefings timed out or returned empty on a cold server cache miss,
+                // fallback to the fast OutputCached /api/v1/articles endpoint and group into categories.
+                if (categories.Count == 0 && !ct.IsCancellationRequested)
+                {
+                    var flatArticles = await _apiClient.GetArticlesAsync(page: 1, pageSize: 30, cancellationToken: ct);
+                    if (flatArticles.Count > 0)
+                    {
+                        categories = flatArticles
+                            .GroupBy(a => string.IsNullOrWhiteSpace(a.Category) ? "General" : a.Category, StringComparer.OrdinalIgnoreCase)
+                            .Select(g => new BriefingCategory
+                            {
+                                Category = g.Key,
+                                Top = g.ToList()
+                            })
+                            .ToList();
+                    }
+                }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Network error fetching daily briefing, maintaining cached stories.");
                 categories = [];
@@ -224,9 +242,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 {
                     categories = await _cacheService.GetCachedBriefingAsync(maxTotalStories: MaxFeedCapacity);
                     if (categories.Count == 0)
-                        categories = _cacheService.GetFallbackSampleBriefing(language);
-                    _allCategories = categories;
-                    await _cacheService.SaveBriefingAsync(_allCategories);
+                    {
+                        // Show built-in sample briefing in memory only — do NOT persist fallback_* items into SQLite
+                        _allCategories = _cacheService.GetFallbackSampleBriefing(language);
+                    }
+                    else
+                    {
+                        _allCategories = categories;
+                    }
                 }
             }
             else
@@ -254,13 +277,16 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
         catch (OperationCanceledException)
         {
-            // Cancelled cleanly (user cancelled, new refresh started, or 10s deadline hit)
-            // If we have cached categories, keep them shown so the user isn't left with blank screen
-            if (_allCategories.Count > 0)
+            // Cancelled cleanly (user cancelled, new refresh started, or deadline hit).
+            // Ensure the user is never left on a blank screen if initial load timed out.
+            if (_allCategories.Count == 0)
             {
-                RefreshDisplayedStories();
-                UpdateTimestampStatus(isPullToRefresh);
+                var fallbackLang = Preferences.Get(AppPreferenceKeys.PreferredLanguage, "English");
+                _allCategories = _cacheService.GetFallbackSampleBriefing(fallbackLang);
+                EnsureFallbackTrendingStories(_allCategories);
             }
+            RefreshDisplayedStories();
+            UpdateTimestampStatus(isPullToRefresh);
         }
         catch (Exception ex)
         {
@@ -723,6 +749,18 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (!string.IsNullOrWhiteSpace(_resolvedApiBaseUrl))
         {
             return _resolvedApiBaseUrl;
+        }
+
+        var configured = AppNetworkConstants.GetConfiguredApiBaseUrl();
+
+        // On physical devices (or whenever the configured endpoint is already the live production HTTPS API),
+        // return immediately without wasting 3–5 seconds on redundant pre-flight health probe round-trips.
+        if (DeviceInfo.DeviceType == DeviceType.Physical ||
+            string.Equals(configured.TrimEnd('/'), AppNetworkConstants.ProductionApiUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
+        {
+            _resolvedApiBaseUrl = configured;
+            Preferences.Set(AppPreferenceKeys.ApiBaseUrl, configured);
+            return configured;
         }
 
         var saved = Preferences.Get(AppPreferenceKeys.ApiBaseUrl, string.Empty);

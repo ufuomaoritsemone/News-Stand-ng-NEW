@@ -231,7 +231,11 @@ public class NewsSyncReceiver : BroadcastReceiver
     private static NewsApiClient CreateFallbackApiClient()
     {
         var baseUrl = AppNetworkConstants.GetConfiguredApiBaseUrl();
-        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+        var handler = new HttpClientHandler
+        {
+            AutomaticDecompression = System.Net.DecompressionMethods.All
+        };
+        var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
         return new NewsApiClient(client) { BaseUrl = baseUrl };
     }
 }
