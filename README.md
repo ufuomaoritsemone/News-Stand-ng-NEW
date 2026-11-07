@@ -23,6 +23,11 @@ Projects:
 
 ## Updates
 
+### November 07, 2026 — Restore Admin Dashboard Login Error Message Contract for `AdminDashboardAuthTests`
+Resolved the CI test failure in `NewsApiClient.Tests.AdminDashboardAuthTests.PostLogin_InvalidCredentials_FailsAuthentication` (`Assert.Contains() Failure: Not found: "Invalid administrator username or password."`):
+- **[Root Cause (`Login.cshtml.cs`)]**: When adding the `Reviewer` role check in `AdminDashboard/Pages/Login.cshtml.cs`, the failed authentication `ErrorMessage` was changed to `"Invalid username or password."`, breaking the assertion in `AdminDashboardAuthTests.cs` line 129.
+- **[Fix & Verification (`Login.cshtml.cs`)]**: Restored `ErrorMessage = "Invalid administrator username or password.";` in `LoginModel.OnPostAsync` and verified all `AdminDashboardAuthTests` pass.
+
 ### November 07, 2026 — Meta App Reviewer Limited-Access Role & Facebook Post Hardening
 Implemented a secure, role-restricted test account for Meta App Reviewers alongside canonical link routing fixes for Facebook Page publishing:
 - **[Meta Reviewer Restricted Role & Authentication (`Login.cshtml.cs`, `Program.cs`)]**:

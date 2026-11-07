@@ -117,7 +117,7 @@ public class LoginModel : PageModel
             _logger.LogWarning("Failed login attempt ({Attempt}/{Max}) for username '{Username}' from {IP}",
                 attempts, MaxFailedAttempts, Input.Username, clientIp);
 
-            ErrorMessage = "Invalid username or password.";
+            ErrorMessage = "Invalid administrator username or password.";
             return Page();
         }
 
