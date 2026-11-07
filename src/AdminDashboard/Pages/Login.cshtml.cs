@@ -79,20 +79,34 @@ public class LoginModel : PageModel
                            ?? Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
                            ?? _config["AdminAuth:Password"];
 
-        if (_env?.IsProduction() == true &&
-            (string.IsNullOrWhiteSpace(explicitPass) || string.Equals(explicitPass, "AdminPass123!", StringComparison.Ordinal)))
+        var reviewerUser = _config["REVIEWER_USERNAME"]
+                           ?? Environment.GetEnvironmentVariable("REVIEWER_USERNAME")
+                           ?? "meta_reviewer";
+
+        var reviewerPass = _config["REVIEWER_PASSWORD"]
+                           ?? Environment.GetEnvironmentVariable("REVIEWER_PASSWORD")
+                           ?? "NewsStand@Review2026!";
+
+        var inputUser = Input.Username.Trim();
+        var isReviewer = ConstantTimeEquals(inputUser, reviewerUser.Trim()) &&
+                         ConstantTimeEquals(Input.Password, reviewerPass);
+
+        var isAdmin = false;
+        if (!isReviewer)
         {
-            _logger.LogCritical("Admin login blocked in Production: ADMIN_PASSWORD is not configured or is using the insecure default password.");
-            ErrorMessage = "Administrator authentication is not configured on this server. Set ADMIN_PASSWORD in the environment.";
-            return Page();
+            if (_env?.IsProduction() == true &&
+                (string.IsNullOrWhiteSpace(explicitPass) || string.Equals(explicitPass, "AdminPass123!", StringComparison.Ordinal)))
+            {
+                _logger.LogCritical("Admin login blocked in Production: ADMIN_PASSWORD is not configured or is using the insecure default password.");
+                ErrorMessage = "Administrator authentication is not configured on this server. Set ADMIN_PASSWORD in the environment.";
+                return Page();
+            }
+
+            var configuredPass = explicitPass ?? "AdminPass123!";
+            isAdmin = ConstantTimeEquals(inputUser, configuredUser.Trim()) && ConstantTimeEquals(Input.Password, configuredPass);
         }
 
-        var configuredPass = explicitPass ?? "AdminPass123!";
-
-        var isUserValid = ConstantTimeEquals(Input.Username.Trim(), configuredUser.Trim());
-        var isPassValid = ConstantTimeEquals(Input.Password, configuredPass);
-
-        if (!isUserValid || !isPassValid)
+        if (!isReviewer && !isAdmin)
         {
             var attempts = (_cache.TryGetValue(cacheKey, out LoginAttemptState? existing) && existing is not null)
                 ? existing.FailedAttempts + 1
@@ -103,20 +117,34 @@ public class LoginModel : PageModel
             _logger.LogWarning("Failed login attempt ({Attempt}/{Max}) for username '{Username}' from {IP}",
                 attempts, MaxFailedAttempts, Input.Username, clientIp);
 
-            ErrorMessage = "Invalid administrator username or password.";
+            ErrorMessage = "Invalid username or password.";
             return Page();
         }
 
         // Reset failed attempts on success for this client IP
         _cache.Remove(cacheKey);
 
-        var claims = new List<Claim>
+        List<Claim> claims;
+        if (isReviewer)
         {
-            new(ClaimTypes.Name, configuredUser),
-            new(ClaimTypes.Role, "Administrator"),
-            new(ClaimTypes.AuthenticationInstant, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
-            new("DisplayName", "Admin Portal Manager")
-        };
+            claims = new List<Claim>
+            {
+                new(ClaimTypes.Name, reviewerUser),
+                new(ClaimTypes.Role, "Reviewer"),
+                new(ClaimTypes.AuthenticationInstant, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
+                new("DisplayName", "Meta App Reviewer")
+            };
+        }
+        else
+        {
+            claims = new List<Claim>
+            {
+                new(ClaimTypes.Name, configuredUser),
+                new(ClaimTypes.Role, "Administrator"),
+                new(ClaimTypes.AuthenticationInstant, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
+                new("DisplayName", "Admin Portal Manager")
+            };
+        }
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         var principal = new ClaimsPrincipal(identity);
@@ -132,8 +160,8 @@ public class LoginModel : PageModel
 
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
 
-        _logger.LogInformation("Administrator '{Username}' successfully authenticated from {IP}",
-            configuredUser, clientIp);
+        _logger.LogInformation("User '{Username}' (Role: {Role}) successfully authenticated from {IP}",
+            isReviewer ? reviewerUser : configuredUser, isReviewer ? "Reviewer" : "Administrator", clientIp);
 
         if (!string.IsNullOrWhiteSpace(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
         {

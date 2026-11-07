@@ -1,8 +1,7 @@
-using System.Windows.Input;
-using Microsoft.Maui.ApplicationModel.DataTransfer;
 using NigerianNewGrid.Services;
 using NigerianNewsGrid.Client.Helpers;
 using NigerianNewsGrid.Client.Models;
+using System.Windows.Input;
 
 namespace NigerianNewGrid.Views;
 

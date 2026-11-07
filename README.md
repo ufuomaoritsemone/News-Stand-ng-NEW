@@ -23,6 +23,19 @@ Projects:
 
 ## Updates
 
+### November 07, 2026 — Meta App Reviewer Limited-Access Role & Facebook Post Hardening
+Implemented a secure, role-restricted test account for Meta App Reviewers alongside canonical link routing fixes for Facebook Page publishing:
+- **[Meta Reviewer Restricted Role & Authentication (`Login.cshtml.cs`, `Program.cs`)]**:
+  - Configured `REVIEWER_USERNAME` (default: `meta_reviewer`) and `REVIEWER_PASSWORD` (default: `NewsStand@Review2026!`) supporting environment variable configuration.
+  - Assigned distinct `ClaimTypes.Role = "Reviewer"` and `DisplayName = "Meta App Reviewer"` upon login.
+  - Enforced an `AdminOnly` authorization policy on `/Settings`, `/SystemHealth`, `/Sponsors`, `/Categorizer`, `/SearchConsole`, and `/Analytics` so reviewers cannot view or mutate server settings, API secrets, or marketing campaigns.
+- **[Reviewer Sandbox View & Navigation (`_Layout.cshtml`, `Index.cshtml`)]**:
+  - Filtered the Admin Dashboard sidebar for `Reviewer` role to only show **Stories & Feeds** and an informative "Reviewer Sandbox" badge.
+  - Hid administrative navigation and settings shortcuts from modal dialogs while keeping the **Post FB** preview and publish triggers active for end-to-end Meta API testing.
+- **[Canonical Link Routing Alignment (`FacebookPublishingService.cs`)]**:
+  - Aligned canonical URL generation to `https://newsstand.ng/news/{slug}` (matching React Router frontend routes in `NigerianNewsGrid.Web`) so Facebook's Open Graph scraper receives HTTP 200 and renders rich preview cards with thumbnails instead of falling back to HTTP 404 text-only posts.
+- **[Testing & Verification]**: Verified build of `AdminDashboard` and `NewsApi` with 0 errors; executed `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 98/98 tests passing).
+
 ### November 03, 2026 — .NET MAUI Mobile App Server Connectivity, Gzip/Brotli Decompression & Resilient Briefing Fallback
 Resolved `.NET MAUI` mobile app (`NigerianNewGrid`) timeouts and inability to connect to `https://api.newsstand.ng` or load articles on physical devices:
 - **[Root Cause Diagnosis (Live Production Benchmarking)]**:
@@ -1750,6 +1763,19 @@ run-services.bat
  
 ## Updates
 
+### November 07, 2026 — Meta App Reviewer Limited-Access Role & Facebook Post Hardening
+Implemented a secure, role-restricted test account for Meta App Reviewers alongside canonical link routing fixes for Facebook Page publishing:
+- **[Meta Reviewer Restricted Role & Authentication (`Login.cshtml.cs`, `Program.cs`)]**:
+  - Configured `REVIEWER_USERNAME` (default: `meta_reviewer`) and `REVIEWER_PASSWORD` (default: `NewsStand@Review2026!`) supporting environment variable configuration.
+  - Assigned distinct `ClaimTypes.Role = "Reviewer"` and `DisplayName = "Meta App Reviewer"` upon login.
+  - Enforced an `AdminOnly` authorization policy on `/Settings`, `/SystemHealth`, `/Sponsors`, `/Categorizer`, `/SearchConsole`, and `/Analytics` so reviewers cannot view or mutate server settings, API secrets, or marketing campaigns.
+- **[Reviewer Sandbox View & Navigation (`_Layout.cshtml`, `Index.cshtml`)]**:
+  - Filtered the Admin Dashboard sidebar for `Reviewer` role to only show **Stories & Feeds** and an informative "Reviewer Sandbox" badge.
+  - Hid administrative navigation and settings shortcuts from modal dialogs while keeping the **Post FB** preview and publish triggers active for end-to-end Meta API testing.
+- **[Canonical Link Routing Alignment (`FacebookPublishingService.cs`)]**:
+  - Aligned canonical URL generation to `https://newsstand.ng/news/{slug}` (matching React Router frontend routes in `NigerianNewsGrid.Web`) so Facebook's Open Graph scraper receives HTTP 200 and renders rich preview cards with thumbnails instead of falling back to HTTP 404 text-only posts.
+- **[Testing & Verification]**: Verified build of `AdminDashboard` and `NewsApi` with 0 errors; executed `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 98/98 tests passing).
+
 ### November 02, 2026 — Facebook Page Article Summary Publishing via Meta Graph API
 Implemented automated and 1-click social syndication for AI-summarized articles and briefings directly to a Facebook Page via Meta Graph API v21.0:
 - **[Facebook Publishing Service & Endpoints (`IFacebookPublishingService.cs`, `FacebookPublishingService.cs`, `FacebookPublishingController.cs`, `ServiceCollectionExtensions.cs`)]**:
@@ -3238,6 +3264,19 @@ Implemented an end-to-end anonymised user behaviour analytics pipeline across th
     - Updated `BriefingCacheService.SaveBriefingAsync` and Android background sync (`NewsSyncReceiver.cs`) to persist `DateTime.UtcNow` upon saving updates.
 ## Updates
 
+### November 07, 2026 — Meta App Reviewer Limited-Access Role & Facebook Post Hardening
+Implemented a secure, role-restricted test account for Meta App Reviewers alongside canonical link routing fixes for Facebook Page publishing:
+- **[Meta Reviewer Restricted Role & Authentication (`Login.cshtml.cs`, `Program.cs`)]**:
+  - Configured `REVIEWER_USERNAME` (default: `meta_reviewer`) and `REVIEWER_PASSWORD` (default: `NewsStand@Review2026!`) supporting environment variable configuration.
+  - Assigned distinct `ClaimTypes.Role = "Reviewer"` and `DisplayName = "Meta App Reviewer"` upon login.
+  - Enforced an `AdminOnly` authorization policy on `/Settings`, `/SystemHealth`, `/Sponsors`, `/Categorizer`, `/SearchConsole`, and `/Analytics` so reviewers cannot view or mutate server settings, API secrets, or marketing campaigns.
+- **[Reviewer Sandbox View & Navigation (`_Layout.cshtml`, `Index.cshtml`)]**:
+  - Filtered the Admin Dashboard sidebar for `Reviewer` role to only show **Stories & Feeds** and an informative "Reviewer Sandbox" badge.
+  - Hid administrative navigation and settings shortcuts from modal dialogs while keeping the **Post FB** preview and publish triggers active for end-to-end Meta API testing.
+- **[Canonical Link Routing Alignment (`FacebookPublishingService.cs`)]**:
+  - Aligned canonical URL generation to `https://newsstand.ng/news/{slug}` (matching React Router frontend routes in `NigerianNewsGrid.Web`) so Facebook's Open Graph scraper receives HTTP 200 and renders rich preview cards with thumbnails instead of falling back to HTTP 404 text-only posts.
+- **[Testing & Verification]**: Verified build of `AdminDashboard` and `NewsApi` with 0 errors; executed `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 98/98 tests passing).
+
 ### November 02, 2026 — Facebook Page Article Summary Publishing via Meta Graph API
 Implemented automated and 1-click social syndication for AI-summarized articles and briefings directly to a Facebook Page via Meta Graph API v21.0:
 - **[Facebook Publishing Service & Endpoints (`IFacebookPublishingService.cs`, `FacebookPublishingService.cs`, `FacebookPublishingController.cs`, `ServiceCollectionExtensions.cs`)]**:
@@ -3306,6 +3345,19 @@ Implemented sequential architectural improvements and code quality fixes address
   - Extracted verbose service registrations into structured extension methods (`AddNewsHttpClients`, `AddNewsServices`, `AddPlatformServices`, `AddViewModels`, `AddPages`), reducing `MauiProgram.cs` to clean, readable configuration.
 
 ## Updates
+
+### November 07, 2026 — Meta App Reviewer Limited-Access Role & Facebook Post Hardening
+Implemented a secure, role-restricted test account for Meta App Reviewers alongside canonical link routing fixes for Facebook Page publishing:
+- **[Meta Reviewer Restricted Role & Authentication (`Login.cshtml.cs`, `Program.cs`)]**:
+  - Configured `REVIEWER_USERNAME` (default: `meta_reviewer`) and `REVIEWER_PASSWORD` (default: `NewsStand@Review2026!`) supporting environment variable configuration.
+  - Assigned distinct `ClaimTypes.Role = "Reviewer"` and `DisplayName = "Meta App Reviewer"` upon login.
+  - Enforced an `AdminOnly` authorization policy on `/Settings`, `/SystemHealth`, `/Sponsors`, `/Categorizer`, `/SearchConsole`, and `/Analytics` so reviewers cannot view or mutate server settings, API secrets, or marketing campaigns.
+- **[Reviewer Sandbox View & Navigation (`_Layout.cshtml`, `Index.cshtml`)]**:
+  - Filtered the Admin Dashboard sidebar for `Reviewer` role to only show **Stories & Feeds** and an informative "Reviewer Sandbox" badge.
+  - Hid administrative navigation and settings shortcuts from modal dialogs while keeping the **Post FB** preview and publish triggers active for end-to-end Meta API testing.
+- **[Canonical Link Routing Alignment (`FacebookPublishingService.cs`)]**:
+  - Aligned canonical URL generation to `https://newsstand.ng/news/{slug}` (matching React Router frontend routes in `NigerianNewsGrid.Web`) so Facebook's Open Graph scraper receives HTTP 200 and renders rich preview cards with thumbnails instead of falling back to HTTP 404 text-only posts.
+- **[Testing & Verification]**: Verified build of `AdminDashboard` and `NewsApi` with 0 errors; executed `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 98/98 tests passing).
 
 ### November 02, 2026 — Facebook Page Article Summary Publishing via Meta Graph API
 Implemented automated and 1-click social syndication for AI-summarized articles and briefings directly to a Facebook Page via Meta Graph API v21.0:

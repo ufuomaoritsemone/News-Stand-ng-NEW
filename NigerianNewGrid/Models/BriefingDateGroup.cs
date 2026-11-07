@@ -1,6 +1,5 @@
-using System.Collections.ObjectModel;
 using NigerianNewsGrid.Client.Models;
-using NigerianNewGrid.Services;
+using System.Collections.ObjectModel;
 
 namespace NigerianNewGrid.Models;
 
@@ -29,15 +28,15 @@ public class BriefingDateGroup : ObservableCollection<BriefingItem>
                 var date = g.Key;
                 var (header, relative) = date switch
                 {
-                    _ when date == DateTime.Today             => ($"Today · {date:dddd, MMMM d, yyyy}", "Today"),
+                    _ when date == DateTime.Today => ($"Today · {date:dddd, MMMM d, yyyy}", "Today"),
                     _ when date == DateTime.Today.AddDays(-1) => ($"Yesterday · {date:dddd, MMMM d, yyyy}", "Yesterday"),
-                    _                                         => (date.ToString("dddd, MMMM d, yyyy"), date.ToString("MMM d"))
+                    _ => (date.ToString("dddd, MMMM d, yyyy"), date.ToString("MMM d"))
                 };
 
                 return new BriefingDateGroup(g)
                 {
-                    Date          = date,
-                    DateHeader    = header,
+                    Date = date,
+                    DateHeader = header,
                     RelativeLabel = relative
                 };
             })

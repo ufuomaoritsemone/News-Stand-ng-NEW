@@ -1,5 +1,5 @@
-using SQLite;
 using NigerianNewsGrid.Client.Models;
+using SQLite;
 
 namespace NigerianNewGrid.Models;
 

@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using Android.App;
 using Android.Runtime;
 using Android.Util;

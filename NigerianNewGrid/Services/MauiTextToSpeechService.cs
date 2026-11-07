@@ -1,10 +1,7 @@
-using System.Diagnostics;
-using System.Text;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Maui.Media;
-using NigerianNewsGrid.Client;
 using NigerianNewsGrid.Client.Helpers;
 using NigerianNewsGrid.Client.Models;
+using System.Diagnostics;
+using System.Text;
 
 namespace NigerianNewGrid.Services;
 

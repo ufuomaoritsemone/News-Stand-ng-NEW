@@ -1,9 +1,8 @@
 using Android.App;
 using Android.Appwidget;
 using Android.Content;
-using Android.Widget;
-using Android.Net;
 using Android.OS;
+using Android.Widget;
 
 namespace NigerianNewGrid.Platforms.Android;
 
@@ -74,24 +73,24 @@ public class NewsWidgetProvider : AppWidgetProvider
         }
         else if (string.Equals(intent.Action, ActionItemClick, StringComparison.OrdinalIgnoreCase))
         {
-            var articleUrl   = intent.GetStringExtra("article_url");
-            var articleId    = intent.GetStringExtra("article_id");
+            var articleUrl = intent.GetStringExtra("article_url");
+            var articleId = intent.GetStringExtra("article_id");
             var articleTitle = intent.GetStringExtra("article_title");
-            var category     = intent.GetStringExtra("article_category");
+            var category = intent.GetStringExtra("article_category");
 
             // Track widget story tap — same device_id as in-app events for cross-surface attribution
             WidgetAnalyticsHelper.Track(
                 context,
                 "widget_item_click",
-                articleId:    articleId,
+                articleId: articleId,
                 articleTitle: articleTitle,
-                category:     category);
+                category: category);
 
             var launchIntent = new Intent(context, typeof(MainActivity));
             launchIntent.AddFlags(ActivityFlags.NewTask | ActivityFlags.ClearTop);
-            launchIntent.PutExtra("article_url",      articleUrl);
-            launchIntent.PutExtra("article_id",       articleId);
-            launchIntent.PutExtra("article_title",    articleTitle);
+            launchIntent.PutExtra("article_url", articleUrl);
+            launchIntent.PutExtra("article_id", articleId);
+            launchIntent.PutExtra("article_title", articleTitle);
             launchIntent.PutExtra("article_category", category);
             context.StartActivity(launchIntent);
         }

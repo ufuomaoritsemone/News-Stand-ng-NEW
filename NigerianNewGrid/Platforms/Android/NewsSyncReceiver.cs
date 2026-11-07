@@ -1,9 +1,8 @@
 using Android.App;
 using Android.Content;
-using NigerianNewsGrid.Client;
-using NigerianNewsGrid.Client.Models;
 using NigerianNewGrid.Constants;
 using NigerianNewGrid.Services;
+using NigerianNewsGrid.Client;
 
 namespace NigerianNewGrid.Platforms.Android;
 

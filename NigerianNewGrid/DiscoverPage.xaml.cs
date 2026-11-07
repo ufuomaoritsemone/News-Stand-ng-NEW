@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using NigerianNewsGrid.Client.Models;
 using NigerianNewGrid.Services;
 using NigerianNewGrid.ViewModels;
 
@@ -19,7 +17,7 @@ public partial class DiscoverPage : ContentPage, IQueryAttributable
         IRecentlyReadService? recentlyReadService = null)
     {
         InitializeComponent();
-        _vm            = viewModel;
+        _vm = viewModel;
         BindingContext = _vm;
 
         Appearing += async (_, _) =>
@@ -68,7 +66,7 @@ public partial class DiscoverPage : ContentPage, IQueryAttributable
         if (e.Parameter is not string cat) return;
         if (string.Equals(_vm.SelectedCategory, cat, StringComparison.OrdinalIgnoreCase) && !_vm.IsSearchMode) return;
 
-        var pills  = new[] { PillAll, PillRecentlyRead, PillKeywordAlerts, PillOpinions, PillPolitics, PillSports, PillBusiness, PillEntertainment, PillTech, PillInternational };
+        var pills = new[] { PillAll, PillRecentlyRead, PillKeywordAlerts, PillOpinions, PillPolitics, PillSports, PillBusiness, PillEntertainment, PillTech, PillInternational };
         var labels = new[] { "All", "RecentlyRead", "KeywordAlerts", "Opinion", "Politics", "Sports", "Business", "Entertainment", "Technology", "International" };
 
         for (int i = 0; i < pills.Length; i++)

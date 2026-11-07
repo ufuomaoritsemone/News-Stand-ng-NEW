@@ -1,10 +1,10 @@
 using Android.App;
 using Android.Content;
 using Android.Widget;
-using System.Text.Json;
-using NigerianNewsGrid.Client.Models;
 using NigerianNewGrid.Constants;
 using NigerianNewGrid.Services;
+using NigerianNewsGrid.Client.Models;
+using System.Text.Json;
 
 namespace NigerianNewGrid.Platforms.Android;
 

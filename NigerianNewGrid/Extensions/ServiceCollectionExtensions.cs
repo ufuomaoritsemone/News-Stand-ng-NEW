@@ -1,8 +1,8 @@
-using Polly;
-using Polly.Extensions.Http;
-using NigerianNewsGrid.Client;
 using NigerianNewGrid.Services;
 using NigerianNewGrid.ViewModels;
+using NigerianNewsGrid.Client;
+using Polly;
+using Polly.Extensions.Http;
 
 namespace NigerianNewGrid.Extensions;
 

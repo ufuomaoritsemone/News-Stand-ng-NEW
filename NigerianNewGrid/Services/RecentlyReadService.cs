@@ -1,6 +1,6 @@
+using NigerianNewsGrid.Client.Models;
 using System.Diagnostics;
 using System.Text.Json;
-using NigerianNewsGrid.Client.Models;
 
 namespace NigerianNewGrid.Services;
 
@@ -64,12 +64,12 @@ public class RecentlyReadService(
 
         var item = new BriefingItem
         {
-            Id          = articleId ?? Guid.NewGuid().ToString("N"),
-            Title       = title ?? "Read Story",
-            Url         = url ?? string.Empty,
-            ImageUrl    = imageUrl ?? string.Empty,
-            Category    = category ?? "General",
-            Source      = ArticleDistillerService.IdentifyPublisher(url ?? string.Empty).Name,
+            Id = articleId ?? Guid.NewGuid().ToString("N"),
+            Title = title ?? "Read Story",
+            Url = url ?? string.Empty,
+            ImageUrl = imageUrl ?? string.Empty,
+            Category = category ?? "General",
+            Source = ArticleDistillerService.IdentifyPublisher(url ?? string.Empty).Name,
             PublishedAt = DateTime.UtcNow
         };
 

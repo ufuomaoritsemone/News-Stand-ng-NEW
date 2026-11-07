@@ -1,9 +1,3 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.Maui.Devices;
-using Microsoft.Maui.Storage;
-
 namespace NigerianNewGrid.Services;
 
 public class SonicFeedbackService : ISonicFeedbackService

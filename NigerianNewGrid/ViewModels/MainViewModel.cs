@@ -1,14 +1,14 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
-using NigerianNewsGrid.Client;
-using NigerianNewsGrid.Client.Helpers;
-using NigerianNewsGrid.Client.Models;
 using NigerianNewGrid.Constants;
 using NigerianNewGrid.Extensions;
 using NigerianNewGrid.Models;
 using NigerianNewGrid.Services;
+using NigerianNewsGrid.Client;
+using NigerianNewsGrid.Client.Helpers;
+using NigerianNewsGrid.Client.Models;
+using System.Collections.ObjectModel;
 
 namespace NigerianNewGrid.ViewModels;
 
@@ -104,19 +104,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IArticleInteractionService interactionService,
         ILogger<MainViewModel> logger)
     {
-        _logger                  = logger;
+        _logger = logger;
         _logger.LogDebug("MainViewModel constructor START");
-        _apiClient               = apiClient;
-        _httpClientFactory       = httpClientFactory;
+        _apiClient = apiClient;
+        _httpClientFactory = httpClientFactory;
         _keywordAlertCoordinator = keywordAlertCoordinator;
-        _notificationService     = notificationService;
-        _bookmarkService         = bookmarkService;
-        _cacheService            = cacheService;
-        _userPreferences         = userPreferences;
-        _eventBus                = eventBus;
-        _audioCoordinator        = audioCoordinator;
-        _sonicService            = sonicService;
-        _interactionService      = interactionService;
+        _notificationService = notificationService;
+        _bookmarkService = bookmarkService;
+        _cacheService = cacheService;
+        _userPreferences = userPreferences;
+        _eventBus = eventBus;
+        _audioCoordinator = audioCoordinator;
+        _sonicService = sonicService;
+        _interactionService = interactionService;
 
         _audioCoordinator.StateChanged += OnAudioCoordinatorStateChanged;
         _bookmarkService.BookmarksChanged += OnBookmarkServiceChanged;
@@ -297,9 +297,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
         {
             // Reset spinner state BEFORE firing the video load so the UI is
             // responsive immediately. Videos load silently in the background.
-            IsLoading           = false;
-            IsRefreshing        = false;
-            IsSkeletonVisible   = false;
+            IsLoading = false;
+            IsRefreshing = false;
+            IsSkeletonVisible = false;
             IsCategoriesVisible = true;
 
             // Fire video, trending story, sponsored campaign & Naira FX loads as background tasks — never blocks refresh completion.
@@ -628,15 +628,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
                     {
                         var (header, relative) = itemDate switch
                         {
-                            _ when itemDate == DateTime.Today             => ($"Today · {itemDate:dddd, MMMM d, yyyy}", "Today"),
+                            _ when itemDate == DateTime.Today => ($"Today · {itemDate:dddd, MMMM d, yyyy}", "Today"),
                             _ when itemDate == DateTime.Today.AddDays(-1) => ($"Yesterday · {itemDate:dddd, MMMM d, yyyy}", "Yesterday"),
-                            _                                             => (itemDate.ToString("dddd, MMMM d, yyyy"), itemDate.ToString("MMM d"))
+                            _ => (itemDate.ToString("dddd, MMMM d, yyyy"), itemDate.ToString("MMM d"))
                         };
 
                         var newGroup = new BriefingDateGroup([item])
                         {
-                            Date          = itemDate,
-                            DateHeader    = header,
+                            Date = itemDate,
+                            DateHeader = header,
                             RelativeLabel = relative
                         };
 
@@ -667,14 +667,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         if (showing >= TotalAvailableStories)
         {
-            IsLoadMoreVisible   = false;
-            StoriesCountText    = $"All {TotalAvailableStories} stories loaded";
+            IsLoadMoreVisible = false;
+            StoriesCountText = $"All {TotalAvailableStories} stories loaded";
         }
         else
         {
-            IsLoadMoreVisible   = true;
-            LoadMoreText        = $"Load More Stories (Showing {showing} of {TotalAvailableStories})";
-            StoriesCountText    = $"Showing {showing} of {TotalAvailableStories} stories";
+            IsLoadMoreVisible = true;
+            LoadMoreText = $"Load More Stories (Showing {showing} of {TotalAvailableStories})";
+            StoriesCountText = $"Showing {showing} of {TotalAvailableStories} stories";
         }
     }
 
@@ -735,10 +735,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public static string TimeAgo(DateTime utcTime)
     {
         var diff = DateTime.UtcNow - utcTime;
-        if (diff.TotalMinutes < 1)  return "just now";
+        if (diff.TotalMinutes < 1) return "just now";
         if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} min ago";
-        if (diff.TotalHours   < 24) return $"{(int)diff.TotalHours} hours ago";
-        if (diff.TotalDays    < 7)  return $"{(int)diff.TotalDays} days ago";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours} hours ago";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays} days ago";
         return utcTime.ToString("MMM d");
     }
 
@@ -821,7 +821,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         // Candidate endpoints: On physical devices, always prioritize live production API.
         // On emulators/simulators, check production API and local dev loopbacks.
         string[] candidates = DeviceInfo.DeviceType == DeviceType.Physical
-            ? [ AppNetworkConstants.ProductionApiUrl ]
+            ? [AppNetworkConstants.ProductionApiUrl]
             : DeviceInfo.Platform == DevicePlatform.Android
                 ? [
                     AppNetworkConstants.ProductionApiUrl,
@@ -846,7 +846,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         string? resolved = null;
         using var probeCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
-        var tasks    = candidates.Select(c => ProbeAsync(probe, c, probeCts.Token)).ToList();
+        var tasks = candidates.Select(c => ProbeAsync(probe, c, probeCts.Token)).ToList();
         var remaining = new List<Task<string?>>(tasks);
 
         while (remaining.Count > 0)

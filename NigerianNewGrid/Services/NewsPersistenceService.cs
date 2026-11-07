@@ -1,9 +1,9 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using SQLite;
 using NigerianNewGrid.Constants;
 using NigerianNewGrid.Models;
 using NigerianNewsGrid.Client.Models;
+using SQLite;
+using System.Text.Json;
 
 namespace NigerianNewGrid.Services;
 

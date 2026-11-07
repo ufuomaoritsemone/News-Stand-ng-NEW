@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 namespace NigerianNewGrid.Services;
 
 public enum SonicSound

@@ -1,7 +1,7 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NigerianNewGrid.Constants;
 using NigerianNewsGrid.Client.Models;
+using System.Text.Json;
 
 namespace NigerianNewGrid.Services;
 
@@ -75,19 +75,19 @@ public class BriefingCacheService(
             var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(url ?? title))).ToLowerInvariant();
             return new()
             {
-                Id              = $"fallback_{category.ToLowerInvariant()}_{hash[..12]}",
-                Title           = title,
-                Summary         = summary,
-                Url             = url,
-                Source          = source,
-                Category        = category,
-                ImageUrl        = ResolveCategory(category),
-                PublishedAt     = DateTime.UtcNow.AddHours(-2),
-                VoiceName       = $"{language} Female",
-                HasAiSummary    = true,
-                AiSummary       = summary,
+                Id = $"fallback_{category.ToLowerInvariant()}_{hash[..12]}",
+                Title = title,
+                Summary = summary,
+                Url = url,
+                Source = source,
+                Category = category,
+                ImageUrl = ResolveCategory(category),
+                PublishedAt = DateTime.UtcNow.AddHours(-2),
+                VoiceName = $"{language} Female",
+                HasAiSummary = true,
+                AiSummary = summary,
                 AiSummaryEngine = "AI Quick Read",
-                KeyTakeaways    = [summary]
+                KeyTakeaways = [summary]
             };
         }
 
@@ -152,10 +152,10 @@ public class BriefingCacheService(
     // Fix #24 — replaces local hardcoded if-chain with a shared lookup
     private static readonly Dictionary<string, string> FallbackImages = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["Politics"]      = "https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=600&auto=format&fit=crop&q=80",
-        ["Business"]      = "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&auto=format&fit=crop&q=80",
-        ["Sports"]        = "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=600&auto=format&fit=crop&q=80",
-        ["Technology"]    = "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80",
+        ["Politics"] = "https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=600&auto=format&fit=crop&q=80",
+        ["Business"] = "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&auto=format&fit=crop&q=80",
+        ["Sports"] = "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=600&auto=format&fit=crop&q=80",
+        ["Technology"] = "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&auto=format&fit=crop&q=80",
         ["Entertainment"] = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80",
         ["International"] = "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=600&auto=format&fit=crop&q=80",
     };
