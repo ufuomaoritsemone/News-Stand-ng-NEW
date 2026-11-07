@@ -1,7 +1,7 @@
-using System.Text;
-using System.Text.Json;
 using Android.Content;
 using NigerianNewGrid.Constants;
+using System.Text;
+using System.Text.Json;
 
 namespace NigerianNewGrid.Platforms.Android;
 

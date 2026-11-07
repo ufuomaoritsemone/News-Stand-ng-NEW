@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using NigerianNewGrid.Constants;
 using NigerianNewGrid.Services;
+using System.Diagnostics;
 
 namespace NigerianNewGrid;
 
@@ -44,9 +44,9 @@ public partial class OnboardingPage : ContentPage
         _langCards = new()
         {
             ["English"] = (CardLangEnglish, CheckLangEnglish),
-            ["Yoruba"]  = (CardLangYoruba, CheckLangYoruba),
-            ["Igbo"]    = (CardLangIgbo, CheckLangIgbo),
-            ["Hausa"]   = (CardLangHausa, CheckLangHausa)
+            ["Yoruba"] = (CardLangYoruba, CheckLangYoruba),
+            ["Igbo"] = (CardLangIgbo, CheckLangIgbo),
+            ["Hausa"] = (CardLangHausa, CheckLangHausa)
         };
 
         RenderTopicChips();

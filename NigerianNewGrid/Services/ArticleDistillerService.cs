@@ -1,7 +1,4 @@
-using System;
-using System.Diagnostics;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Web;
 
 namespace NigerianNewGrid.Services;
@@ -21,23 +18,23 @@ public class ArticleDistillerService
 
     private static readonly IReadOnlyDictionary<string, PublisherInfo> PublisherMap = new Dictionary<string, PublisherInfo>(StringComparer.OrdinalIgnoreCase)
     {
-        ["punchng.com"]        = new("The Punch", "https://punchng.com/wp-content/themes/punchng/assets/images/logo.png", "#0B6623", "#004D1A"),
-        ["vanguardngr.com"]    = new("Vanguard News", "https://www.vanguardngr.com/wp-content/uploads/2020/09/logo-main.png", "#C41230", "#8A0B20"),
+        ["punchng.com"] = new("The Punch", "https://punchng.com/wp-content/themes/punchng/assets/images/logo.png", "#0B6623", "#004D1A"),
+        ["vanguardngr.com"] = new("Vanguard News", "https://www.vanguardngr.com/wp-content/uploads/2020/09/logo-main.png", "#C41230", "#8A0B20"),
         ["premiumtimesng.com"] = new("Premium Times", "https://www.premiumtimesng.com/wp-content/themes/premiumtimes/assets/img/logo.png", "#E31B23", "#990000"),
-        ["thecable.ng"]        = new("TheCable", "https://www.thecable.ng/wp-content/themes/thecable/assets/images/logo.png", "#FF5722", "#D84315"),
-        ["dailytrust.com"]     = new("Daily Trust", "https://dailytrust.com/wp-content/themes/dailytrust/assets/img/logo.png", "#0056B3", "#003366"),
-        ["guardian.ng"]        = new("The Guardian Nigeria", "https://guardian.ng/wp-content/themes/guardian-ng/assets/images/logo.png", "#222222", "#000000"),
-        ["theguardian.com"]    = new("The Guardian", "https://assets.guim.co.uk/images/guardian-logo-160.png", "#005689", "#003F63"),
-        ["channelstv.com"]     = new("Channels Television", "https://www.channelstv.com/wp-content/uploads/2018/06/channels-logo.png", "#003399", "#001F5C"),
-        ["saharareporters.com"]= new("Sahara Reporters", "https://saharareporters.com/sites/default/files/logo_0.png", "#D32F2F", "#B71C1C"),
-        ["businessday.ng"]     = new("BusinessDay", "https://businessday.ng/wp-content/uploads/2021/04/bday-logo-new.png", "#B22222", "#800000"),
-        ["nairametrics.com"]   = new("Nairametrics", "https://nairametrics.com/wp-content/uploads/2021/03/Nairametrics-logo-2.png", "#1B3B6F", "#0A192F"),
-        ["tribuneonlineng.com"]= new("Nigerian Tribune", "https://tribuneonlineng.com/wp-content/uploads/2019/08/tribune-logo.png", "#C2185B", "#880E4F"),
-        ["leadership.ng"]      = new("Leadership", "https://leadership.ng/wp-content/uploads/2021/08/leadership-logo.png", "#D32F2F", "#333333"),
-        ["arise.tv"]           = new("Arise News", "https://www.arise.tv/wp-content/uploads/2020/12/arise-logo-new.png", "#E50914", "#B81D24"),
-        ["bbc.com"]            = new("BBC News", "https://static.files.bbci.co.uk/ws/simorgh-assets/public/pidgin/images/metadata/poster-1024x576.png", "#BB1919", "#800C0C"),
-        ["bbc.co.uk"]          = new("BBC News", "https://static.files.bbci.co.uk/ws/simorgh-assets/public/pidgin/images/metadata/poster-1024x576.png", "#BB1919", "#800C0C"),
-        ["lindaikejisblog.com"]= new("Linda Ikeji's Blog", "https://www.lindaikejisblog.com/favicon.ico", "#E91E63", "#C2185B")
+        ["thecable.ng"] = new("TheCable", "https://www.thecable.ng/wp-content/themes/thecable/assets/images/logo.png", "#FF5722", "#D84315"),
+        ["dailytrust.com"] = new("Daily Trust", "https://dailytrust.com/wp-content/themes/dailytrust/assets/img/logo.png", "#0056B3", "#003366"),
+        ["guardian.ng"] = new("The Guardian Nigeria", "https://guardian.ng/wp-content/themes/guardian-ng/assets/images/logo.png", "#222222", "#000000"),
+        ["theguardian.com"] = new("The Guardian", "https://assets.guim.co.uk/images/guardian-logo-160.png", "#005689", "#003F63"),
+        ["channelstv.com"] = new("Channels Television", "https://www.channelstv.com/wp-content/uploads/2018/06/channels-logo.png", "#003399", "#001F5C"),
+        ["saharareporters.com"] = new("Sahara Reporters", "https://saharareporters.com/sites/default/files/logo_0.png", "#D32F2F", "#B71C1C"),
+        ["businessday.ng"] = new("BusinessDay", "https://businessday.ng/wp-content/uploads/2021/04/bday-logo-new.png", "#B22222", "#800000"),
+        ["nairametrics.com"] = new("Nairametrics", "https://nairametrics.com/wp-content/uploads/2021/03/Nairametrics-logo-2.png", "#1B3B6F", "#0A192F"),
+        ["tribuneonlineng.com"] = new("Nigerian Tribune", "https://tribuneonlineng.com/wp-content/uploads/2019/08/tribune-logo.png", "#C2185B", "#880E4F"),
+        ["leadership.ng"] = new("Leadership", "https://leadership.ng/wp-content/uploads/2021/08/leadership-logo.png", "#D32F2F", "#333333"),
+        ["arise.tv"] = new("Arise News", "https://www.arise.tv/wp-content/uploads/2020/12/arise-logo-new.png", "#E50914", "#B81D24"),
+        ["bbc.com"] = new("BBC News", "https://static.files.bbci.co.uk/ws/simorgh-assets/public/pidgin/images/metadata/poster-1024x576.png", "#BB1919", "#800C0C"),
+        ["bbc.co.uk"] = new("BBC News", "https://static.files.bbci.co.uk/ws/simorgh-assets/public/pidgin/images/metadata/poster-1024x576.png", "#BB1919", "#800C0C"),
+        ["lindaikejisblog.com"] = new("Linda Ikeji's Blog", "https://www.lindaikejisblog.com/favicon.ico", "#E91E63", "#C2185B")
     };
 
     /// <summary>

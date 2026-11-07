@@ -1,6 +1,6 @@
+using NigerianNewGrid.Constants;
 using System.Diagnostics;
 using System.Net.Http.Json;
-using NigerianNewGrid.Constants;
 
 namespace NigerianNewGrid.Services;
 

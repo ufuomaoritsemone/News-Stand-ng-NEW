@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.Maui.Accessibility;
 using NigerianNewsGrid.Client.Helpers;
 using NigerianNewsGrid.Client.Models;
-using NigerianNewGrid.Constants;
 
 namespace NigerianNewGrid.Services;
 

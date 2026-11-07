@@ -1,5 +1,5 @@
-using System.Text.Json;
 using NigerianNewsGrid.Client.Helpers;
+using System.Text.Json;
 
 namespace NigerianNewGrid.Services;
 

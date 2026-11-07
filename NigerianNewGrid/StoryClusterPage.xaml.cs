@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Logging.Abstractions;
-using NigerianNewsGrid.Client;
-using NigerianNewsGrid.Client.Models;
 using NigerianNewGrid.Constants;
 using NigerianNewGrid.Services;
 using NigerianNewGrid.ViewModels;
+using NigerianNewsGrid.Client;
+using NigerianNewsGrid.Client.Models;
 
 namespace NigerianNewGrid;
 

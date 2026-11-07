@@ -68,55 +68,67 @@
                     <i class="bi bi-grid-1x2-fill"></i>
                     <span>Stories &amp; Feeds</span>
                 </a>
-                <a href="/Analytics" class="nav-link-saas @(currentPath.StartsWith("/Analytics", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-                    <i class="bi bi-bar-chart-fill"></i>
-                    <span>User Analytics</span>
-                </a>
-                <a href="/SearchConsole" class="nav-link-saas @(currentPath.StartsWith("/SearchConsole", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-                    <i class="bi bi-google"></i>
-                    <span>Search Console</span>
-                </a>
+                @if (User.IsInRole("Administrator"))
+                {
+                    <a href="/Analytics" class="nav-link-saas @(currentPath.StartsWith("/Analytics", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <i class="bi bi-bar-chart-fill"></i>
+                        <span>User Analytics</span>
+                    </a>
+                    <a href="/SearchConsole" class="nav-link-saas @(currentPath.StartsWith("/SearchConsole", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <i class="bi bi-google"></i>
+                        <span>Search Console</span>
+                    </a>
 
-                <!-- Section 2: Editorial & Content -->
-                <div class="nav-section-title">Editorial &amp; Media</div>
-                <a href="/Videos" class="nav-link-saas @(currentPath.StartsWith("/Videos", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-                    <i class="bi bi-youtube"></i>
-                    <span>Video Feeds</span>
-                </a>
-                <a href="/Socials" class="nav-link-saas @(currentPath.StartsWith("/Socials", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-                    <i class="bi bi-twitter-x"></i>
-                    <span>Social Media</span>
-                </a>
-                <a href="/Comments" class="nav-link-saas @(currentPath.StartsWith("/Comments", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-                    <i class="bi bi-chat-square-text-fill"></i>
-                    <span>Comments</span>
-                </a>
-                <a href="/Feedback" class="nav-link-saas @(currentPath.StartsWith("/Feedback", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-                    <i class="bi bi-chat-heart-fill"></i>
-                    <span>Reader Feedback</span>
-                </a>
+                    <!-- Section 2: Editorial & Content -->
+                    <div class="nav-section-title">Editorial &amp; Media</div>
+                    <a href="/Videos" class="nav-link-saas @(currentPath.StartsWith("/Videos", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <i class="bi bi-youtube"></i>
+                        <span>Video Feeds</span>
+                    </a>
+                    <a href="/Socials" class="nav-link-saas @(currentPath.StartsWith("/Socials", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <i class="bi bi-twitter-x"></i>
+                        <span>Social Media</span>
+                    </a>
+                    <a href="/Comments" class="nav-link-saas @(currentPath.StartsWith("/Comments", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <i class="bi bi-chat-square-text-fill"></i>
+                        <span>Comments</span>
+                    </a>
+                    <a href="/Feedback" class="nav-link-saas @(currentPath.StartsWith("/Feedback", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <i class="bi bi-chat-heart-fill"></i>
+                        <span>Reader Feedback</span>
+                    </a>
 
-                <!-- Section 3: Intelligence & Growth -->
-                <div class="nav-section-title">Intelligence &amp; Ads</div>
-                <a href="/Categorizer" class="nav-link-saas @(currentPath.StartsWith("/Categorizer", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-                    <i class="bi bi-cpu-fill"></i>
-                    <span>ML Categorizer</span>
-                </a>
-                <a href="/Sponsors" class="nav-link-saas @(currentPath.StartsWith("/Sponsors", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-                    <i class="bi bi-megaphone-fill"></i>
-                    <span>Sponsored Campaigns</span>
-                </a>
+                    <!-- Section 3: Intelligence & Growth -->
+                    <div class="nav-section-title">Intelligence &amp; Ads</div>
+                    <a href="/Categorizer" class="nav-link-saas @(currentPath.StartsWith("/Categorizer", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <i class="bi bi-cpu-fill"></i>
+                        <span>ML Categorizer</span>
+                    </a>
+                    <a href="/Sponsors" class="nav-link-saas @(currentPath.StartsWith("/Sponsors", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <i class="bi bi-megaphone-fill"></i>
+                        <span>Sponsored Campaigns</span>
+                    </a>
 
-                <!-- Section 4: Platform & Operations -->
-                <div class="nav-section-title">Platform &amp; Ops</div>
-                <a href="/SystemHealth" class="nav-link-saas @(currentPath.StartsWith("/SystemHealth", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-                    <i class="bi bi-heart-pulse-fill"></i>
-                    <span>System Health</span>
-                </a>
-                <a href="/Settings" class="nav-link-saas @(currentPath.StartsWith("/Settings", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-                    <i class="bi bi-gear-fill"></i>
-                    <span>System Settings</span>
-                </a>
+                    <!-- Section 4: Platform & Operations -->
+                    <div class="nav-section-title">Platform &amp; Ops</div>
+                    <a href="/SystemHealth" class="nav-link-saas @(currentPath.StartsWith("/SystemHealth", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <i class="bi bi-heart-pulse-fill"></i>
+                        <span>System Health</span>
+                    </a>
+                    <a href="/Settings" class="nav-link-saas @(currentPath.StartsWith("/Settings", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <i class="bi bi-gear-fill"></i>
+                        <span>System Settings</span>
+                    </a>
+                }
+                else
+                {
+                    <div class="p-3 my-2 rounded border border-info border-opacity-25 bg-info bg-opacity-10 text-white small">
+                        <div class="fw-bold text-info"><i class="bi bi-shield-check me-1"></i> Reviewer Sandbox</div>
+                        <div class="text-muted" style="font-size: 0.75rem; line-height: 1.4;">
+                            Authorized for Meta App Review testing. Publishing and previews are enabled on the Stories &amp; Feeds page.
+                        </div>
+                    </div>
+                }
             </nav>
 
             <!-- Sidebar Footer / User Profile -->
@@ -127,8 +139,8 @@
                         <span class="user-online-dot"></span>
                     </div>
                     <div class="user-details">
-                        <div class="user-name">@(User.Identity?.Name ?? "Administrator")</div>
-                        <div class="user-role">Super Admin</div>
+                        <div class="user-name">@(User.FindFirst("DisplayName")?.Value ?? User.Identity?.Name ?? "User")</div>
+                        <div class="user-role">@(User.IsInRole("Administrator") ? "Super Admin" : "Meta Reviewer")</div>
                     </div>
                     <a href="/Logout" class="user-signout-btn" title="Sign Out">
                         <i class="bi bi-box-arrow-right"></i>

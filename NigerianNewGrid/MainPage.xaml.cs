@@ -1,8 +1,5 @@
-using System.Diagnostics;
-using NigerianNewsGrid.Client.Models;
-using NigerianNewGrid.Constants;
-using NigerianNewGrid.Services;
 using NigerianNewGrid.ViewModels;
+using System.Diagnostics;
 
 namespace NigerianNewGrid;
 

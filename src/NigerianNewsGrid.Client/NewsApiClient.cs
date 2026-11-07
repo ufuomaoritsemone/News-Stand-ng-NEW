@@ -61,11 +61,17 @@ public class NewsApiClient
 
             return categories ?? new List<BriefingCategory>();
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            // Cancellation is expected — propagate it cleanly
-            System.Diagnostics.Debug.WriteLine("⏱️ [NewsApiClient] Request cancelled by user");
+            // Cancellation requested by caller — propagate it cleanly
+            System.Diagnostics.Debug.WriteLine("⏱️ [NewsApiClient] Request cancelled by caller");
             throw;
+        }
+        catch (OperationCanceledException ex)
+        {
+            // HttpClient.Timeout expired without caller cancellation — return empty so caller can fallback
+            System.Diagnostics.Debug.WriteLine($"⏱️ [NewsApiClient] HTTP timeout expired: {ex.Message}");
+            return new List<BriefingCategory>();
         }
         catch (HttpRequestException ex)
         {
@@ -77,6 +83,11 @@ public class NewsApiClient
         {
             // Malformed API response — return empty
             System.Diagnostics.Debug.WriteLine($"❌ JSON parse error: {ex.Message}");
+            return new List<BriefingCategory>();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Unexpected error in GetDailyBriefingAsync: {ex.Message}");
             return new List<BriefingCategory>();
         }
     }

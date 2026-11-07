@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
-using Plugin.AdMob.Services;
 using NigerianNewGrid.Constants;
+using Plugin.AdMob.Services;
 
 namespace NigerianNewGrid.Services;
 
