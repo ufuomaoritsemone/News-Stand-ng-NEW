@@ -1,14 +1,12 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
-using Microsoft.Maui.Accessibility;
-using Microsoft.Maui.Graphics;
-using NigerianNewsGrid.Client;
-using NigerianNewsGrid.Client.Models;
 using NigerianNewGrid.Constants;
 using NigerianNewGrid.Extensions;
 using NigerianNewGrid.Services;
+using NigerianNewsGrid.Client;
+using NigerianNewsGrid.Client.Models;
+using System.Collections.ObjectModel;
 
 namespace NigerianNewGrid.ViewModels;
 
@@ -134,13 +132,13 @@ public partial class SettingsViewModel : ObservableObject
         _isLoadingSettings = true;
         try
         {
-            MorningBriefingEnabled   = _userPreferences.MorningBriefingEnabled;
-            MorningBriefingTime      = _userPreferences.MorningBriefingTime;
-            AudioBriefingsEnabled    = _userPreferences.AudioBriefingsEnabled;
-            KeywordAlertsEnabled     = _userPreferences.KeywordAlertsEnabled;
+            MorningBriefingEnabled = _userPreferences.MorningBriefingEnabled;
+            MorningBriefingTime = _userPreferences.MorningBriefingTime;
+            AudioBriefingsEnabled = _userPreferences.AudioBriefingsEnabled;
+            KeywordAlertsEnabled = _userPreferences.KeywordAlertsEnabled;
             BackgroundUpdatesEnabled = _userPreferences.BackgroundUpdatesEnabled;
-            AnalyticsEnabled         = Preferences.Get("analytics_enabled", defaultValue: true);
-            SonicFeedbackEnabled     = _sonicService.IsEnabled;
+            AnalyticsEnabled = Preferences.Get("analytics_enabled", defaultValue: true);
+            SonicFeedbackEnabled = _sonicService.IsEnabled;
 
             RefreshKeywordCollections();
         }

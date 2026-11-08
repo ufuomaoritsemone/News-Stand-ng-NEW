@@ -37,8 +37,20 @@ public class Program
         {
             options.Conventions.AuthorizeFolder("/");
             options.Conventions.AllowAnonymousToPage("/Login");
+            // Restrict sensitive operation and settings pages to Administrator role only
+            options.Conventions.AuthorizePage("/Settings", "AdminOnly");
+            options.Conventions.AuthorizePage("/SystemHealth", "AdminOnly");
+            options.Conventions.AuthorizePage("/Sponsors", "AdminOnly");
+            options.Conventions.AuthorizePage("/Categorizer", "AdminOnly");
+            options.Conventions.AuthorizePage("/SearchConsole", "AdminOnly");
+            options.Conventions.AuthorizePage("/Analytics", "AdminOnly");
         })
         .AddRazorRuntimeCompilation();
+
+        builder.Services.AddAuthorization(options =>
+        {
+            options.AddPolicy("AdminOnly", policy => policy.RequireRole("Administrator"));
+        });
 
         builder.Services.AddMemoryCache();
         builder.Services.AddControllers();

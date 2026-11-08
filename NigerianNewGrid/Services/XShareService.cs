@@ -1,7 +1,6 @@
-using System.Diagnostics;
 using NigerianNewsGrid.Client.Helpers;
 using NigerianNewsGrid.Client.Models;
-using NigerianNewGrid.Constants;
+using System.Diagnostics;
 
 namespace NigerianNewGrid.Services;
 
@@ -13,7 +12,7 @@ namespace NigerianNewGrid.Services;
 public class XShareService : IXShareService
 {
     public const string GooglePlayStoreUrl = AppStoreConstants.GooglePlayStoreUrl;
-    public const string AppleAppStoreUrl   = AppStoreConstants.AppleAppStoreUrl;
+    public const string AppleAppStoreUrl = AppStoreConstants.AppleAppStoreUrl;
 
     public static XShareService Instance { get; } = new();
 

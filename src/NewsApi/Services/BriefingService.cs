@@ -64,6 +64,7 @@ public class BriefingService : IBriefingService
             .Where(a => a.PublishedAt >= cutoff || (a.IsSponsored && (a.CampaignExpiresAt == null || a.CampaignExpiresAt > DateTime.UtcNow)))
             .OrderByDescending(a => a.IsPinned && a.IsSponsored && (a.CampaignExpiresAt == null || a.CampaignExpiresAt > DateTime.UtcNow))
             .ThenByDescending(a => a.PublishedAt)
+            .Take(250)
             .ToListAsync(cancellationToken);
 
         // Fallback to most-recent 200 if recent window is sparse

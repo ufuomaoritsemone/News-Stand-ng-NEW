@@ -1,14 +1,14 @@
+using Android.Content;
+using Android.Graphics;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
-using Android.Content;
-using Android.Graphics;
 using Bitmap = Android.Graphics.Bitmap;
-using Paint = Android.Graphics.Paint;
-using RectF = Android.Graphics.RectF;
-using Matrix = Android.Graphics.Matrix;
 using File = System.IO.File;
+using Matrix = Android.Graphics.Matrix;
+using Paint = Android.Graphics.Paint;
 using Path = System.IO.Path;
+using RectF = Android.Graphics.RectF;
 
 namespace NigerianNewGrid.Platforms.Android;
 

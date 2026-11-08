@@ -1,15 +1,15 @@
-using System.Collections.ObjectModel;
-using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
-using NigerianNewsGrid.Client;
-using NigerianNewsGrid.Client.Helpers;
-using NigerianNewsGrid.Client.Models;
 using NigerianNewGrid.Constants;
 using NigerianNewGrid.Extensions;
 using NigerianNewGrid.Models;
 using NigerianNewGrid.Services;
+using NigerianNewsGrid.Client;
+using NigerianNewsGrid.Client.Helpers;
+using NigerianNewsGrid.Client.Models;
+using System.Collections.ObjectModel;
+using System.Text.Json;
 
 namespace NigerianNewGrid.ViewModels;
 

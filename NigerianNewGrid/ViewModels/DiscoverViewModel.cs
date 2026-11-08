@@ -1,13 +1,13 @@
-using System.Collections.ObjectModel;
-using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using NigerianNewGrid.Constants;
+using NigerianNewGrid.Services;
 using NigerianNewsGrid.Client;
 using NigerianNewsGrid.Client.Helpers;
 using NigerianNewsGrid.Client.Models;
-using NigerianNewGrid.Constants;
-using NigerianNewGrid.Services;
+using System.Collections.ObjectModel;
+using System.Text.Json;
 
 namespace NigerianNewGrid.ViewModels;
 
@@ -30,17 +30,17 @@ public partial class DiscoverViewModel : ObservableObject, IDisposable, IQueryAt
 
     private static JsonSerializerOptions JsonOptions => SharedJsonOptions.Default;
 
-    private List<BriefingItem>      _allItems             = [];
-    private List<BriefingItem>      _categoryArticles     = [];
-    private List<BriefingItem>      _arrangedCategoryFeed = [];
-    private List<BriefingItem>      _searchResults        = [];
-    private List<VideoStoryItem>    _trendingVideos       = [];
+    private List<BriefingItem> _allItems = [];
+    private List<BriefingItem> _categoryArticles = [];
+    private List<BriefingItem> _arrangedCategoryFeed = [];
+    private List<BriefingItem> _searchResults = [];
+    private List<VideoStoryItem> _trendingVideos = [];
 
-    private int  _searchPage           = 1;
-    private int  _categoryPage         = 1;
+    private int _searchPage = 1;
+    private int _categoryPage = 1;
     private bool _hasMoreCategoryPages = true;
     private const int CategoryBatchSize = 15;
-    private int  _displayedCategoryCount = CategoryBatchSize;
+    private int _displayedCategoryCount = CategoryBatchSize;
 
     // ── Observable Properties ─────────────────────────────────────
     [ObservableProperty] public partial ObservableCollection<BriefingItem> FilteredItems { get; set; } = [];
@@ -71,14 +71,14 @@ public partial class DiscoverViewModel : ObservableObject, IDisposable, IQueryAt
         IArticleInteractionService interactionService,
         ILogger<DiscoverViewModel> logger)
     {
-        _apiClient              = apiClient;
+        _apiClient = apiClient;
         _keywordMatchingService = keywordMatchingService;
-        _recentlyReadService    = recentlyReadService;
-        _bookmarkService        = bookmarkService;
-        _storyRepository        = storyRepository;
-        _userPreferences        = userPreferences;
-        _interactionService     = interactionService;
-        _logger                 = logger;
+        _recentlyReadService = recentlyReadService;
+        _bookmarkService = bookmarkService;
+        _storyRepository = storyRepository;
+        _userPreferences = userPreferences;
+        _interactionService = interactionService;
+        _logger = logger;
     }
 
     // ── Commands ──────────────────────────────────────────────────
@@ -488,7 +488,7 @@ public partial class DiscoverViewModel : ObservableObject, IDisposable, IQueryAt
             try
             {
                 _trendingVideos = JsonSerializer.Deserialize<List<VideoStoryItem>>(cachedVideos, JsonOptions) ?? [];
-                TrendingVideos  = new ObservableCollection<VideoStoryItem>(_trendingVideos);
+                TrendingVideos = new ObservableCollection<VideoStoryItem>(_trendingVideos);
             }
             catch (JsonException ex)
             {
@@ -670,15 +670,15 @@ public partial class DiscoverViewModel : ObservableObject, IDisposable, IQueryAt
         if (items.Count == 0)
         {
             FilteredItems.Clear();
-            IsEmptyStateVisible     = true;
+            IsEmptyStateVisible = true;
             IsResultsHeaderVisible = false;
-            IsLoadMoreVisible        = false;
+            IsLoadMoreVisible = false;
             return;
         }
 
-        IsEmptyStateVisible     = false;
+        IsEmptyStateVisible = false;
         IsResultsHeaderVisible = true;
-        ResultsHeader          = headerText;
+        ResultsHeader = headerText;
 
         if (IsSearchMode)
         {

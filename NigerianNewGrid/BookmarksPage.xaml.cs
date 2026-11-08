@@ -14,7 +14,7 @@ public partial class BookmarksPage : ContentPage
     public BookmarksPage(IBookmarkService? bookmarkService)
     {
         InitializeComponent();
-        _bookmarkService = bookmarkService 
+        _bookmarkService = bookmarkService
             ?? IPlatformApplication.Current?.Services.GetService<IBookmarkService>()
             ?? new BookmarkService();
     }

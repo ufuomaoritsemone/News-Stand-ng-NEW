@@ -19,6 +19,13 @@ public class iOSNotificationDelegate : UNUserNotificationCenterDelegate
                 {
                     try
                     {
+                        int attempts = 0;
+                        while (Shell.Current == null && attempts < 15)
+                        {
+                            await Task.Delay(200);
+                            attempts++;
+                        }
+
                         if (Shell.Current != null)
                         {
                             await Shell.Current.GoToAsync("//MainPage");
@@ -46,8 +53,16 @@ public class iOSNotificationDelegate : UNUserNotificationCenterDelegate
                 {
                     try
                     {
+                        int attempts = 0;
+                        while (Shell.Current == null && attempts < 15)
+                        {
+                            await Task.Delay(200);
+                            attempts++;
+                        }
+
                         if (Shell.Current != null)
                         {
+                            var resolvedUrl = articleUrl;
                             if (!string.IsNullOrWhiteSpace(articleId))
                             {
                                 try
@@ -56,10 +71,17 @@ public class iOSNotificationDelegate : UNUserNotificationCenterDelegate
                                     if (persistenceService != null)
                                     {
                                         var story = await persistenceService.GetStoryByIdAsync(articleId);
-                                        if (story != null && !string.IsNullOrWhiteSpace(story.Content))
+                                        if (story != null)
                                         {
                                             await Shell.Current.Navigation.PushAsync(new ArticleWebPage(story));
                                             return;
+                                        }
+
+                                        if (string.IsNullOrWhiteSpace(resolvedUrl))
+                                        {
+                                            var categories = await persistenceService.GetCachedBriefingAsync(days: 14);
+                                            resolvedUrl = categories?.SelectMany(c => c.Top)
+                                                .FirstOrDefault(i => string.Equals(i.Id, articleId, StringComparison.OrdinalIgnoreCase))?.Url;
                                         }
                                     }
                                 }
@@ -70,7 +92,7 @@ public class iOSNotificationDelegate : UNUserNotificationCenterDelegate
                             }
 
                             await Shell.Current.Navigation.PushAsync(
-                                new ArticleWebPage(articleUrl ?? string.Empty, articleTitle, category: category, articleId: articleId));
+                                new ArticleWebPage(resolvedUrl ?? string.Empty, articleTitle, category: category, articleId: articleId));
                         }
                     }
                     catch (Exception ex)

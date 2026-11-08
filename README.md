@@ -36,6 +36,51 @@ Resolved HTTP 401 Unauthorized (`ACCESS_TOKEN_TYPE_UNSUPPORTED`) and `Request he
 - **[AI Service Sanitization (`ArticleEnrichmentService.cs`, `SeoFeedbackLoopService.cs`, `GeminiEmbeddingProvider.cs`, `LlmEntityExtractor.cs`)]**:
   - Hardened key resolution across all AI services to ignore masked values and sanitize quotes/whitespace, ensuring that `gemini-3.1-flash-lite` and `gemini-embedding-001` always receive clean API keys.
 
+### November 07, 2026 — Restore Admin Dashboard Login Error Message Contract for `AdminDashboardAuthTests`
+Resolved the CI test failure in `NewsApiClient.Tests.AdminDashboardAuthTests.PostLogin_InvalidCredentials_FailsAuthentication` (`Assert.Contains() Failure: Not found: "Invalid administrator username or password."`):
+- **[Root Cause (`Login.cshtml.cs`)]**: When adding the `Reviewer` role check in `AdminDashboard/Pages/Login.cshtml.cs`, the failed authentication `ErrorMessage` was changed to `"Invalid username or password."`, breaking the assertion in `AdminDashboardAuthTests.cs` line 129.
+- **[Fix & Verification (`Login.cshtml.cs`)]**: Restored `ErrorMessage = "Invalid administrator username or password.";` in `LoginModel.OnPostAsync` and verified all `AdminDashboardAuthTests` pass.
+
+### November 07, 2026 — Meta App Reviewer Limited-Access Role & Facebook Post Hardening
+Implemented a secure, role-restricted test account for Meta App Reviewers alongside canonical link routing fixes for Facebook Page publishing:
+- **[Meta Reviewer Restricted Role & Authentication (`Login.cshtml.cs`, `Program.cs`)]**:
+  - Configured `REVIEWER_USERNAME` (default: `meta_reviewer`) and `REVIEWER_PASSWORD` (default: `NewsStand@Review2026!`) supporting environment variable configuration.
+  - Assigned distinct `ClaimTypes.Role = "Reviewer"` and `DisplayName = "Meta App Reviewer"` upon login.
+  - Enforced an `AdminOnly` authorization policy on `/Settings`, `/SystemHealth`, `/Sponsors`, `/Categorizer`, `/SearchConsole`, and `/Analytics` so reviewers cannot view or mutate server settings, API secrets, or marketing campaigns.
+- **[Reviewer Sandbox View & Navigation (`_Layout.cshtml`, `Index.cshtml`)]**:
+  - Filtered the Admin Dashboard sidebar for `Reviewer` role to only show **Stories & Feeds** and an informative "Reviewer Sandbox" badge.
+  - Hid administrative navigation and settings shortcuts from modal dialogs while keeping the **Post FB** preview and publish triggers active for end-to-end Meta API testing.
+- **[Canonical Link Routing Alignment (`FacebookPublishingService.cs`)]**:
+  - Aligned canonical URL generation to `https://newsstand.ng/news/{slug}` (matching React Router frontend routes in `NigerianNewsGrid.Web`) so Facebook's Open Graph scraper receives HTTP 200 and renders rich preview cards with thumbnails instead of falling back to HTTP 404 text-only posts.
+- **[Testing & Verification]**: Verified build of `AdminDashboard` and `NewsApi` with 0 errors; executed `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 98/98 tests passing).
+
+### November 03, 2026 — .NET MAUI Mobile App Server Connectivity, Gzip/Brotli Decompression & Resilient Briefing Fallback
+Resolved `.NET MAUI` mobile app (`NigerianNewGrid`) timeouts and inability to connect to `https://api.newsstand.ng` or load articles on physical devices:
+- **[Root Cause Diagnosis (Live Production Benchmarking)]**:
+  - `AddHttpClient<NewsApiClient>` in `ServiceCollectionExtensions.cs` did not configure `AutomaticDecompression`, causing `GET https://api.newsstand.ng/api/v1/articles/briefings` to stream **228 KB** of uncompressed JSON over 28–87 seconds (exceeding the 15s `HttpClient.Timeout`), whereas enabling `DecompressionMethods.All` (`gzip, deflate, br`) compresses the response to **24–41 KB** and completes in **5.5–9.3 seconds**.
+  - Initial TLS handshake to `https://api.newsstand.ng` takes ~3.1–3.7s on mobile networks, causing the 2,500ms `/healthz/liveness` pre-flight probes in `MainViewModel.ResolveApiBaseUrlAsync` to always time out and consume 5.0s of the 10s `_loadCts` deadline before `GetDailyBriefingAsync` even started.
+  - Polly's `Policy<HttpResponseMessage>.Handle<Exception>().CircuitBreakerAsync(...)` caught `OperationCanceledException` from timeouts/pull-to-refresh cancellations and tripped `BrokenCircuitException` across all subsequent requests.
+  - Previous failed loads persisted synthetic offline sample items (`fallback_*`) into SQLite (`CachedStories`), preventing fresh retries from distinguishing real cached articles from sample placeholders.
+- **[HTTP Gzip/Brotli Decompression & Resilient Client Policy (`ServiceCollectionExtensions.cs`, `NewsSyncReceiver.cs`)]**:
+  - Configured `ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AutomaticDecompression = DecompressionMethods.All })` on `NewsApiClient`, `ProbeClient`, and `NewsSyncReceiver.CreateFallbackApiClient()`.
+  - Increased `NewsApiClient` timeout from 15s to 30s and removed the overly broad `Handle<Exception>().CircuitBreakerAsync` policy that tripped on request cancellations.
+- **[Zero-Overhead Production URL Resolution & Live `/api/v1/articles` Fallback (`MainViewModel.cs`, `NewsApiClient.cs`)]**:
+  - Updated `MainViewModel.ResolveApiBaseUrlAsync` to return `https://api.newsstand.ng` immediately with 0ms pre-flight probe delay on physical devices or whenever a production HTTPS URL is configured.
+  - Increased `_loadCts` deadline in `MainViewModel.LoadBriefingAsync` from 10s to 30s.
+  - Updated `NewsApiClient.GetDailyBriefingAsync` to catch `HttpClient.Timeout` (`OperationCanceledException when (!cancellationToken.IsCancellationRequested)`) and return an empty list so `MainViewModel` can seamlessly fall back to `GET /api/v1/articles?page=1&pageSize=30` (`_apiClient.GetArticlesAsync`) and group live articles by category.
+- **[SQLite Synthetic Fallback Purge (`NewsPersistenceService.cs`, `MainViewModel.cs`)]**:
+  - Stopped persisting synthetic `GetFallbackSampleBriefing` items (`Id LIKE 'fallback_%'`) to SQLite and added `DELETE FROM CachedStories WHERE Id LIKE 'fallback_%';` on `NewsPersistenceService.InitializeAsync`.
+- **[Backend Briefing Query Bounds (`BriefingService.cs`)]**:
+  - Added `.Take(250)` to the 3-day candidate query in `BriefingService.GetBriefingsAsync` to bound SQLite row materialization on cache misses.
+
+### November 03, 2026 — Android `NavigationRootManager_ElementBasedFragment` Resource ID Mismatch & Fragment State Fix
+Resolved `Java.Lang.IllegalArgumentException: 'No view found for id 0x7f0800f9 (com.nigeriannewsgrid.app:id/labeled) for fragment NavigationRootManager_ElementBasedFragment'` when debugging the `.NET MAUI` Android app (`NigerianNewGrid`) on physical devices:
+- **[Root Cause Analysis]**: An interrupted incremental build left `_Microsoft.Android.Resource.Designer.dll` (`R.txt`) and `android/bin/packaged_resources` out of sync in `NigerianNewGrid/obj/Debug/net10.0-android`, causing `Resource.Id.navigationlayout_content` (`0x7f0800f9`) in C# to resolve to `com.nigeriannewsgrid.app:id/labeled` inside the packaged APK's `resources.arsc`. Additionally, Android `FragmentManager` state restoration on `MainActivity.OnCreate` and a singleton `AppShell` registration caused stale `ElementBasedFragment` view container IDs to be reused across Activity recreations.
+- **[Android Fragment State Sanitization (`MainActivity.cs`)]**: Stripped stale `android:support:fragments` state from `savedInstanceState` (and `androidx.lifecycle.BundlableSavedStateRegistry.key`) prior to `base.OnCreate(savedInstanceState)` so Android never attempts to reattach dead `NavigationRootManager_ElementBasedFragment` instances with mismatched container view IDs across wireless debug redeployments or process restarts.
+- **[Transient Shell Lifecycle (`ServiceCollectionExtensions.cs`)]**: Changed `AppShell` DI registration from `AddSingleton<AppShell>()` to `AddTransient<AppShell>()` so Activity/Window recreation always constructs a fresh `AppShell` with a clean `NavigationRootManager`.
+- **[iOS & MacCatalyst Alignment (`iOSNotificationDelegate.cs`, `Platforms/MacCatalyst/NotificationService.cs`, `Platforms/iOS/Info.plist`)]**: Updated `iOSNotificationDelegate` to wait for `Shell.Current` on cold-start notification taps, open cached SQLite stories with AI Summaries (`if (story != null)`), and resolve fallback URLs from `GetCachedBriefingAsync`; fixed `Platforms/MacCatalyst/NotificationService.PostImmediateNotification` to include the `"action"` key in `UserInfo` for audio briefing notifications; and corrected a malformed `SKAdNetworkIdentifier` entry (`4468km3ulz.skadnetwork`) in `Platforms/iOS/Info.plist`.
+- **[Clean Multi-Target Build Verification]**: Purged stale `NigerianNewGrid/bin` and `NigerianNewGrid/obj` directories and verified clean builds across `net10.0-android` (0 errors, synchronized `R.txt`, `_Microsoft.Android.Resource.Designer.dll`, and `packaged_resources`), `net10.0-ios` (0 warnings, 0 errors), and `net10.0-maccatalyst` (0 warnings, 0 errors).
+
 ### November 02, 2026 — Trending Stories Clustering Disambiguation & High-Performance Output Caching (Step 1)
 Resolved cross-topic over-clustering in Trending Stories by introducing high-specificity entity constraints and geographical conflict guards, and implemented native ASP.NET Core Output Caching with tag-based cache eviction for public endpoints:
 - **[Trending Stories Clustering Disambiguation (`StoryClusteringService.cs`)]**:
@@ -1736,6 +1781,19 @@ run-services.bat
  
 ## Updates
 
+### November 07, 2026 — Meta App Reviewer Limited-Access Role & Facebook Post Hardening
+Implemented a secure, role-restricted test account for Meta App Reviewers alongside canonical link routing fixes for Facebook Page publishing:
+- **[Meta Reviewer Restricted Role & Authentication (`Login.cshtml.cs`, `Program.cs`)]**:
+  - Configured `REVIEWER_USERNAME` (default: `meta_reviewer`) and `REVIEWER_PASSWORD` (default: `NewsStand@Review2026!`) supporting environment variable configuration.
+  - Assigned distinct `ClaimTypes.Role = "Reviewer"` and `DisplayName = "Meta App Reviewer"` upon login.
+  - Enforced an `AdminOnly` authorization policy on `/Settings`, `/SystemHealth`, `/Sponsors`, `/Categorizer`, `/SearchConsole`, and `/Analytics` so reviewers cannot view or mutate server settings, API secrets, or marketing campaigns.
+- **[Reviewer Sandbox View & Navigation (`_Layout.cshtml`, `Index.cshtml`)]**:
+  - Filtered the Admin Dashboard sidebar for `Reviewer` role to only show **Stories & Feeds** and an informative "Reviewer Sandbox" badge.
+  - Hid administrative navigation and settings shortcuts from modal dialogs while keeping the **Post FB** preview and publish triggers active for end-to-end Meta API testing.
+- **[Canonical Link Routing Alignment (`FacebookPublishingService.cs`)]**:
+  - Aligned canonical URL generation to `https://newsstand.ng/news/{slug}` (matching React Router frontend routes in `NigerianNewsGrid.Web`) so Facebook's Open Graph scraper receives HTTP 200 and renders rich preview cards with thumbnails instead of falling back to HTTP 404 text-only posts.
+- **[Testing & Verification]**: Verified build of `AdminDashboard` and `NewsApi` with 0 errors; executed `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 98/98 tests passing).
+
 ### November 02, 2026 — Facebook Page Article Summary Publishing via Meta Graph API
 Implemented automated and 1-click social syndication for AI-summarized articles and briefings directly to a Facebook Page via Meta Graph API v21.0:
 - **[Facebook Publishing Service & Endpoints (`IFacebookPublishingService.cs`, `FacebookPublishingService.cs`, `FacebookPublishingController.cs`, `ServiceCollectionExtensions.cs`)]**:
@@ -3224,6 +3282,19 @@ Implemented an end-to-end anonymised user behaviour analytics pipeline across th
     - Updated `BriefingCacheService.SaveBriefingAsync` and Android background sync (`NewsSyncReceiver.cs`) to persist `DateTime.UtcNow` upon saving updates.
 ## Updates
 
+### November 07, 2026 — Meta App Reviewer Limited-Access Role & Facebook Post Hardening
+Implemented a secure, role-restricted test account for Meta App Reviewers alongside canonical link routing fixes for Facebook Page publishing:
+- **[Meta Reviewer Restricted Role & Authentication (`Login.cshtml.cs`, `Program.cs`)]**:
+  - Configured `REVIEWER_USERNAME` (default: `meta_reviewer`) and `REVIEWER_PASSWORD` (default: `NewsStand@Review2026!`) supporting environment variable configuration.
+  - Assigned distinct `ClaimTypes.Role = "Reviewer"` and `DisplayName = "Meta App Reviewer"` upon login.
+  - Enforced an `AdminOnly` authorization policy on `/Settings`, `/SystemHealth`, `/Sponsors`, `/Categorizer`, `/SearchConsole`, and `/Analytics` so reviewers cannot view or mutate server settings, API secrets, or marketing campaigns.
+- **[Reviewer Sandbox View & Navigation (`_Layout.cshtml`, `Index.cshtml`)]**:
+  - Filtered the Admin Dashboard sidebar for `Reviewer` role to only show **Stories & Feeds** and an informative "Reviewer Sandbox" badge.
+  - Hid administrative navigation and settings shortcuts from modal dialogs while keeping the **Post FB** preview and publish triggers active for end-to-end Meta API testing.
+- **[Canonical Link Routing Alignment (`FacebookPublishingService.cs`)]**:
+  - Aligned canonical URL generation to `https://newsstand.ng/news/{slug}` (matching React Router frontend routes in `NigerianNewsGrid.Web`) so Facebook's Open Graph scraper receives HTTP 200 and renders rich preview cards with thumbnails instead of falling back to HTTP 404 text-only posts.
+- **[Testing & Verification]**: Verified build of `AdminDashboard` and `NewsApi` with 0 errors; executed `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 98/98 tests passing).
+
 ### November 02, 2026 — Facebook Page Article Summary Publishing via Meta Graph API
 Implemented automated and 1-click social syndication for AI-summarized articles and briefings directly to a Facebook Page via Meta Graph API v21.0:
 - **[Facebook Publishing Service & Endpoints (`IFacebookPublishingService.cs`, `FacebookPublishingService.cs`, `FacebookPublishingController.cs`, `ServiceCollectionExtensions.cs`)]**:
@@ -3292,6 +3363,19 @@ Implemented sequential architectural improvements and code quality fixes address
   - Extracted verbose service registrations into structured extension methods (`AddNewsHttpClients`, `AddNewsServices`, `AddPlatformServices`, `AddViewModels`, `AddPages`), reducing `MauiProgram.cs` to clean, readable configuration.
 
 ## Updates
+
+### November 07, 2026 — Meta App Reviewer Limited-Access Role & Facebook Post Hardening
+Implemented a secure, role-restricted test account for Meta App Reviewers alongside canonical link routing fixes for Facebook Page publishing:
+- **[Meta Reviewer Restricted Role & Authentication (`Login.cshtml.cs`, `Program.cs`)]**:
+  - Configured `REVIEWER_USERNAME` (default: `meta_reviewer`) and `REVIEWER_PASSWORD` (default: `NewsStand@Review2026!`) supporting environment variable configuration.
+  - Assigned distinct `ClaimTypes.Role = "Reviewer"` and `DisplayName = "Meta App Reviewer"` upon login.
+  - Enforced an `AdminOnly` authorization policy on `/Settings`, `/SystemHealth`, `/Sponsors`, `/Categorizer`, `/SearchConsole`, and `/Analytics` so reviewers cannot view or mutate server settings, API secrets, or marketing campaigns.
+- **[Reviewer Sandbox View & Navigation (`_Layout.cshtml`, `Index.cshtml`)]**:
+  - Filtered the Admin Dashboard sidebar for `Reviewer` role to only show **Stories & Feeds** and an informative "Reviewer Sandbox" badge.
+  - Hid administrative navigation and settings shortcuts from modal dialogs while keeping the **Post FB** preview and publish triggers active for end-to-end Meta API testing.
+- **[Canonical Link Routing Alignment (`FacebookPublishingService.cs`)]**:
+  - Aligned canonical URL generation to `https://newsstand.ng/news/{slug}` (matching React Router frontend routes in `NigerianNewsGrid.Web`) so Facebook's Open Graph scraper receives HTTP 200 and renders rich preview cards with thumbnails instead of falling back to HTTP 404 text-only posts.
+- **[Testing & Verification]**: Verified build of `AdminDashboard` and `NewsApi` with 0 errors; executed `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 98/98 tests passing).
 
 ### November 02, 2026 — Facebook Page Article Summary Publishing via Meta Graph API
 Implemented automated and 1-click social syndication for AI-summarized articles and briefings directly to a Facebook Page via Meta Graph API v21.0:

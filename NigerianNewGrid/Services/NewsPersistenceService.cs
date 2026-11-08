@@ -1,9 +1,9 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using SQLite;
 using NigerianNewGrid.Constants;
 using NigerianNewGrid.Models;
 using NigerianNewsGrid.Client.Models;
+using SQLite;
+using System.Text.Json;
 
 namespace NigerianNewGrid.Services;
 
@@ -55,6 +55,16 @@ public class NewsPersistenceService(
             Android.Util.Log.Info("APP_DEBUG", "NewsPersistenceService creating CachedStoryEntity table");
 #endif
             await _database.CreateTableAsync<CachedStoryEntity>().ConfigureAwait(false);
+
+            // Purge any synthetic fallback_* placeholder items that may have been persisted by older builds
+            try
+            {
+                await _database.ExecuteAsync("DELETE FROM CachedStories WHERE Id LIKE 'fallback_%';").ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "Non-fatal cleanup of legacy fallback_* rows in SQLite");
+            }
 
             _initialized = true;
             logger.LogInformation("SQLite NewsPersistenceService initialized successfully at {Path}", DbPath);

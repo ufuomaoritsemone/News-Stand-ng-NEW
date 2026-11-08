@@ -1,11 +1,10 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using Microsoft.Maui.ApplicationModel.DataTransfer;
+using NigerianNewGrid.Constants;
+using NigerianNewGrid.Extensions;
 using NigerianNewsGrid.Client;
 using NigerianNewsGrid.Client.Helpers;
 using NigerianNewsGrid.Client.Models;
-using NigerianNewGrid.Constants;
-using NigerianNewGrid.Extensions;
+using System.Diagnostics;
 
 namespace NigerianNewGrid.Services;
 
@@ -31,12 +30,12 @@ public class ArticleInteractionService : IArticleInteractionService
         IXShareService xShareService,
         ILogger<ArticleInteractionService> logger)
     {
-        _apiClient           = apiClient;
-        _apiClient.BaseUrl   = AppNetworkConstants.GetConfiguredApiBaseUrl();
+        _apiClient = apiClient;
+        _apiClient.BaseUrl = AppNetworkConstants.GetConfiguredApiBaseUrl();
         _recentlyReadService = recentlyReadService;
-        _bookmarkService     = bookmarkService;
-        _xShareService       = xShareService;
-        _logger              = logger;
+        _bookmarkService = bookmarkService;
+        _xShareService = xShareService;
+        _logger = logger;
     }
 
     public async Task OpenArticleAsync(BriefingItem? item)
@@ -132,8 +131,8 @@ public class ArticleInteractionService : IArticleInteractionService
             await Share.Default.RequestAsync(new ShareTextRequest
             {
                 Title = !string.IsNullOrWhiteSpace(item.Title) ? item.Title : "Share News Story",
-                Text  = shareText,
-                Uri   = newsstandUrl
+                Text = shareText,
+                Uri = newsstandUrl
             });
         }
         catch (Exception ex)
@@ -161,8 +160,8 @@ public class ArticleInteractionService : IArticleInteractionService
                 await Share.Default.RequestAsync(new ShareTextRequest
                 {
                     Title = item.Title,
-                    Text  = text,
-                    Uri   = newsstandUrl
+                    Text = text,
+                    Uri = newsstandUrl
                 });
             }
         }

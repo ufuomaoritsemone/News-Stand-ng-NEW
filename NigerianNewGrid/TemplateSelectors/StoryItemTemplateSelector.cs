@@ -1,4 +1,3 @@
-using Microsoft.Maui.Controls;
 using NigerianNewsGrid.Client.Models;
 
 namespace NigerianNewGrid.TemplateSelectors;
