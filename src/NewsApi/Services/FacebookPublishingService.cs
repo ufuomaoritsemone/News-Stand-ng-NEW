@@ -282,9 +282,25 @@ public class FacebookPublishingService(
         sb.AppendLine($"👉 Read the full executive briefing: {canonicalUrl}");
         sb.AppendLine();
 
-        // 5. Hashtags
+        // 5. Source & Image Attribution
+        if (!string.IsNullOrWhiteSpace(article.Source))
+        {
+            var cleanSource = article.Source.Trim();
+            // Prefix with "The " if not already present for publications like "Punch", "Guardian", "Nation"
+            var formattedSource = cleanSource.StartsWith("The ", StringComparison.OrdinalIgnoreCase) 
+                ? cleanSource 
+                : $"The {cleanSource}";
+
+            sb.AppendLine($"📷 Image & Source: {formattedSource}");
+            sb.AppendLine();
+        }
+
+        // 6. Hashtags
         var categoryTag = (article.Category ?? "Nigeria").Replace(" ", "");
-        sb.AppendLine($"#NigeriaNews #NewsStandNG #{categoryTag} #NigerianNews");
+        var sourceTag = !string.IsNullOrWhiteSpace(article.Source)
+            ? $" #{article.Source.Replace(" ", "").Replace("-", "")}"
+            : "";
+        sb.AppendLine($"#NigeriaNews #NewsStandNG #{categoryTag}{sourceTag} #NigerianNews");
 
         return sb.ToString().TrimEnd();
     }

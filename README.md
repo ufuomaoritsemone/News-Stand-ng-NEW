@@ -23,6 +23,13 @@ Projects:
 
 ## Updates
 
+### November 08, 2026 — Facebook Publishing Image & Source Attribution
+Updated the Facebook post caption formatter in `FacebookPublishingService.cs` to include proper news source credit and image attribution:
+- **[Source & Image Attribution (`FacebookPublishingService.cs`)]**:
+  - Dynamically extracts `article.Source` (e.g. `Punch`, `The Guardian`, `Vanguard`) and appends a clear attribution line: `📷 Image & Source: The Punch` directly before hashtags.
+  - Automatically appends a clean publication hashtag (`#Punch`, `#Vanguard`, etc.) alongside general news tags.
+- **[Testing & Verification]**: Verified build of `NewsApi` (`0 errors, 0 warnings`) and executed test suite with `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 98/98 tests passing).
+
 ### November 08, 2026 — Gemini AI Secret Masking & ASCII Header Validation Fix
 Resolved HTTP 401 Unauthorized (`ACCESS_TOKEN_TYPE_UNSUPPORTED`) and `Request headers must contain only ASCII characters` during Gemini API connection testing and live article enrichment:
 - **[Secret Masking Clashing & Database Self-Healing (`SystemSettingsService.cs`)]**:
@@ -1781,6 +1788,13 @@ run-services.bat
  
 ## Updates
 
+### November 08, 2026 — Facebook Publishing Image & Source Attribution
+Updated the Facebook post caption formatter in `FacebookPublishingService.cs` to include proper news source credit and image attribution:
+- **[Source & Image Attribution (`FacebookPublishingService.cs`)]**:
+  - Dynamically extracts `article.Source` (e.g. `Punch`, `The Guardian`, `Vanguard`) and appends a clear attribution line: `📷 Image & Source: The Punch` directly before hashtags.
+  - Automatically appends a clean publication hashtag (`#Punch`, `#Vanguard`, etc.) alongside general news tags.
+- **[Testing & Verification]**: Verified build of `NewsApi` (`0 errors, 0 warnings`) and executed test suite with `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 98/98 tests passing).
+
 ### November 07, 2026 — Meta App Reviewer Limited-Access Role & Facebook Post Hardening
 Implemented a secure, role-restricted test account for Meta App Reviewers alongside canonical link routing fixes for Facebook Page publishing:
 - **[Meta Reviewer Restricted Role & Authentication (`Login.cshtml.cs`, `Program.cs`)]**:
@@ -3282,6 +3296,13 @@ Implemented an end-to-end anonymised user behaviour analytics pipeline across th
     - Updated `BriefingCacheService.SaveBriefingAsync` and Android background sync (`NewsSyncReceiver.cs`) to persist `DateTime.UtcNow` upon saving updates.
 ## Updates
 
+### November 08, 2026 — Facebook Publishing Image & Source Attribution
+Updated the Facebook post caption formatter in `FacebookPublishingService.cs` to include proper news source credit and image attribution:
+- **[Source & Image Attribution (`FacebookPublishingService.cs`)]**:
+  - Dynamically extracts `article.Source` (e.g. `Punch`, `The Guardian`, `Vanguard`) and appends a clear attribution line: `📷 Image & Source: The Punch` directly before hashtags.
+  - Automatically appends a clean publication hashtag (`#Punch`, `#Vanguard`, etc.) alongside general news tags.
+- **[Testing & Verification]**: Verified build of `NewsApi` (`0 errors, 0 warnings`) and executed test suite with `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 98/98 tests passing).
+
 ### November 07, 2026 — Meta App Reviewer Limited-Access Role & Facebook Post Hardening
 Implemented a secure, role-restricted test account for Meta App Reviewers alongside canonical link routing fixes for Facebook Page publishing:
 - **[Meta Reviewer Restricted Role & Authentication (`Login.cshtml.cs`, `Program.cs`)]**:
@@ -3363,6 +3384,13 @@ Implemented sequential architectural improvements and code quality fixes address
   - Extracted verbose service registrations into structured extension methods (`AddNewsHttpClients`, `AddNewsServices`, `AddPlatformServices`, `AddViewModels`, `AddPages`), reducing `MauiProgram.cs` to clean, readable configuration.
 
 ## Updates
+
+### November 08, 2026 — Facebook Publishing Image & Source Attribution
+Updated the Facebook post caption formatter in `FacebookPublishingService.cs` to include proper news source credit and image attribution:
+- **[Source & Image Attribution (`FacebookPublishingService.cs`)]**:
+  - Dynamically extracts `article.Source` (e.g. `Punch`, `The Guardian`, `Vanguard`) and appends a clear attribution line: `📷 Image & Source: The Punch` directly before hashtags.
+  - Automatically appends a clean publication hashtag (`#Punch`, `#Vanguard`, etc.) alongside general news tags.
+- **[Testing & Verification]**: Verified build of `NewsApi` (`0 errors, 0 warnings`) and executed test suite with `dotnet test tests/NewsApi.Tests/NewsApi.Tests.csproj` (all 98/98 tests passing).
 
 ### November 07, 2026 — Meta App Reviewer Limited-Access Role & Facebook Post Hardening
 Implemented a secure, role-restricted test account for Meta App Reviewers alongside canonical link routing fixes for Facebook Page publishing:
