@@ -230,17 +230,27 @@ public class GeminiEmbeddingProvider : IEmbeddingProvider
                 if (settings != null)
                 {
                     var dyn = await settings.GetSettingAsync("Gemini:ApiKey", null, ct);
-                    if (!string.IsNullOrWhiteSpace(dyn)) return dyn;
+                    if (!string.IsNullOrWhiteSpace(dyn) && !dyn.Contains('•') && !dyn.Contains("***"))
+                    {
+                        return dyn.Trim().Trim('"', '\'');
+                    }
                 }
             }
             catch { }
         }
 
-        return System.Environment.GetEnvironmentVariable("GEMINI_API_KEY")
+        var key = System.Environment.GetEnvironmentVariable("GEMINI_API_KEY")
             ?? _config["Gemini:ApiKey"]
             ?? _config["Gemini__ApiKey"]
             ?? _config["GoogleCloud:ApiKey"]
             ?? _config["Embeddings:ApiKey"]
             ?? System.Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
+
+        if (!string.IsNullOrWhiteSpace(key) && !key.Contains('•') && !key.Contains("***"))
+        {
+            return key.Trim().Trim('"', '\'');
+        }
+
+        return null;
     }
 }

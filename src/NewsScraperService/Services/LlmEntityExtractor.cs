@@ -47,7 +47,9 @@ public class LlmEntityExtractor : IEntityExtractor
             ?? _config["GoogleCloud:ApiKey"]
             ?? _config["LlmEntityExtraction:ApiKey"]
             ?? Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
-        if (string.IsNullOrWhiteSpace(apiKey))
+
+        apiKey = apiKey?.Trim().Trim('"', '\'');
+        if (string.IsNullOrWhiteSpace(apiKey) || apiKey.Contains('•') || apiKey.Contains("***"))
         {
             _logger.LogDebug("Tier 2 LLM entity extraction skipped: No API key configured.");
             return matches;

@@ -58,15 +58,16 @@ public class SettingsController(
     [HttpPost("test-gemini")]
     public async Task<IActionResult> TestGemini([FromBody] TestConnectionRequestDto request, CancellationToken ct = default)
     {
-        var apiKey = request?.ApiKey;
-        if (string.IsNullOrWhiteSpace(apiKey) || apiKey.StartsWith("•••"))
+        var apiKey = request?.ApiKey?.Trim().Trim('"', '\'');
+        if (string.IsNullOrWhiteSpace(apiKey) || apiKey.Contains('•') || apiKey.Contains("***"))
         {
             apiKey = await _settingsService.GetSettingAsync("Gemini:ApiKey", ct: ct);
+            apiKey = apiKey?.Trim().Trim('"', '\'');
         }
 
-        if (string.IsNullOrWhiteSpace(apiKey))
+        if (string.IsNullOrWhiteSpace(apiKey) || apiKey.Contains('•') || apiKey.Contains("***"))
         {
-            return BadRequest(new TestConnectionResponseDto(false, "No Gemini API key is configured or provided."));
+            return BadRequest(new TestConnectionResponseDto(false, "No valid unmasked Gemini API key is configured or provided."));
         }
 
         try
@@ -103,15 +104,16 @@ public class SettingsController(
     [HttpPost("test-youtube")]
     public async Task<IActionResult> TestYouTube([FromBody] TestConnectionRequestDto request, CancellationToken ct = default)
     {
-        var apiKey = request?.ApiKey;
-        if (string.IsNullOrWhiteSpace(apiKey) || apiKey.StartsWith("•••"))
+        var apiKey = request?.ApiKey?.Trim().Trim('"', '\'');
+        if (string.IsNullOrWhiteSpace(apiKey) || apiKey.Contains('•') || apiKey.Contains("***"))
         {
             apiKey = await _settingsService.GetSettingAsync("YouTube:ApiKey", ct: ct);
+            apiKey = apiKey?.Trim().Trim('"', '\'');
         }
 
-        if (string.IsNullOrWhiteSpace(apiKey))
+        if (string.IsNullOrWhiteSpace(apiKey) || apiKey.Contains('•') || apiKey.Contains("***"))
         {
-            return BadRequest(new TestConnectionResponseDto(false, "No YouTube API key is configured or provided."));
+            return BadRequest(new TestConnectionResponseDto(false, "No valid unmasked YouTube API key is configured or provided."));
         }
 
         try

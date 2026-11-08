@@ -292,12 +292,12 @@ docker compose ps
 ```
 
 Expected containers:
-- `nigeriannewsstand-postgres` (PostgreSQL 16 Alpine) — Up (healthy)
-- `nigeriannewsstand-newsapi` (.NET 10 NewsApi) — Up (healthy)
-- `nigeriannewsstand-web` (React Router v7 SSR Node 22) — Up
-- `nigeriannewsstand-admindashboard` (.NET 10 Razor Admin UI) — Up
-- `nigeriannewsstand-scraperservice` (.NET 10 News Scraper) — Up
-- `nigeriannewsstand-ttsworker` (.NET 10 TTS Worker) — Up
+- `nigeriannewsgrid-postgres` (PostgreSQL 16 Alpine) — Up (healthy)
+- `nigeriannewsgrid-newsapi` (.NET 10 NewsApi) — Up (healthy)
+- `nigeriannewsgrid-web` (React Router v7 SSR Node 22) — Up
+- `nigeriannewsgrid-admindashboard` (.NET 10 Razor Admin UI) — Up
+- `nigeriannewsgrid-scraperservice` (.NET 10 News Scraper) — Up
+- `nigeriannewsgrid-ttsworker` (.NET 10 TTS Worker) — Up
 
 Verify backend, SSR frontend, and internal API proxy locally:
 ```bash
@@ -715,7 +715,7 @@ Set up an automated daily cron job to back up the PostgreSQL database to local s
 
 3. Add daily backup at 2:00 AM WAT (with automatic 14-day retention cleanup):
    ```cron
-   0 2 * * * docker exec nigeriannewsstand-postgres pg_dump -U newsuser newsstand | gzip > /var/backups/newsstand/newsstand_$(date +\%F).sql.gz
+   0 2 * * * docker exec nigeriannewsgrid-postgres pg_dump -U newsuser newsgrid | gzip > /var/backups/newsstand/newsstand_$(date +\%F).sql.gz
    0 3 * * * find /var/backups/newsstand -name "*.sql.gz" -type f -mtime +14 -delete
    ```
 
@@ -794,11 +794,17 @@ docker image prune -f
 ### 9.2 Inspecting Gemini AI & Extractive ML Audit Logs
 `NewsApi` records every Gemini API dispatch, latency metric, circuit-breaker event, and `TextRank-Extractive` fallback in persistent volume `ai-logs` (`/app/logs`):
 ```bash
-# View human-readable formatted audit log
-docker exec nigeriannewsstand-newsapi tail -n 50 /app/logs/gemini_ai_audit.log
+# View human-readable formatted audit log (using docker compose from /opt/newsstand)
+docker compose exec news-api tail -n 50 /app/logs/gemini_ai_audit.log
 
-# View machine-parseable JSONL audit telemetry
-docker exec nigeriannewsstand-newsapi tail -n 20 /app/logs/gemini_ai_audit.jsonl | jq .
+# Or stream live AI summaries and fallback events in real time:
+docker compose exec news-api tail -f /app/logs/gemini_ai_audit.log
+
+# View machine-parseable JSONL audit telemetry with jq
+docker compose exec news-api tail -n 20 /app/logs/gemini_ai_audit.jsonl | jq .
+
+# Inspect via direct container name if outside deployment directory:
+docker exec nigeriannewsgrid-newsapi tail -n 50 /app/logs/gemini_ai_audit.log
 ```
 
 ### 9.3 Managing Image Proxy Cache

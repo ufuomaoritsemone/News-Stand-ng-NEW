@@ -23,6 +23,19 @@ Projects:
 
 ## Updates
 
+### November 08, 2026 — Gemini AI Secret Masking & ASCII Header Validation Fix
+Resolved HTTP 401 Unauthorized (`ACCESS_TOKEN_TYPE_UNSUPPORTED`) and `Request headers must contain only ASCII characters` during Gemini API connection testing and live article enrichment:
+- **[Secret Masking Clashing & Database Self-Healing (`SystemSettingsService.cs`)]**:
+  - Identified root cause: `MaskSecret` masked API keys using format `${value[..4]}••••••••{value[^4..]}` (e.g. `AIza••••••••1234`). The previous check `(value.StartsWith("•••") || value.StartsWith("***"))` failed to detect the mask because the string begins with `"AIza"`, causing masked strings containing non-ASCII bullet characters (`•`) to be persisted into the database settings table.
+  - Added robust detection `IsMasked(value)` checking for any `•` or `***` characters across all secret setting updates, preventing masked strings from clobbering stored secrets.
+  - Added automated fallback in `GetSettingAsync`: if a secret in the database was previously corrupted with mask characters (`•`), the system logs a warning, bypasses the database record, and self-heals by falling back to the unmasked key configured in environment variables (`GEMINI_API_KEY`) or configuration files.
+  - Sanitized all inputs by stripping accidental whitespace and surrounding quotes (`.Trim().Trim('"', '\'')`).
+- **[Gemini & YouTube Connection Testing Hardening (`SettingsController.cs`, `Settings.cshtml.cs`)]**:
+  - Updated `/api/v1/settings/test-gemini` and `/api/v1/settings/test-youtube` in `SettingsController.cs` to detect masked inputs (`Contains('•')`) and resolve the real, unmasked API key from storage before calling the Google SDK client (`new Client(apiKey)`), preventing non-ASCII header exceptions (`Request headers must contain only ASCII characters`).
+  - Updated `AdminDashboard`'s `Settings.cshtml.cs` to clear masked values to `null` before dispatching connection test payloads to the backend API.
+- **[AI Service Sanitization (`ArticleEnrichmentService.cs`, `SeoFeedbackLoopService.cs`, `GeminiEmbeddingProvider.cs`, `LlmEntityExtractor.cs`)]**:
+  - Hardened key resolution across all AI services to ignore masked values and sanitize quotes/whitespace, ensuring that `gemini-3.1-flash-lite` and `gemini-embedding-001` always receive clean API keys.
+
 ### November 02, 2026 — Trending Stories Clustering Disambiguation & High-Performance Output Caching (Step 1)
 Resolved cross-topic over-clustering in Trending Stories by introducing high-specificity entity constraints and geographical conflict guards, and implemented native ASP.NET Core Output Caching with tag-based cache eviction for public endpoints:
 - **[Trending Stories Clustering Disambiguation (`StoryClusteringService.cs`)]**:

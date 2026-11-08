@@ -32,16 +32,26 @@ public partial class ArticleEnrichmentService(
             try
             {
                 var dyn = await _systemSettings.GetSettingAsync("Gemini:ApiKey", null, ct);
-                if (!string.IsNullOrWhiteSpace(dyn)) return dyn;
+                if (!string.IsNullOrWhiteSpace(dyn) && !dyn.Contains('•') && !dyn.Contains("***"))
+                {
+                    return dyn.Trim().Trim('"', '\'');
+                }
             }
             catch { }
         }
 
-        return _config["Gemini:ApiKey"]
+        var key = _config["Gemini:ApiKey"]
             ?? _config["Gemini__ApiKey"]
             ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY")
             ?? _config["GoogleCloud:ApiKey"]
             ?? Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
+
+        if (!string.IsNullOrWhiteSpace(key) && !key.Contains('•') && !key.Contains("***"))
+        {
+            return key.Trim().Trim('"', '\'');
+        }
+
+        return null;
     }
 
     private async Task<bool> IsGeminiEnabledAsync(CancellationToken ct = default)

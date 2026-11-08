@@ -64,6 +64,9 @@ public class SystemSettingsService(
         ["RateLimiting:PermitLimit"] = ("Security", "Sliding window rate limit (max requests per minute per remote IP)", false, "120"),
     };
 
+    public static bool IsMasked(string? value) =>
+        !string.IsNullOrWhiteSpace(value) && (value.Contains('•') || value.Contains("***"));
+
     public async Task<string?> GetSettingAsync(string key, string? defaultValue = null, CancellationToken ct = default)
     {
         var cacheKey = CachePrefix + key;
@@ -80,7 +83,14 @@ public class SystemSettingsService(
             var dbSetting = await db.SystemSettings.AsNoTracking().FirstOrDefaultAsync(s => s.Key == key, ct);
             if (dbSetting != null && !string.IsNullOrWhiteSpace(dbSetting.Value))
             {
-                resolvedValue = dbSetting.Value;
+                if (KnownSettings.TryGetValue(key, out var settingMeta) && settingMeta.IsSecret && IsMasked(dbSetting.Value))
+                {
+                    logger.LogWarning("System secret setting '{Key}' in database was saved with mask characters ('•'); bypassing database override and falling back to environment/configuration.", key);
+                }
+                else
+                {
+                    resolvedValue = dbSetting.Value;
+                }
             }
         }
         catch (Exception ex)
@@ -147,10 +157,17 @@ public class SystemSettingsService(
 
     public async Task SetSettingAsync(string key, string? value, string category = "General", string? description = null, bool isSecret = false, CancellationToken ct = default)
     {
+        if (isSecret && IsMasked(value))
+        {
+            logger.LogWarning("Attempted to set secret setting '{Key}' to a masked value. Update rejected to protect existing secret.", key);
+            return;
+        }
+
+        var sanitizedValue = value?.Trim().Trim('"', '\'');
         var existing = await db.SystemSettings.FirstOrDefaultAsync(s => s.Key == key, ct);
         if (existing != null)
         {
-            existing.Value = value;
+            existing.Value = sanitizedValue;
             existing.UpdatedAt = DateTimeOffset.UtcNow;
             if (!string.IsNullOrWhiteSpace(category)) existing.Category = category;
             if (!string.IsNullOrWhiteSpace(description)) existing.Description = description;
@@ -161,7 +178,7 @@ public class SystemSettingsService(
             db.SystemSettings.Add(new SystemSetting
             {
                 Key = key,
-                Value = value,
+                Value = sanitizedValue,
                 Category = category,
                 Description = description,
                 IsSecret = isSecret,
@@ -182,10 +199,12 @@ public class SystemSettingsService(
         var existingRecords = await db.SystemSettings.Where(s => keys.Contains(s.Key)).ToListAsync(ct);
         var existingDict = existingRecords.ToDictionary(s => s.Key, StringComparer.OrdinalIgnoreCase);
 
-        foreach (var (key, value) in updates)
+        foreach (var (key, rawValue) in updates)
         {
+            var value = rawValue?.Trim().Trim('"', '\'');
+
             // Ignore masked password indicators (e.g. if the user didn't change a secret field)
-            if (!string.IsNullOrEmpty(value) && (value.StartsWith("•••") || value.StartsWith("***")))
+            if (IsMasked(value))
             {
                 continue;
             }

@@ -51,7 +51,8 @@ public class SeoFeedbackLoopService(
             ?? _config["Google:ApiKey"]
             ?? Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
 
-        if (!string.IsNullOrWhiteSpace(apiKey))
+        apiKey = apiKey?.Trim().Trim('"', '\'');
+        if (!string.IsNullOrWhiteSpace(apiKey) && !apiKey.Contains('•') && !apiKey.Contains("***"))
         {
             try
             {

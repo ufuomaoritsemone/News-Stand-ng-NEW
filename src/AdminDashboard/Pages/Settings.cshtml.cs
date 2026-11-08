@@ -110,6 +110,13 @@ public class SettingsModel : PageModel
             var keyToTest = !string.IsNullOrWhiteSpace(TestApiKey)
                 ? TestApiKey
                 : (FormInputs.TryGetValue("Gemini:ApiKey", out var gk) ? gk : null);
+
+            keyToTest = keyToTest?.Trim().Trim('"', '\'');
+            if (keyToTest != null && (keyToTest.Contains('•') || keyToTest.Contains("***")))
+            {
+                keyToTest = null; // Stored masked display: let API resolve stored backend secret
+            }
+
             var payload = new { ApiKey = keyToTest };
             var response = await client.PostAsJsonAsync($"{apiBase.TrimEnd('/')}/api/v1/settings/test-gemini", payload);
             var result = await response.Content.ReadFromJsonAsync<TestConnectionResponseDto>();
@@ -139,6 +146,13 @@ public class SettingsModel : PageModel
             var keyToTest = !string.IsNullOrWhiteSpace(TestApiKey)
                 ? TestApiKey
                 : (FormInputs.TryGetValue("YouTube:ApiKey", out var yk) ? yk : null);
+
+            keyToTest = keyToTest?.Trim().Trim('"', '\'');
+            if (keyToTest != null && (keyToTest.Contains('•') || keyToTest.Contains("***")))
+            {
+                keyToTest = null; // Stored masked display: let API resolve stored backend secret
+            }
+
             var payload = new { ApiKey = keyToTest };
             var response = await client.PostAsJsonAsync($"{apiBase.TrimEnd('/')}/api/v1/settings/test-youtube", payload);
             var result = await response.Content.ReadFromJsonAsync<TestConnectionResponseDto>();
