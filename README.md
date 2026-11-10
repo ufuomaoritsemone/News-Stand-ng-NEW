@@ -23,15 +23,17 @@ Projects:
 
 ## Updates
 
-### November 10, 2026 — Google Tag Manager (GTM-MWBX3W2R) & Editorial Header Tagline Update
-Integrated Google Tag Manager tracking into the client web application and updated the editorial masthead tagline:
-- **[Editorial Header & Tagline (`src/NigerianNewsGrid.Web/src/components/WelcomeBanner.jsx`, `src/NigerianNewsGrid.Web/index.html`)]**:
-  - Updated website headline and meta descriptions to emphasize AI summarization: *"Real-Time News Summarized, Direct and Timely"*.
-  - Added visual highlight classes to the "Summarized" descriptor across all category views.
-- **[Google Tag Manager Setup (`src/NigerianNewsGrid.Web/index.html`)]**:
-  - Embedded asynchronous GTM container script (`GTM-MWBX3W2R`) and initialized global `window.dataLayer` and `gtag()` in `<head>`.
-  - Added standard `<noscript>` iframe fallback immediately following the opening `<body>` tag.
-  - Linked global `gtag` instance directly with `src/NigerianNewsGrid.Web/src/services/analytics.js` for automated GA4 and Google Ads event forwarding.
+### November 10, 2026 — Google Tag Manager (GTM-MWBX3W2R), SSR Root Integration & Head Optimization
+Integrated Google Tag Manager tracking into both client and SSR root layouts, updated editorial masthead & SEO metadata, and deduplicated hero image preloads:
+- **[SSR GTM & Analytics Integration (`src/NigerianNewsGrid.Web/app/root.jsx`)]**:
+  - Injected GTM container (`GTM-MWBX3W2R`) and global `window.dataLayer`/`gtag()` into the server-rendered `<head>`.
+  - Added the `<noscript>` iframe fallback immediately following the opening `<body>` tag.
+- **[Editorial Header, Metadata & Preload Deduplication (`src/NigerianNewsGrid.Web/app/routes/home.jsx`, `WelcomeBanner.jsx`, `index.html`)]**:
+  - Updated homepage SSR metadata `<title>`, `<meta name="description">`, `og:title`, and `twitter:title` to *"News Stand NG | Real-Time News Summarized, Direct and Timely"*.
+  - Updated the on-page `WelcomeBanner` `<h1>` to display styled "Summarized, Direct & Timely" highlights.
+  - Removed redundant static hero image preload from `home.jsx`, allowing browser preload scanner to leverage the responsive `srcset`/`sizes` defined on the hero component without downloading duplicate assets.
+- **[Client HTML Alignment (`src/NigerianNewsGrid.Web/index.html`)]**:
+  - Synced metadata and GTM scripts in `index.html` for local client development and SPA parity.
 
 ### November 08, 2026 — Facebook Publishing Image & Source Attribution
 Updated the Facebook post caption formatter in `FacebookPublishingService.cs` to include proper news source credit and image attribution:
