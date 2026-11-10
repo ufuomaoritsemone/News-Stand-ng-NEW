@@ -15,7 +15,7 @@ RUN --mount=type=cache,id=nuget,sharing=locked,target=/root/.nuget/packages \
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
-RUN apt-get update \
+RUN (apt-get update -o Acquire::Retries=3 || (sleep 5 && apt-get clean && apt-get update -o Acquire::Retries=3)) \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /app/data/audio /app/data/img_cache /app/logs \

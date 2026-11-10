@@ -32,6 +32,8 @@ Integrated Google Tag Manager tracking into both client and SSR root layouts, up
   - Updated homepage SSR metadata `<title>`, `<meta name="description">`, `og:title`, and `twitter:title` to *"News Stand NG | Real-Time News Summarized, Direct and Timely"*.
   - Updated the on-page `WelcomeBanner` `<h1>` to display styled "Summarized, Direct & Timely" highlights.
   - Removed redundant static hero image preload from `home.jsx`, allowing browser preload scanner to leverage the responsive `srcset`/`sizes` defined on the hero component without downloading duplicate assets.
+- **[Docker Build & CI Hardening (`src/NewsApi/Dockerfile`)]**:
+  - Hardened APT package update layer with `Acquire::Retries=3` and automatic cache clearing fallback to withstand upstream Ubuntu security mirror synchronization glitches during CI builds.
 - **[Client HTML Alignment (`src/NigerianNewsGrid.Web/index.html`)]**:
   - Synced metadata and GTM scripts in `index.html` for local client development and SPA parity.
 
