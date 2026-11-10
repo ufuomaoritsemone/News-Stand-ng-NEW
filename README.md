@@ -23,6 +23,13 @@ Projects:
 
 ## Updates
 
+### November 10, 2026 — Google Tag Manager (GTM-MWBX3W2R) Web Integration
+Integrated Google Tag Manager tracking into the client web application:
+- **[Google Tag Manager Setup (`src/NigerianNewsGrid.Web/index.html`)]**:
+  - Embedded asynchronous GTM container script (`GTM-MWBX3W2R`) and initialized global `window.dataLayer` and `gtag()` in `<head>`.
+  - Added standard `<noscript>` iframe fallback immediately following the opening `<body>` tag.
+  - Linked global `gtag` instance directly with `src/NigerianNewsGrid.Web/src/services/analytics.js` for automated GA4 and Google Ads event forwarding.
+
 ### November 08, 2026 — Facebook Publishing Image & Source Attribution
 Updated the Facebook post caption formatter in `FacebookPublishingService.cs` to include proper news source credit and image attribution:
 - **[Source & Image Attribution (`FacebookPublishingService.cs`)]**:
