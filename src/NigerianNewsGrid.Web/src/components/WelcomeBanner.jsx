@@ -30,14 +30,16 @@ export default function WelcomeBanner({
             {activeCategory && activeCategory !== 'All' ? (
               <>
                 {activeCategory} News in Nigeria —{' '}
-                <span className="welcome-highlight highlight-inspiration">Direct</span> &{' '}
-                <span className="welcome-highlight highlight-knowledge">Verified</span>
+                <span className="welcome-highlight highlight-inspiration">Summarized</span>,{' '}
+                <span className="welcome-highlight highlight-knowledge">Direct</span> &{' '}
+                <span className="welcome-highlight highlight-entertainment">Timely</span>
               </>
             ) : (
               <>
-                Real-Time Nigerian News,{' '}
-                <span className="welcome-highlight highlight-inspiration">Direct</span> &{' '}
-                <span className="welcome-highlight highlight-knowledge">Timely</span>
+                Real-Time News{' '}
+                <span className="welcome-highlight highlight-inspiration">Summarized</span>,{' '}
+                <span className="welcome-highlight highlight-knowledge">Direct</span> &{' '}
+                <span className="welcome-highlight highlight-entertainment">Timely</span>
               </>
             )}
           </h1>

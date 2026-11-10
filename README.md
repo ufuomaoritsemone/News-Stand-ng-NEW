@@ -23,8 +23,11 @@ Projects:
 
 ## Updates
 
-### November 10, 2026 — Google Tag Manager (GTM-MWBX3W2R) Web Integration
-Integrated Google Tag Manager tracking into the client web application:
+### November 10, 2026 — Google Tag Manager (GTM-MWBX3W2R) & Editorial Header Tagline Update
+Integrated Google Tag Manager tracking into the client web application and updated the editorial masthead tagline:
+- **[Editorial Header & Tagline (`src/NigerianNewsGrid.Web/src/components/WelcomeBanner.jsx`, `src/NigerianNewsGrid.Web/index.html`)]**:
+  - Updated website headline and meta descriptions to emphasize AI summarization: *"Real-Time News Summarized, Direct and Timely"*.
+  - Added visual highlight classes to the "Summarized" descriptor across all category views.
 - **[Google Tag Manager Setup (`src/NigerianNewsGrid.Web/index.html`)]**:
   - Embedded asynchronous GTM container script (`GTM-MWBX3W2R`) and initialized global `window.dataLayer` and `gtag()` in `<head>`.
   - Added standard `<noscript>` iframe fallback immediately following the opening `<body>` tag.
