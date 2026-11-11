@@ -10,7 +10,7 @@ import {
 } from "react-router";
 import "../src/styles/index.css";
 import MobileBottomNav from "../src/components/MobileBottomNav";
-import { GA_MEASUREMENT_ID, trackPageView } from "../src/services/analytics";
+import { GA_MEASUREMENT_ID, GOOGLE_ADS_ID, trackPageView } from "../src/services/analytics";
 
 function AnalyticsTracker() {
   const location = useLocation();
@@ -121,11 +121,17 @@ export function Layout({ children }) {
         />
         <Meta />
         <Links />
-        {/* Google Tag Manager Container */}
+        {/* Google Tag Manager & Google Ads Tag (gtag.js) */}
         <script
           async
           src="https://www.googletagmanager.com/gtm.js?id=GTM-MWBX3W2R"
         />
+        {GOOGLE_ADS_ID ? (
+          <script
+            async
+            src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`}
+          />
+        ) : null}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -133,10 +139,11 @@ export function Layout({ children }) {
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
               ${GA_MEASUREMENT_ID ? `gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: false });` : ''}
+              ${GOOGLE_ADS_ID ? `gtag('config', '${GOOGLE_ADS_ID}');` : ''}
             `,
           }}
         />
-        {/* End Google Tag Manager */}
+        {/* End Google Tag Manager & Google Ads Tag */}
       </head>
       <body>
         {/* Google Tag Manager (noscript) */}

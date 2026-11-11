@@ -132,11 +132,15 @@ export default function ReaderDrawer({
           }
         });
 
-      // Track engagement telemetry
+      // Track engagement telemetry and Google Ads story summary conversion (once per story open)
       api.trackEngagement(article.id, 'read_open');
       trackArticleView(article);
+    }
+  }, [article?.id, article?.slug, isOpen]);
 
-      // Track sponsored impression only if viewing an actual sponsored article
+  // Track sponsored impressions independently of article view / conversion telemetry
+  useEffect(() => {
+    if (article && isOpen) {
       if (article.isSponsored) {
         api.trackSponsoredImpression(article.id);
       } else {
@@ -147,7 +151,7 @@ export default function ReaderDrawer({
         }
       }
     }
-  }, [article, isOpen, headerSponsor, midContentSponsor, footerSponsor, featuredSponsoredStory]);
+  }, [article?.id, article?.isSponsored, isOpen, headerSponsor?.id, midContentSponsor?.id, footerSponsor?.id, featuredSponsoredStory?.id]);
 
   // Synchronize enrichment or fetch on article change
   useEffect(() => {

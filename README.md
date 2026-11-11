@@ -23,6 +23,14 @@ Projects:
 
 ## Updates
 
+### November 11, 2026 — Google Ads Conversion Tag (`AW-1004048645`) for Story Summary Reads
+Integrated Google Ads conversion tracking triggered whenever a user clicks a news story to read its summary:
+- **[Global Google Ads Tag (`src/NigerianNewsGrid.Web/app/root.jsx`, `src/NigerianNewsGrid.Web/index.html`)]**:
+  - Added `<script async src="https://www.googletagmanager.com/gtag/js?id=AW-1004048645"></script>` and `gtag('config', 'AW-1004048645');` alongside GTM (`GTM-MWBX3W2R`) and GA4 (`G-7GBS0F0WZQ`).
+- **[Story Summary Conversion Event (`src/NigerianNewsGrid.Web/src/services/analytics.js`, `ReaderDrawer.jsx`, `news.$slug.jsx`)]**:
+  - Added `trackStorySummaryConversion` dispatching `gtag('event', 'conversion', {'send_to': 'AW-1004048645/YZJECP_w77UdEIWi4t4D'})` inside `trackArticleView(article)` across both the in-app summary drawer (`ReaderDrawer.jsx`) and dedicated story summary pages (`/news/:slug`).
+  - Decoupled `trackArticleView` from async sponsor state updates in `ReaderDrawer.jsx` so each story click fires the conversion strictly once.
+
 ### November 10, 2026 — Google Tag Manager (GTM-MWBX3W2R), SSR Root Integration & Head Optimization
 Integrated Google Tag Manager tracking into both client and SSR root layouts, updated editorial masthead & SEO metadata, and deduplicated hero image preloads:
 - **[SSR GTM & Analytics Integration (`src/NigerianNewsGrid.Web/app/root.jsx`)]**:

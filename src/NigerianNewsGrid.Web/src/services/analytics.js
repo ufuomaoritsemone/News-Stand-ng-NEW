@@ -4,6 +4,26 @@ export const GA_MEASUREMENT_ID =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GA_MEASUREMENT_ID) ||
   'G-7GBS0F0WZQ';
 
+export const GOOGLE_ADS_ID = 'AW-1004048645';
+export const GOOGLE_ADS_CONVERSION_SEND_TO = 'AW-1004048645/YZJECP_w77UdEIWi4t4D';
+
+/**
+ * Fires the Google Ads conversion event when a reader opens a news story summary.
+ *
+ * @param {object} [article]
+ */
+export function trackStorySummaryConversion(article) {
+  if (typeof window === 'undefined') return;
+
+  if (typeof window.gtag === 'function') {
+    window.gtag('event', 'conversion', {
+      send_to: GOOGLE_ADS_CONVERSION_SEND_TO,
+    });
+  } else if (import.meta.env?.DEV) {
+    console.debug(`[Google Ads Conversion (mock)] ${GOOGLE_ADS_CONVERSION_SEND_TO}:`, article?.id || article?.slug);
+  }
+}
+
 /**
  * Safely dispatches a GA4 event if gtag is initialized on the window.
  *
@@ -53,6 +73,7 @@ export function trackArticleView(article) {
     category: article.category || 'General',
     content_type: 'news_report',
   });
+  trackStorySummaryConversion(article);
 }
 
 /**
