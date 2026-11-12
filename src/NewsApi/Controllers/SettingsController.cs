@@ -31,6 +31,38 @@ public class SettingsController(
     }
 
     /// <summary>
+    /// Returns public app store download URLs for Android, iOS, Windows, and macOS.
+    /// Safe for anonymous consumption on the public /download landing page.
+    /// </summary>
+    [HttpGet("app-stores")]
+    public async Task<IActionResult> GetAppStoreLinks(CancellationToken ct = default)
+    {
+        var androidUrl = (await _settingsService.GetSettingAsync("AppStore:AndroidUrl", "", ct))?.Trim() ?? string.Empty;
+        var iosUrl = (await _settingsService.GetSettingAsync("AppStore:IosUrl", "", ct))?.Trim() ?? string.Empty;
+        var windowsUrl = (await _settingsService.GetSettingAsync("AppStore:WindowsUrl", "", ct))?.Trim() ?? string.Empty;
+        var macUrl = (await _settingsService.GetSettingAsync("AppStore:MacUrl", "", ct))?.Trim() ?? string.Empty;
+
+        var hasAndroid = !string.IsNullOrWhiteSpace(androidUrl);
+        var hasIos = !string.IsNullOrWhiteSpace(iosUrl);
+        var hasWindows = !string.IsNullOrWhiteSpace(windowsUrl);
+        var hasMac = !string.IsNullOrWhiteSpace(macUrl);
+
+        var dto = new AppStoreLinksDto(
+            AndroidUrl: androidUrl,
+            IosUrl: iosUrl,
+            WindowsUrl: windowsUrl,
+            MacUrl: macUrl,
+            HasAndroid: hasAndroid,
+            HasIos: hasIos,
+            HasWindows: hasWindows,
+            HasMac: hasMac,
+            HasAnyStore: hasAndroid || hasIos || hasWindows || hasMac
+        );
+
+        return Ok(dto);
+    }
+
+    /// <summary>
     /// Updates one or more system settings in the database.
     /// Masked values (starting with •••) are automatically skipped to prevent clobbering existing secrets.
     /// </summary>

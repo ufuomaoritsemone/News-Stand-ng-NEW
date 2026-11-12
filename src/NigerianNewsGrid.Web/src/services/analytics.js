@@ -126,18 +126,67 @@ export function trackCategorySelect(category) {
 
 /**
  * Extra Analytics: Track social media sharing (WhatsApp, X, Native share).
+ * Fires both the standard GA4 'share' event, platform-specific 'whatsapp_share' / 'x_share'
+ * events for instant GA4 top-level reporting, and records the share in NewsApi telemetry.
  *
- * @param {string} method - 'whatsapp' | 'x_twitter' | 'clipboard' | 'native_share'
+ * @param {string} method - 'whatsapp' | 'x_twitter' | 'clipboard' | 'native_share' | 'generic_share'
  * @param {string} articleTitle
  * @param {string|number} articleId
  */
 export function trackArticleShare(method, articleTitle, articleId) {
-  trackEvent('share', {
-    method: method || 'web_share',
+  const normalizedMethod = method || 'web_share';
+  const payload = {
+    method: normalizedMethod,
     content_type: 'article',
     item_id: String(articleId || ''),
     item_title: articleTitle || '',
-  });
+  };
+
+  // 1. Standard GA4 recommended share event
+  trackEvent('share', payload);
+
+  // 2. Dedicated top-level GA4 events so X & WhatsApp shares appear directly in GA4 Events table
+  if (normalizedMethod === 'whatsapp') {
+    trackEvent('whatsapp_share', payload);
+  } else if (normalizedMethod === 'x_twitter') {
+    trackEvent('x_share', payload);
+  }
+
+  // 3. Persist share telemetry to NewsApi backend for Admin Dashboard (/Analytics)
+  if (typeof window !== 'undefined' && typeof fetch === 'function') {
+    try {
+      let deviceId = localStorage.getItem('nng_pwa_device_id');
+      if (!deviceId) {
+        deviceId = 'web_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+        localStorage.setItem('nng_pwa_device_id', deviceId);
+      }
+      const backendEventType =
+        normalizedMethod === 'whatsapp'
+          ? 'article_share_whatsapp'
+          : normalizedMethod === 'x_twitter'
+            ? 'article_share_x'
+            : 'article_share';
+      const apiBase = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE) || '/api/v1';
+      fetch(`${apiBase}/analytics`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([
+          {
+            deviceId,
+            eventType: backendEventType,
+            articleId: String(articleId || ''),
+            articleTitle: articleTitle || '',
+            platform: 'Web',
+            appVersion: 'Web-SSR',
+            occurredAt: new Date().toISOString(),
+          },
+        ]),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {
+      // Non-blocking telemetry
+    }
+  }
 }
 
 /**
@@ -180,4 +229,61 @@ export function trackPwaAnalytics(eventType, details = {}) {
     source: details.source || 'browser',
     ...details,
   });
+}
+
+/**
+ * Extra Analytics & Sponsored Campaign Conversion:
+ * Tracks when a visitor clicks an official App Store download button (Play Store, App Store, Windows, Mac).
+ * Fires GA4 event, Google Ads conversion event, and backend telemetry.
+ *
+ * @param {'android'|'ios'|'windows'|'mac'|string} platform
+ * @param {string} storeUrl
+ * @param {string} [source='download_page']
+ */
+export function trackAppStoreClick(platform, storeUrl = '', source = 'download_page') {
+  const normalizedPlatform = (platform || 'unknown').toLowerCase();
+
+  // 1. GA4 Event
+  trackEvent('app_store_click', {
+    platform: normalizedPlatform,
+    destination_url: storeUrl,
+    source,
+    content_type: 'mobile_app_download',
+  });
+
+  // 2. Google Ads Conversion Event for Sponsored Campaigns
+  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+    window.gtag('event', 'conversion', {
+      send_to: GOOGLE_ADS_CONVERSION_SEND_TO,
+      event_category: 'app_download',
+      event_label: normalizedPlatform,
+    });
+  }
+
+  // 3. Backend Telemetry (/api/v1/analytics/install)
+  if (typeof window !== 'undefined' && typeof fetch === 'function') {
+    try {
+      let deviceId = localStorage.getItem('nng_pwa_device_id');
+      if (!deviceId) {
+        deviceId = 'web_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+        localStorage.setItem('nng_pwa_device_id', deviceId);
+      }
+      const apiBase = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE) || '/api/v1';
+      fetch(`${apiBase}/analytics/install`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deviceId,
+          eventType: `app_store_click_${normalizedPlatform}`,
+          articleTitle: `App Store Download (${normalizedPlatform.toUpperCase()}) - ${source}`,
+          platform: normalizedPlatform,
+          appVersion: 'Store-Campaign',
+          occurredAt: new Date().toISOString(),
+        }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {
+      // Non-blocking telemetry
+    }
+  }
 }

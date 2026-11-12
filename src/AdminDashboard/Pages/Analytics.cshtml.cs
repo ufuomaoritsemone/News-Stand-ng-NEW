@@ -64,6 +64,8 @@ public class AnalyticsSummaryDto
     public int AppOpens { get; set; }
     public int ArticleReads { get; set; }
     public int SharesClicked { get; set; }
+    public int XSharesClicked { get; set; }
+    public int WhatsAppSharesClicked { get; set; }
     public int BookmarksAdded { get; set; }
     public int AudioListensStarted { get; set; }
     public int AudioListensCompleted { get; set; }

@@ -32,8 +32,8 @@ public class AnalyticsController : ControllerBase
 
         var allowedTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            // In-app events
-            "app_open", "article_read", "article_share", "article_bookmark",
+            // In-app & web events
+            "app_open", "article_read", "article_share", "article_share_x", "article_share_whatsapp", "article_bookmark",
             "audio_listen_start", "audio_listen_complete", "audio_listen", "audio_complete",
             // App Open Ad events
             "app_open_ad_loaded", "app_open_ad_shown",
@@ -182,13 +182,19 @@ public class AnalyticsController : ControllerBase
         var pwaIosInstalls = events.Count(e => e.EventType == "pwa_install" && (e.Platform ?? "").Contains("iOS", StringComparison.OrdinalIgnoreCase));
         var pwaDesktopInstalls = events.Count(e => e.EventType == "pwa_install" && ((e.Platform ?? "").Contains("Windows", StringComparison.OrdinalIgnoreCase) || (e.Platform ?? "").Contains("Mac", StringComparison.OrdinalIgnoreCase) || (e.Platform ?? "").Contains("Desktop", StringComparison.OrdinalIgnoreCase)));
 
+        var xSharesClicked = byType.GetValueOrDefault("article_share_x", 0);
+        var whatsAppSharesClicked = byType.GetValueOrDefault("article_share_whatsapp", 0);
+        var totalSharesClicked = byType.GetValueOrDefault("article_share", 0) + xSharesClicked + whatsAppSharesClicked;
+
         return Ok(new AnalyticsSummaryDto
         {
             TotalEvents = totalEvents,
             UniqueDevices = uniqueDevices,
             AppOpens = byType.GetValueOrDefault("app_open", 0),
             ArticleReads = byType.GetValueOrDefault("article_read", 0),
-            SharesClicked = byType.GetValueOrDefault("article_share", 0),
+            SharesClicked = totalSharesClicked,
+            XSharesClicked = xSharesClicked,
+            WhatsAppSharesClicked = whatsAppSharesClicked,
             BookmarksAdded = byType.GetValueOrDefault("article_bookmark", 0),
             AudioListensStarted = audioStarted,
             AudioListensCompleted = audioCompleted,
@@ -311,6 +317,8 @@ public class AnalyticsSummaryDto
     public int AppOpens { get; set; }
     public int ArticleReads { get; set; }
     public int SharesClicked { get; set; }
+    public int XSharesClicked { get; set; }
+    public int WhatsAppSharesClicked { get; set; }
     public int BookmarksAdded { get; set; }
     public int AudioListensStarted { get; set; }
     public int AudioListensCompleted { get; set; }

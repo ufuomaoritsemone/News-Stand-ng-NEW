@@ -57,6 +57,12 @@ public class SystemSettingsService(
         ["Facebook:PageAccessToken"] = ("Social", "Never-expiring Facebook Page Access Token with pages_manage_posts permission", true, null),
         ["Facebook:AutoPublish"] = ("Social", "Automatically publish enriched top story articles to Facebook Page", false, "false"),
 
+        // Mobile & Desktop App Store Links
+        ["AppStore:AndroidUrl"] = ("AppStores", "Google Play Store URL for the Android mobile app", false, ""),
+        ["AppStore:IosUrl"] = ("AppStores", "Apple App Store URL for the iOS and iPadOS mobile app", false, ""),
+        ["AppStore:WindowsUrl"] = ("AppStores", "Microsoft Store or direct installer URL for the Windows desktop app", false, ""),
+        ["AppStore:MacUrl"] = ("AppStores", "Mac App Store or direct DMG URL for the macOS desktop app", false, ""),
+
         // Scraper & Background Workers
         ["Scraper:IntervalMinutes"] = ("Scraper", "Frequency in minutes between automated RSS news scraping cycles", false, "15"),
 

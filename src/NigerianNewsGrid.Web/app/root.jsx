@@ -43,6 +43,8 @@ export function Layout({ children }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="NewsStand NG" />
+        {/* Meta Domain Verification */}
+        <meta name="facebook-domain-verification" content="x1r7sb21ljsjvb0qi78drx1qksv09u" />
         {/* Google AdSense */}
         <meta name="google-adsense-account" content="ca-pub-0810356418854639" />
         <script

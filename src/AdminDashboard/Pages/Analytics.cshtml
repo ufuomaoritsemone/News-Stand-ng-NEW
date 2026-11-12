@@ -90,7 +90,21 @@
             <div class="glass-card stat-card text-center">
                 <div class="text-muted small text-uppercase">Shares Clicked</div>
                 <div class="stat-value text-warning">@(s?.SharesClicked ?? 0)</div>
-                <div class="small text-muted mt-1"><i class="bi bi-share-fill me-1"></i> Virality</div>
+                <div class="small text-muted mt-1"><i class="bi bi-share-fill me-1"></i> Total Virality</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-xl">
+            <div class="glass-card stat-card text-center">
+                <div class="text-muted small text-uppercase">WhatsApp Shares</div>
+                <div class="stat-value text-success">@(s?.WhatsAppSharesClicked ?? 0)</div>
+                <div class="small text-success mt-1"><i class="bi bi-whatsapp me-1"></i> Direct Chat</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-xl">
+            <div class="glass-card stat-card text-center">
+                <div class="text-muted small text-uppercase">𝕏 (Twitter) Shares</div>
+                <div class="stat-value text-info">@(s?.XSharesClicked ?? 0)</div>
+                <div class="small text-info mt-1"><i class="bi bi-twitter-x me-1"></i> Post on 𝕏</div>
             </div>
         </div>
         <div class="col-6 col-md-3 col-xl">
@@ -368,6 +382,8 @@
                                 "app_open"                                  => "bi-box-arrow-in-right text-success",
                                 "article_read"                              => "bi-book text-info",
                                 "article_share"                             => "bi-share-fill text-warning",
+                                "article_share_whatsapp"                    => "bi-whatsapp text-success",
+                                "article_share_x"                           => "bi-twitter-x text-info",
                                 "article_bookmark"                          => "bi-bookmark-fill text-danger",
                                 "audio_listen_start" or "audio_listen"      => "bi-headphones text-primary",
                                 "audio_listen_complete" or "audio_complete" => "bi-check-circle-fill text-success",

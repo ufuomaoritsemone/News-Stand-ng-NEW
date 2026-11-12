@@ -34,6 +34,8 @@ export default [
   route("privacy", "routes/privacy.jsx"),
   route("terms", "routes/terms.jsx"),
   route("ai-disclosure", "routes/ai-disclosure.jsx"),
+  route("download", "routes/download.jsx"),
+  route("apps", "routes/download.jsx", { id: "routes/apps-download" }),
 
   // SEO & Crawler Resource Routes
   route("robots.txt", "routes/robots[.]txt.jsx"),

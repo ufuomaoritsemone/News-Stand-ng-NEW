@@ -14,9 +14,29 @@ export default function Footer({ onSelectCategory }) {
                 NEWS STAND <span style={{ color: 'var(--emerald-bright)' }}>NG</span>
               </span>
             </div>
-            <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 14 }}>
               A high-velocity national news aggregator delivering verified headlines, in-depth reports, and video broadcasts across Nigeria’s premier publishers and investigative desks.
             </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <a
+                href="/download"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  color: 'var(--emerald-bright, #10b981)',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                <span>📲 Get the App (Play Store · App Store · PC · Mac)</span>
+              </a>
+            </div>
           </div>
 
           <div>
@@ -44,6 +64,7 @@ export default function Footer({ onSelectCategory }) {
               STANDARDS & TRUST
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+              <a href="/download" style={{ color: 'var(--emerald-bright, #10b981)', textDecoration: 'none', fontWeight: 600 }}>Download Mobile Apps</a>
               <a href="/about" style={{ color: 'inherit', textDecoration: 'none' }}>About News Stand NG</a>
               <a href="/editorial-policy" style={{ color: 'inherit', textDecoration: 'none' }}>Editorial Policy</a>
               <a href="/corrections" style={{ color: 'inherit', textDecoration: 'none' }}>Corrections & Retractions</a>

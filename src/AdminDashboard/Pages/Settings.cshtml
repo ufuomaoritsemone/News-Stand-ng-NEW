@@ -143,6 +143,11 @@
                             <i class="bi bi-facebook me-1 text-primary"></i> Facebook & Social
                         </button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link btn-sm" id="tab-apps" data-bs-toggle="pill" data-bs-target="#content-apps" type="button" role="tab">
+                            <i class="bi bi-phone-fill me-1 text-info"></i> Mobile &amp; Store Apps
+                        </button>
+                    </li>
                 </ul>
             </div>
 
@@ -661,6 +666,187 @@
                                         <li>Generate a User Token and extend it via <a href="https://developers.facebook.com/tools/debug/accesstoken/" target="_blank" class="text-info">Access Token Debugger</a>.</li>
                                         <li>Call <code>GET /me/accounts</code> with the extended token — copy the <code>access_token</code> assigned to your Page.</li>
                                     </ol>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 9. Mobile & Desktop App Store Links -->
+                    <div class="tab-pane fade" id="content-apps" role="tabpanel">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                            <div>
+                                <h5 class="text-white mb-1 d-flex align-items-center gap-2">
+                                    <i class="bi bi-phone-fill text-info"></i> Mobile &amp; Desktop App Store Addresses
+                                </h5>
+                                <p class="text-muted small mb-0">
+                                    Configure official store download links for the public <code>/download</code> landing page and sponsored ad campaigns. Any platform left blank automatically displays a <strong>Coming Soon</strong> badge with an instant Web App (PWA) install fallback.
+                                </p>
+                            </div>
+                            <a href="https://newsstand.ng/download" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-info d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-box-arrow-up-right"></i> Preview /download Page
+                            </a>
+                        </div>
+
+                        @{
+                            var androidStoreUrl = Model.GetVal("AppStore:AndroidUrl");
+                            var iosStoreUrl = Model.GetVal("AppStore:IosUrl");
+                            var windowsStoreUrl = Model.GetVal("AppStore:WindowsUrl");
+                            var macStoreUrl = Model.GetVal("AppStore:MacUrl");
+                        }
+
+                        <div class="row g-3 mt-1">
+                            <!-- Android (Google Play Store) -->
+                            <div class="col-12 col-md-6">
+                                <div class="p-3 rounded border border-secondary border-opacity-25 bg-dark bg-opacity-25 h-100">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <label class="form-label text-light small fw-semibold mb-0 d-flex align-items-center gap-2">
+                                            <i class="bi bi-google-play text-success fs-5"></i> Android (Google Play Store URL)
+                                        </label>
+                                        @if (!string.IsNullOrWhiteSpace(androidStoreUrl))
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle">LIVE</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">COMING SOON + PWA</span>
+                                        }
+                                    </div>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-dark border-secondary text-success"><i class="bi bi-google-play"></i></span>
+                                        <input type="url"
+                                               name="FormInputs[AppStore:AndroidUrl]"
+                                               value="@androidStoreUrl"
+                                               class="form-control form-control-glass font-monospace text-light"
+                                               placeholder="https://play.google.com/store/apps/details?id=ng.newsstand.app" />
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        Official Google Play Store listing or direct APK distribution link for Android devices.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- iOS (Apple App Store) -->
+                            <div class="col-12 col-md-6">
+                                <div class="p-3 rounded border border-secondary border-opacity-25 bg-dark bg-opacity-25 h-100">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <label class="form-label text-light small fw-semibold mb-0 d-flex align-items-center gap-2">
+                                            <i class="bi bi-apple text-light fs-5"></i> iOS &amp; iPadOS (Apple App Store URL)
+                                        </label>
+                                        @if (!string.IsNullOrWhiteSpace(iosStoreUrl))
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle">LIVE</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">COMING SOON + PWA</span>
+                                        }
+                                    </div>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-apple"></i></span>
+                                        <input type="url"
+                                               name="FormInputs[AppStore:IosUrl]"
+                                               value="@iosStoreUrl"
+                                               class="form-control form-control-glass font-monospace text-light"
+                                               placeholder="https://apps.apple.com/ng/app/news-stand-ng/id0000000000" />
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        Official Apple App Store URL for iPhone and iPad users.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Windows (Microsoft Store / Installer) -->
+                            <div class="col-12 col-md-6">
+                                <div class="p-3 rounded border border-secondary border-opacity-25 bg-dark bg-opacity-25 h-100">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <label class="form-label text-light small fw-semibold mb-0 d-flex align-items-center gap-2">
+                                            <i class="bi bi-windows text-info fs-5"></i> Windows (Microsoft Store / MSIX URL)
+                                        </label>
+                                        @if (!string.IsNullOrWhiteSpace(windowsStoreUrl))
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle">LIVE</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">COMING SOON + PWA</span>
+                                        }
+                                    </div>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-dark border-secondary text-info"><i class="bi bi-windows"></i></span>
+                                        <input type="url"
+                                               name="FormInputs[AppStore:WindowsUrl]"
+                                               value="@windowsStoreUrl"
+                                               class="form-control form-control-glass font-monospace text-light"
+                                               placeholder="https://apps.microsoft.com/detail/..." />
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        Microsoft Store listing or direct Windows 10/11 desktop installer URL.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- macOS (Mac App Store / DMG) -->
+                            <div class="col-12 col-md-6">
+                                <div class="p-3 rounded border border-secondary border-opacity-25 bg-dark bg-opacity-25 h-100">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <label class="form-label text-light small fw-semibold mb-0 d-flex align-items-center gap-2">
+                                            <i class="bi bi-laptop text-warning fs-5"></i> macOS (Mac App Store / DMG URL)
+                                        </label>
+                                        @if (!string.IsNullOrWhiteSpace(macStoreUrl))
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle">LIVE</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">COMING SOON + PWA</span>
+                                        }
+                                    </div>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-dark border-secondary text-warning"><i class="bi bi-laptop"></i></span>
+                                        <input type="url"
+                                               name="FormInputs[AppStore:MacUrl]"
+                                               value="@macStoreUrl"
+                                               class="form-control form-control-glass font-monospace text-light"
+                                               placeholder="https://apps.apple.com/ng/app/news-stand-ng/id0000000000?mt=12" />
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        Mac App Store listing or Apple Silicon / Intel universal DMG URL.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Sponsored Campaign Destination URLs Helper -->
+                            <div class="col-12 mt-3">
+                                <div class="p-3 rounded border border-info border-opacity-25 bg-info bg-opacity-10">
+                                    <div class="text-info fw-bold small mb-2">
+                                        <i class="bi bi-megaphone-fill me-1"></i> Sponsored Campaign Landing URLs (Google Ads, Meta Ads, X Ads):
+                                    </div>
+                                    <div class="row g-2 small text-muted">
+                                        <div class="col-12 col-md-6">
+                                            <div class="p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25 d-flex align-items-center justify-content-between gap-2">
+                                                <div>
+                                                    <div class="text-white fw-semibold">Standard Smart Landing Page</div>
+                                                    <code class="text-info">https://newsstand.ng/download</code>
+                                                    <div style="font-size: 0.75rem;">Highlights visitor's detected OS at the top + shows all 4 stores &amp; QR code.</div>
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-info text-nowrap" onclick="navigator.clipboard.writeText('https://newsstand.ng/download'); this.innerHTML='<i class=\'bi bi-check2\'></i> Copied';">
+                                                    <i class="bi bi-clipboard"></i> Copy
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <div class="p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25 d-flex align-items-center justify-content-between gap-2">
+                                                <div>
+                                                    <div class="text-white fw-semibold">Instant Store Redirect Mode</div>
+                                                    <code class="text-warning">https://newsstand.ng/download?auto=1</code>
+                                                    <div style="font-size: 0.75rem;">Fires conversion tracking &amp; immediately redirects user to their OS store if configured.</div>
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-warning text-nowrap" onclick="navigator.clipboard.writeText('https://newsstand.ng/download?auto=1'); this.innerHTML='<i class=\'bi bi-check2\'></i> Copied';">
+                                                    <i class="bi bi-clipboard"></i> Copy
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

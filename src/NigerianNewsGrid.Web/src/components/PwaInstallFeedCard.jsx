@@ -36,7 +36,7 @@ export default function PwaInstallFeedCard({ onInstall }) {
         </ul>
       </div>
 
-      <div className="pwa-feed-footer">
+      <div className="pwa-feed-footer" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
         <button
           className="pwa-feed-install-btn"
           onClick={onInstall}
@@ -45,6 +45,17 @@ export default function PwaInstallFeedCard({ onInstall }) {
           <Download size={16} />
           <span>Install Web App</span>
         </button>
+        <a
+          href="/download"
+          style={{
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            color: 'var(--emerald-bright, #10b981)',
+            textDecoration: 'none',
+          }}
+        >
+          Play Store &amp; App Store →
+        </a>
       </div>
     </article>
   );

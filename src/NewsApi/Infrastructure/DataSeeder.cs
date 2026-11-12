@@ -44,7 +44,6 @@ public class DataSeeder : IDataSeeder
         await SeedSourcesAsync(cancellationToken);
         await EnsureWorldSourcesAsync(cancellationToken);
         await SeedArticlesAsync(cancellationToken);
-        await SeedSponsoredArticlesAsync(cancellationToken);
         await SeedVideoChannelsAsync(cancellationToken);
         await SeedSocialHandlesAsync(cancellationToken);
         await SeedSocialPostsAsync(cancellationToken);
@@ -263,40 +262,6 @@ public class DataSeeder : IDataSeeder
         }
     }
 
-    // ── Sponsored Articles (Direct Monetization) ──────────────────────────────
-
-    private async Task SeedSponsoredArticlesAsync(CancellationToken ct)
-    {
-        if (await _db.Articles.AnyAsync(a => a.IsSponsored, ct)) return;
-
-        _db.Articles.Add(new Article
-        {
-            Id = Guid.NewGuid().ToString("N"),
-            Title = "Flutterwave Launches ₦10 Billion SME Growth & Expansion Fund",
-            Slug = "flutterwave-sme-growth-fund-seed06",
-            Excerpt = "Africa's leading payments technology powerhouse unveils a dedicated financing initiative and zero-fee digital settlement tools.",
-            Summary = "Africa's leading payments technology powerhouse unveils a dedicated financing initiative and zero-fee digital settlement tools for registered Nigerian merchants.",
-            Content = "Flutterwave, Africa's leading payments technology company, today announced a landmark ₦10 Billion SME Growth and Financing Initiative aimed at accelerating digital commerce across Nigeria. The program provides participating merchants with instant working capital advances, zero settlement fees during the promotional period, and integrated omni-channel point-of-sale capabilities.",
-            Url = "https://flutterwave.com/ng",
-            ImageUrl = "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&auto=format&fit=crop&q=80",
-            Source = "Flutterwave Press Release",
-            Category = "Business",
-            PublishedAt = DateTime.UtcNow.AddHours(-1),
-            IsSponsored = true,
-            SponsorName = "Flutterwave",
-            SponsorUrl = "https://flutterwave.com/ng",
-            IsPinned = true,
-            CampaignExpiresAt = DateTime.UtcNow.AddDays(30),
-            PlacementZone = "MainPage_InFeed",
-            TargetPlatform = "All",
-            ImpressionCount = 1420,
-            ClickCount = 118
-        });
-
-        await _db.SaveChangesAsync(ct);
-        _logger.LogInformation("Default sample sponsored campaign seeded.");
-    }
-
     // ── Video Channels ────────────────────────────────────────────────────────
 
     private static readonly List<VideoChannel> DefaultChannels =
@@ -408,6 +373,18 @@ public class DataSeeder : IDataSeeder
             _db.VideoStories.RemoveRange(dummies);
             await _db.SaveChangesAsync(ct);
             _logger.LogInformation("Removed {Count} dummy placeholder video stories.", dummies.Count);
+        }
+
+        var testSponsored = await _db.Articles
+            .Where(a => a.Slug == "flutterwave-sme-growth-fund-seed06" ||
+                        (a.IsSponsored && a.SponsorName == "Flutterwave" && a.Source == "Flutterwave Press Release"))
+            .ToListAsync(ct);
+
+        if (testSponsored.Count > 0)
+        {
+            _db.Articles.RemoveRange(testSponsored);
+            await _db.SaveChangesAsync(ct);
+            _logger.LogInformation("Removed {Count} seeded test Flutterwave sponsored post(s).", testSponsored.Count);
         }
     }
 

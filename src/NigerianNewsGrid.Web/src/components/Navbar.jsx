@@ -210,6 +210,23 @@ export default function Navbar({
                 </div>
               </div>
 
+              {/* Get Mobile & Desktop Apps Page Link */}
+              <div className="btn-callout-wrapper buletin-desktop-action">
+                <a
+                  href="/download"
+                  className="buletin-nav-pill-btn"
+                  aria-label="Download Mobile & Desktop Apps"
+                  style={{ textDecoration: 'none' }}
+                >
+                  <Smartphone size={15} />
+                  <span className="nav-btn-text">Get App</span>
+                </a>
+                <div className="btn-callout bottom">
+                  <span className="btn-callout-title">Mobile &amp; Desktop Apps</span>
+                  <span className="btn-callout-desc">Download News Stand NG on Google Play, Apple App Store, Windows &amp; Mac</span>
+                </div>
+              </div>
+
               {/* Install App CTA (Desktop/Tablet) */}
               {isInstallable && (
                 <div className="btn-callout-wrapper buletin-desktop-action">
@@ -431,6 +448,16 @@ export default function Navbar({
               <span>Saved Stories & Reading List</span>
               {bookmarkCount > 0 && <span className="mobile-drawer-badge counter">{bookmarkCount}</span>}
             </button>
+
+            <a
+              href="/download"
+              className="mobile-drawer-link highlight-emerald"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <Smartphone size={18} />
+              <span>Download Mobile &amp; PC Apps</span>
+              <span className="mobile-drawer-badge new">Stores</span>
+            </a>
 
             {isInstallable && (
               <button

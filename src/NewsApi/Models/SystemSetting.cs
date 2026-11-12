@@ -78,3 +78,15 @@ public record TestConnectionResponseDto(
     string Message,
     int? StatusCode = null
 );
+
+public record AppStoreLinksDto(
+    string AndroidUrl,
+    string IosUrl,
+    string WindowsUrl,
+    string MacUrl,
+    bool HasAndroid,
+    bool HasIos,
+    bool HasWindows,
+    bool HasMac,
+    bool HasAnyStore
+);

@@ -631,6 +631,30 @@ export const api = {
   },
 
   /**
+   * Fetch public mobile & desktop app store URLs configured in Admin Settings.
+   */
+  async getAppStoreLinks() {
+    const base = getApiBaseUrl();
+    try {
+      const data = await fetchJson(`${base}/settings/app-stores`);
+      if (data && typeof data === 'object') return data;
+    } catch {
+      // Fallback when offline or unconfigured
+    }
+    return {
+      androidUrl: '',
+      iosUrl: '',
+      windowsUrl: '',
+      macUrl: '',
+      hasAndroid: false,
+      hasIos: false,
+      hasWindows: false,
+      hasMac: false,
+      hasAnyStore: false,
+    };
+  },
+
+  /**
    * Submit contact / feedback form to News API, which records it and routes an email notification to Admin@newsstand.ng.
    */
   async submitFeedback({ rating = 5, category = 'General', message = '', userEmail = '', userName = '', platform = 'Web' } = {}) {
