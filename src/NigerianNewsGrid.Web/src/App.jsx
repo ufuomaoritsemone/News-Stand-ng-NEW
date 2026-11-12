@@ -507,6 +507,46 @@ export default function App({ initialData = null, initialCategory = 'All' }) {
   }, [loadArticles]);
 
   const [newStoriesCount, setNewStoriesCount] = useState(0);
+  const updateHornAudioRef = useRef(null);
+  const lastHornPlayedAtRef = useRef(0);
+  const prevHasNewStoriesAlertRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && typeof Audio !== 'undefined') {
+      try {
+        const audio = new Audio('/NewspaperHorn.mp3');
+        audio.preload = 'auto';
+        updateHornAudioRef.current = audio;
+      } catch {}
+    }
+  }, []);
+
+  const playUpdateHorn = useCallback(() => {
+    if (typeof window === 'undefined' || typeof Audio === 'undefined') return;
+    const now = Date.now();
+    if (now - lastHornPlayedAtRef.current < 3000) return;
+    lastHornPlayedAtRef.current = now;
+
+    try {
+      if (!updateHornAudioRef.current) {
+        updateHornAudioRef.current = new Audio('/NewspaperHorn.mp3');
+        updateHornAudioRef.current.preload = 'auto';
+      }
+      const audio = updateHornAudioRef.current;
+      audio.currentTime = 0;
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {});
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (hasNewStoriesAlert && !prevHasNewStoriesAlertRef.current) {
+      playUpdateHorn();
+    }
+    prevHasNewStoriesAlertRef.current = hasNewStoriesAlert;
+  }, [hasNewStoriesAlert, playUpdateHorn]);
 
   // Periodic background check & focus check for live news updates (every 45 seconds when page is visible)
   const checkForNewStories = useCallback(async () => {

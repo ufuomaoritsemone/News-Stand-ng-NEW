@@ -12,6 +12,7 @@ const PRECACHE_ASSETS = [
   '/icon-192.png',
   '/icon-512.png',
   '/icon-maskable-512.png',
+  '/NewspaperHorn.mp3',
 ];
 
 // Install: pre-cache application shell and offline fallback
@@ -69,6 +70,7 @@ self.addEventListener('fetch', (event) => {
     url.pathname.endsWith('.woff2') ||
     url.pathname.endsWith('.png') ||
     url.pathname.endsWith('.svg') ||
+    url.pathname.endsWith('.mp3') ||
     url.pathname.endsWith('.css') ||
     url.pathname.endsWith('.js');
 

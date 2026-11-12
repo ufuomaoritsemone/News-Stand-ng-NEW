@@ -23,6 +23,16 @@ Projects:
 
 ## Updates
 
+### November 12, 2026 — Live News Update Pill Sonic Chime (`NewspaperHorn.mp3`)
+Added the `NewspaperHorn.mp3` audio chime to the web application (`NigerianNewsGrid.Web`) so it plays automatically whenever new stories are detected and the Floating Live News Update Pill appears:
+- **[Static Audio Asset & PWA Service Worker (`src/NigerianNewsGrid.Web/public/NewspaperHorn.mp3`, `src/NigerianNewsGrid.Web/public/sw.js`)]**:
+  - Copied `.mobiledesign/NewspaperHorn.mp3` into `src/NigerianNewsGrid.Web/public/NewspaperHorn.mp3` for direct serving at `/NewspaperHorn.mp3`.
+  - Added `/NewspaperHorn.mp3` to `PRECACHE_ASSETS` and `.mp3` handling to `isStaticAsset` in `sw.js` for instant playback and offline caching.
+- **[Live Update Pill Audio Trigger (`src/NigerianNewsGrid.Web/src/App.jsx`)]**:
+  - Preloaded `/NewspaperHorn.mp3` into `updateHornAudioRef` on client mount and added `playUpdateHorn` with a 3-second cooldown (`lastHornPlayedAtRef`, matching the MAUI `SonicFeedbackService` pattern) and non-blocking autoplay promise handling.
+  - Triggered `playUpdateHorn()` when `hasNewStoriesAlert` transitions from `false` to `true` (`prevHasNewStoriesAlertRef`) as the Floating Live News Update Pill renders.
+- **[Testing & Verification]**: Verified client and SSR production bundles with `npm run build` in `src/NigerianNewsGrid.Web` (0 errors).
+
 ### November 12, 2026 — Meta (Facebook) Domain Verification Meta Tag
 Added the Meta domain verification `<meta>` tag (`facebook-domain-verification`) to the web application `<head>` for domain ownership verification in Meta Business Suite:
 - **[SSR Root Layout & HTML Template (`src/NigerianNewsGrid.Web/app/root.jsx`, `src/NigerianNewsGrid.Web/index.html`)]**:
@@ -1842,6 +1852,16 @@ run-services.bat
 - **News API**: [http://localhost:56193](http://localhost:56193)
  
 ## Updates
+
+### November 12, 2026 — Live News Update Pill Sonic Chime (`NewspaperHorn.mp3`)
+Added the `NewspaperHorn.mp3` audio chime to the web application (`NigerianNewsGrid.Web`) so it plays automatically whenever new stories are detected and the Floating Live News Update Pill appears:
+- **[Static Audio Asset & PWA Service Worker (`src/NigerianNewsGrid.Web/public/NewspaperHorn.mp3`, `src/NigerianNewsGrid.Web/public/sw.js`)]**:
+  - Copied `.mobiledesign/NewspaperHorn.mp3` into `src/NigerianNewsGrid.Web/public/NewspaperHorn.mp3` for direct serving at `/NewspaperHorn.mp3`.
+  - Added `/NewspaperHorn.mp3` to `PRECACHE_ASSETS` and `.mp3` handling to `isStaticAsset` in `sw.js` for instant playback and offline caching.
+- **[Live Update Pill Audio Trigger (`src/NigerianNewsGrid.Web/src/App.jsx`)]**:
+  - Preloaded `/NewspaperHorn.mp3` into `updateHornAudioRef` on client mount and added `playUpdateHorn` with a 3-second cooldown (`lastHornPlayedAtRef`, matching the MAUI `SonicFeedbackService` pattern) and non-blocking autoplay promise handling.
+  - Triggered `playUpdateHorn()` when `hasNewStoriesAlert` transitions from `false` to `true` (`prevHasNewStoriesAlertRef`) as the Floating Live News Update Pill renders.
+- **[Testing & Verification]**: Verified client and SSR production bundles with `npm run build` in `src/NigerianNewsGrid.Web` (0 errors).
 
 ### November 12, 2026 — Meta (Facebook) Domain Verification Meta Tag
 Added the Meta domain verification `<meta>` tag (`facebook-domain-verification`) to the web application `<head>` for domain ownership verification in Meta Business Suite:
