@@ -141,6 +141,7 @@ public class ArticlesController : ControllerBase
         [FromQuery] int     limit      = 200,
         [FromQuery] int     page       = 1,
         [FromQuery] int     pageSize   = 50,
+        [FromQuery] string? sortBy     = null,
         CancellationToken   cancellationToken = default)
     {
         var query = _db.Articles.AsNoTracking();
@@ -191,7 +192,8 @@ public class ArticlesController : ControllerBase
                 Days: days,
                 Page: page,
                 PageSize: pageSize > 0 ? pageSize : limit,
-                ContentType: contentType
+                ContentType: contentType,
+                SortBy: sortBy
             );
 
             var searchResults = await _searchService.SearchArticlesAsync(searchParams, cancellationToken);
@@ -259,6 +261,24 @@ public class ArticlesController : ControllerBase
         if (a == null)
             return NotFound(new { message = $"Article with ID '{id}' was not found." });
 
+        if (string.IsNullOrWhiteSpace(a.Slug))
+        {
+            a.Slug = _slugService.GenerateArticleSlug(a.Title, a.Id);
+            try
+            {
+                var tracked = await _db.Articles.FirstOrDefaultAsync(x => x.Id == a.Id, cancellationToken);
+                if (tracked != null && string.IsNullOrWhiteSpace(tracked.Slug))
+                {
+                    tracked.Slug = a.Slug;
+                    await _db.SaveChangesAsync(cancellationToken);
+                }
+            }
+            catch
+            {
+                // Non-fatal: MapToArticleDto still returns the synthesized slug
+            }
+        }
+
         var audio = await _db.AudioAssets
             .AsNoTracking()
             .Where(x => x.ArticleId == a.Id)
@@ -325,7 +345,9 @@ public class ArticlesController : ControllerBase
                     .Include(a => a.Enrichment)
                     .FirstOrDefaultAsync(a => a.Slug.EndsWith(suffix) || a.Id.StartsWith(suffix), cancellationToken);
 
-                if (article != null && !string.Equals(article.Slug, normalizedSlug, StringComparison.OrdinalIgnoreCase))
+                if (article != null &&
+                    !string.IsNullOrWhiteSpace(article.Slug) &&
+                    !string.Equals(article.Slug, normalizedSlug, StringComparison.OrdinalIgnoreCase))
                 {
                     redirectSlug = article.Slug;
                 }
@@ -348,10 +370,26 @@ public class ArticlesController : ControllerBase
 
         if (article == null)
         {
+            article = await ResolveArticleBySynthesizedOrTitleSlugAsync(normalizedSlug, cancellationToken);
+            if (article != null &&
+                !string.IsNullOrWhiteSpace(article.Slug) &&
+                !string.Equals(article.Slug, normalizedSlug, StringComparison.OrdinalIgnoreCase))
+            {
+                redirectSlug = article.Slug;
+            }
+        }
+
+        if (article == null)
+        {
             return NotFound(new ErrorResponseDto
             {
                 Error = new ErrorPayload { Code = "NOT_FOUND", Message = $"No article found matching slug '{slug}'.", TraceId = HttpContext.TraceIdentifier }
             });
+        }
+
+        if (string.IsNullOrWhiteSpace(article.Slug))
+        {
+            article.Slug = _slugService.GenerateArticleSlug(article.Title, article.Id);
         }
 
         var lastModified = article.UpdatedAt ?? article.PublishedAt ?? DateTime.UtcNow;
@@ -442,6 +480,97 @@ public class ArticlesController : ControllerBase
         };
 
         return Ok(detailDto);
+    }
+
+    private async Task<Article?> ResolveArticleBySynthesizedOrTitleSlugAsync(
+        string normalizedSlug,
+        CancellationToken cancellationToken)
+    {
+        var parts = normalizedSlug.Split('-', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return null;
+
+        var baseWithoutHash = parts.Length > 1 && parts[^1].Length == 6
+            ? string.Join('-', parts[..^1])
+            : normalizedSlug;
+
+        var searchTokens = parts
+            .Where(p => p.Length >= 3 && !string.Equals(p, "naira", StringComparison.OrdinalIgnoreCase) && p.All(char.IsLetterOrDigit))
+            .Take(3)
+            .ToList();
+
+        List<Article> candidates = [];
+        if (searchTokens.Count > 0)
+        {
+            var t0 = searchTokens[0];
+            var t1 = searchTokens.Count > 1 ? searchTokens[1] : t0;
+            var t2 = searchTokens.Count > 2 ? searchTokens[2] : t0;
+
+            candidates = await _db.Articles
+                .AsNoTracking()
+                .Include(a => a.ArticleTopics).ThenInclude(at => at.Topic)
+                .Include(a => a.Enrichment)
+                .Where(a => a.Title.ToLower().Contains(t0) ||
+                            a.Title.ToLower().Contains(t1) ||
+                            a.Title.ToLower().Contains(t2))
+                .OrderByDescending(a => a.PublishedAt ?? DateTime.MinValue)
+                .Take(250)
+                .ToListAsync(cancellationToken);
+        }
+
+        var matched = FindMatchingCandidate(candidates, normalizedSlug, baseWithoutHash);
+        if (matched == null)
+        {
+            var unsluggedCandidates = await _db.Articles
+                .AsNoTracking()
+                .Include(a => a.ArticleTopics).ThenInclude(at => at.Topic)
+                .Include(a => a.Enrichment)
+                .Where(a => a.Slug == null || a.Slug == "")
+                .OrderByDescending(a => a.PublishedAt ?? DateTime.MinValue)
+                .Take(250)
+                .ToListAsync(cancellationToken);
+
+            matched = FindMatchingCandidate(unsluggedCandidates, normalizedSlug, baseWithoutHash);
+        }
+
+        if (matched != null && string.IsNullOrWhiteSpace(matched.Slug))
+        {
+            matched.Slug = _slugService.GenerateArticleSlug(matched.Title, matched.Id);
+            try
+            {
+                var tracked = await _db.Articles.FirstOrDefaultAsync(x => x.Id == matched.Id, cancellationToken);
+                if (tracked != null && string.IsNullOrWhiteSpace(tracked.Slug))
+                {
+                    tracked.Slug = matched.Slug;
+                    await _db.SaveChangesAsync(cancellationToken);
+                }
+            }
+            catch
+            {
+                // Non-fatal backfill
+            }
+        }
+
+        return matched;
+    }
+
+    private Article? FindMatchingCandidate(
+        List<Article> candidates,
+        string normalizedSlug,
+        string baseWithoutHash)
+    {
+        // 1. Exact synthesized slug match (title + deterministic 6-char SHA256 hash of ID)
+        var exactSynthesized = candidates.FirstOrDefault(c =>
+            string.Equals(_slugService.GenerateArticleSlug(c.Title, c.Id), normalizedSlug, StringComparison.OrdinalIgnoreCase));
+        if (exactSynthesized != null) return exactSynthesized;
+
+        // 2. Title-only slug match (via SlugService or client-side NewsStandUrlHelper.Slugify)
+        var titleMatch = candidates.FirstOrDefault(c =>
+            string.Equals(_slugService.GenerateSlug(c.Title, 80), normalizedSlug, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(_slugService.GenerateSlug(c.Title, 73), baseWithoutHash, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(NigerianNewsGrid.Client.Helpers.NewsStandUrlHelper.Slugify(c.Title), normalizedSlug, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(NigerianNewsGrid.Client.Helpers.NewsStandUrlHelper.Slugify(c.Title), baseWithoutHash, StringComparison.OrdinalIgnoreCase));
+
+        return titleMatch;
     }
 
     [HttpGet("{id}/ai-summary")]

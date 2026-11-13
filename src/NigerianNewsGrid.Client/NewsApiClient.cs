@@ -310,6 +310,7 @@ public class NewsApiClient
         int? days = null,
         int page = 1,
         int pageSize = 30,
+        string? sortBy = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -332,6 +333,10 @@ public class NewsApiClient
             if (days.HasValue && days.Value > 0)
             {
                 query["days"] = days.Value.ToString();
+            }
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                query["sortBy"] = sortBy;
             }
             query["page"] = page.ToString();
             query["pageSize"] = pageSize.ToString();

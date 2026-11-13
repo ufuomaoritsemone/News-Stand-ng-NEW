@@ -14,6 +14,7 @@ public class RelatedStoryDisplayItem
     public string ImageUrl { get; set; } = string.Empty;
     public string Type { get; set; } = "Article"; // Article, Video, Social
     public string Url { get; set; } = string.Empty;
+    public string? Slug { get; set; }
     public string? Content { get; set; }
     public string? Summary { get; set; }
     public bool HasAiSummary { get; set; }

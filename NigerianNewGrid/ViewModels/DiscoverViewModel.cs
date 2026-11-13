@@ -138,7 +138,7 @@ public partial class DiscoverViewModel : ObservableObject, IDisposable, IQueryAt
                     keywords,
                     publishedAfterUtc: DateTime.MinValue);
 
-                var list = matches.Select(m => m.Article).ToList();
+                var list = SortStoriesByDateDescending(matches.Select(m => m.Article));
                 var kwSummary = string.Join(", ", keywords);
                 _arrangedCategoryFeed = list;
                 UpdateFeedDisplay(list, $"🔔 Monitored Topic Alerts ({list.Count} stories matching: {kwSummary})");
@@ -161,22 +161,22 @@ public partial class DiscoverViewModel : ObservableObject, IDisposable, IQueryAt
                 var articles = await _apiClient.GetOpinionsAsync(days: 14, page: 1, pageSize: 30);
                 if (articles.Count > 0)
                 {
-                    _categoryArticles = articles;
+                    _categoryArticles = SortStoriesByDateDescending(articles);
                     _hasMoreCategoryPages = articles.Count >= 30;
                 }
                 else
                 {
-                    _categoryArticles = _allItems.Where(i =>
+                    _categoryArticles = SortStoriesByDateDescending(_allItems.Where(i =>
                         string.Equals(i.ContentType, "Opinion", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(i.Category, "Opinion", StringComparison.OrdinalIgnoreCase)).ToList();
+                        string.Equals(i.Category, "Opinion", StringComparison.OrdinalIgnoreCase)));
                     _hasMoreCategoryPages = false;
                 }
             }
             catch
             {
-                _categoryArticles = _allItems.Where(i =>
+                _categoryArticles = SortStoriesByDateDescending(_allItems.Where(i =>
                     string.Equals(i.ContentType, "Opinion", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(i.Category, "Opinion", StringComparison.OrdinalIgnoreCase)).ToList();
+                    string.Equals(i.Category, "Opinion", StringComparison.OrdinalIgnoreCase)));
                 _hasMoreCategoryPages = false;
             }
 
@@ -195,22 +195,22 @@ public partial class DiscoverViewModel : ObservableObject, IDisposable, IQueryAt
 
             if (articles.Count > 0)
             {
-                _categoryArticles = articles;
+                _categoryArticles = SortStoriesByDateDescending(articles);
                 _hasMoreCategoryPages = articles.Count >= 30;
             }
             else
             {
                 _categoryArticles = string.Equals(category, "All", StringComparison.OrdinalIgnoreCase)
-                    ? _allItems
-                    : _allItems.Where(i => string.Equals(i.Category, category, StringComparison.OrdinalIgnoreCase)).ToList();
+                    ? SortStoriesByDateDescending(_allItems)
+                    : SortStoriesByDateDescending(_allItems.Where(i => string.Equals(i.Category, category, StringComparison.OrdinalIgnoreCase)));
                 _hasMoreCategoryPages = false;
             }
         }
         catch
         {
             _categoryArticles = string.Equals(category, "All", StringComparison.OrdinalIgnoreCase)
-                ? _allItems
-                : _allItems.Where(i => string.Equals(i.Category, category, StringComparison.OrdinalIgnoreCase)).ToList();
+                ? SortStoriesByDateDescending(_allItems)
+                : SortStoriesByDateDescending(_allItems.Where(i => string.Equals(i.Category, category, StringComparison.OrdinalIgnoreCase)));
             _hasMoreCategoryPages = false;
         }
 
@@ -380,7 +380,8 @@ public partial class DiscoverViewModel : ObservableObject, IDisposable, IQueryAt
                         _hasMoreCategoryPages = false;
                     }
 
-                    var uniqueNew = newArticles.Where(a => !_categoryArticles.Any(existing => string.Equals(existing.Id, a.Id, StringComparison.OrdinalIgnoreCase))).ToList();
+                    var uniqueNew = SortStoriesByDateDescending(
+                        newArticles.Where(a => !_categoryArticles.Any(existing => string.Equals(existing.Id, a.Id, StringComparison.OrdinalIgnoreCase))));
                     _categoryArticles.AddRange(uniqueNew);
 
                     var isOnline = Connectivity.Current.NetworkAccess == NetworkAccess.Internet;
@@ -464,7 +465,7 @@ public partial class DiscoverViewModel : ObservableObject, IDisposable, IQueryAt
             var categories = await _storyRepository.GetCachedBriefingAsync(days: 14);
             if (categories.Count > 0)
             {
-                _allItems = categories.SelectMany(c => c.Top).ToList();
+                _allItems = SortStoriesByDateDescending(categories.SelectMany(c => c.Top));
             }
             else
             {
@@ -472,7 +473,7 @@ public partial class DiscoverViewModel : ObservableObject, IDisposable, IQueryAt
                 if (!string.IsNullOrWhiteSpace(cached))
                 {
                     var legacyCategories = JsonSerializer.Deserialize<List<BriefingCategory>>(cached, JsonOptions);
-                    _allItems = legacyCategories?.SelectMany(c => c.Top).ToList() ?? [];
+                    _allItems = SortStoriesByDateDescending(legacyCategories?.SelectMany(c => c.Top) ?? []);
                 }
             }
         }
@@ -614,7 +615,8 @@ public partial class DiscoverViewModel : ObservableObject, IDisposable, IQueryAt
                 category: catParam,
                 days: null,
                 page: _searchPage,
-                pageSize: 30);
+                pageSize: 30,
+                sortBy: "date");
 
             // Resilient fallback: if 0 results on page 1 and query had multiple words, try with the first 2 terms
             if (_searchPage == 1 && newItems.Count == 0 && SearchQuery.Contains(' '))
@@ -627,7 +629,8 @@ public partial class DiscoverViewModel : ObservableObject, IDisposable, IQueryAt
                         category: catParam,
                         days: null,
                         page: 1,
-                        pageSize: 30);
+                        pageSize: 30,
+                        sortBy: "date");
                     if (fallbackItems.Count > 0)
                     {
                         newItems = fallbackItems;
@@ -635,13 +638,28 @@ public partial class DiscoverViewModel : ObservableObject, IDisposable, IQueryAt
                 }
             }
 
+            // Offline / local cache fallback on page 1 when API returns no results
+            if (_searchPage == 1 && newItems.Count == 0 && _allItems.Count > 0)
+            {
+                newItems = _allItems
+                    .Where(i =>
+                        (string.IsNullOrEmpty(catParam) || string.Equals(i.Category, catParam, StringComparison.OrdinalIgnoreCase)) &&
+                        ((i.Title?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                         (i.Summary?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                         (i.Content?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                         (i.Source?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false)))
+                    .ToList();
+            }
+
             if (_searchPage == 1)
             {
-                _searchResults = newItems;
+                _searchResults = SortStoriesByDateDescending(newItems);
             }
             else
             {
-                _searchResults.AddRange(newItems);
+                var uniqueNew = newItems
+                    .Where(a => !_searchResults.Any(existing => string.Equals(existing.Id, a.Id, StringComparison.OrdinalIgnoreCase)));
+                _searchResults = SortStoriesByDateDescending(_searchResults.Concat(uniqueNew));
             }
 
             IsLoadMoreVisible = newItems.Count >= 30;
@@ -663,6 +681,14 @@ public partial class DiscoverViewModel : ObservableObject, IDisposable, IQueryAt
     private void EnsureApiBaseUrl()
     {
         _apiClient.BaseUrl = AppNetworkConstants.GetConfiguredApiBaseUrl();
+    }
+
+    public static List<BriefingItem> SortStoriesByDateDescending(IEnumerable<BriefingItem> items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        return items
+            .OrderByDescending(i => i.PublishedAt ?? DateTime.MinValue)
+            .ToList();
     }
 
     private void UpdateFeedDisplay(List<BriefingItem> items, string headerText)

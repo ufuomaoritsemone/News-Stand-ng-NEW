@@ -11,9 +11,11 @@ namespace NigerianNewsGrid.Tests
         private class FakeHandler : HttpMessageHandler
         {
             private readonly HttpResponseMessage _response;
+            public HttpRequestMessage? LastRequest { get; private set; }
             public FakeHandler(HttpResponseMessage response) => _response = response;
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
             {
+                LastRequest = request;
                 return Task.FromResult(_response);
             }
         }
@@ -323,6 +325,31 @@ namespace NigerianNewsGrid.Tests
             Assert.Equal(2, summary.ContextAndBackground.Count);
             Assert.Single(summary.KeyFiguresAndEntities);
             Assert.Equal("Implementation in Q4", summary.OutlookOrNextSteps);
+        }
+
+        [Fact]
+        public async Task GetArticlesAsync_IncludesSortByQueryParameter_WhenProvided()
+        {
+            var json = "[{\"id\":\"art-1\",\"title\":\"Newest Story\",\"publishedAt\":\"2026-11-13T10:00:00Z\"}]";
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+            };
+
+            var handler = new FakeHandler(response);
+            var client = new HttpClient(handler)
+            {
+                BaseAddress = new System.Uri("http://localhost")
+            };
+
+            var api = new NigerianNewsGrid.Client.NewsApiClient(client);
+            var articles = await api.GetArticlesAsync(search: "Tinubu", sortBy: "date");
+
+            Assert.NotNull(articles);
+            Assert.Single(articles);
+            Assert.NotNull(handler.LastRequest?.RequestUri);
+            Assert.Contains("sortBy=date", handler.LastRequest!.RequestUri!.Query);
+            Assert.Contains("search=Tinubu", handler.LastRequest.RequestUri.Query);
         }
     }
 }

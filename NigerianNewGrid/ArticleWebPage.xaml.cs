@@ -317,6 +317,7 @@ public partial class ArticleWebPage : ContentPage
                     AiSummary: item.AiSummary,
                     AiSummaryEngine: item.AiSummaryEngine,
                     KeyTakeaways: item.KeyTakeaways,
+                    Slug: item.Slug,
                     ContextAndBackground: item.ContextAndBackground,
                     KeyFiguresAndEntities: item.KeyFiguresAndEntities,
                     OutlookOrNextSteps: item.OutlookOrNextSteps)));

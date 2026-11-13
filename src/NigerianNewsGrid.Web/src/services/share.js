@@ -13,15 +13,15 @@ export function getStoryUrl(article) {
   if (article.slug) {
     return `${PRODUCTION_SITE_URL}/news/${article.slug}`;
   }
+  if (article.id) {
+    return `${PRODUCTION_SITE_URL}/news/${encodeURIComponent(article.id)}`;
+  }
   if (article.title) {
     const slug = article.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
     return `${PRODUCTION_SITE_URL}/news/${slug}`;
-  }
-  if (article.id) {
-    return `${PRODUCTION_SITE_URL}/news/${encodeURIComponent(article.id)}`;
   }
   return article.url || PRODUCTION_SITE_URL;
 }

@@ -31,6 +31,7 @@ public class CachedStoryEntity
     public string? AudioUrl { get; set; }
     public string? Author { get; set; }
     public string? ContentType { get; set; } = "News";
+    public string? Slug { get; set; }
 
     // Direct Sponsorship fields
     public bool IsSponsored { get; set; }
@@ -81,6 +82,7 @@ public class CachedStoryEntity
         AudioUrl = AudioUrl,
         Author = Author,
         ContentType = ContentType,
+        Slug = Slug,
         IsSponsored = IsSponsored,
         SponsorName = SponsorName,
         SponsorUrl = SponsorUrl,
@@ -125,6 +127,7 @@ public class CachedStoryEntity
         AudioUrl = item.AudioUrl,
         Author = item.Author,
         ContentType = item.ContentType ?? "News",
+        Slug = item.Slug,
         IsSponsored = item.IsSponsored,
         SponsorName = item.SponsorName,
         SponsorUrl = item.SponsorUrl,

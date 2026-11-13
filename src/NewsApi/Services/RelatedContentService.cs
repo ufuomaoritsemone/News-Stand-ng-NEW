@@ -18,6 +18,7 @@ public class RelatedContentService : IRelatedContentService
 {
     private readonly NewsDbContext _db;
     private readonly ILogger<RelatedContentService> _logger;
+    private readonly ISlugService _slugService;
 
     private static readonly HashSet<string> StopWords = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -40,10 +41,14 @@ public class RelatedContentService : IRelatedContentService
         "exclusive", "latest", "update", "updates", "state", "federal", "national", "government"
     };
 
-    public RelatedContentService(NewsDbContext db, ILogger<RelatedContentService> logger)
+    public RelatedContentService(
+        NewsDbContext db,
+        ILogger<RelatedContentService> logger,
+        ISlugService? slugService = null)
     {
         _db = db;
         _logger = logger;
+        _slugService = slugService ?? new SlugService();
     }
 
     /// <summary>
@@ -122,6 +127,7 @@ public class RelatedContentService : IRelatedContentService
                 {
                     a.Id,
                     a.Title,
+                    a.Slug,
                     a.Summary,
                     a.Category,
                     a.PublishedAt,
@@ -187,6 +193,9 @@ public class RelatedContentService : IRelatedContentService
                     {
                         Id = x.Article.Id,
                         Title = x.Article.Title,
+                        Slug = !string.IsNullOrEmpty(x.Article.Slug)
+                            ? x.Article.Slug
+                            : _slugService.GenerateArticleSlug(x.Article.Title, x.Article.Id),
                         Summary = x.Article.Summary,
                         Content = null,
                         Url = x.Article.Url,

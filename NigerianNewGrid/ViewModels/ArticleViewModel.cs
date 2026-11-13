@@ -758,6 +758,7 @@ public partial class ArticleViewModel : ObservableObject
                         ImageUrl = art.ImageUrl ?? GetFallbackImage(art.Category),
                         Type = "Article",
                         Url = art.Url ?? string.Empty,
+                        Slug = art.Slug,
                         Content = art.Content,
                         Summary = art.Summary,
                         HasAiSummary = art.HasAiSummary,

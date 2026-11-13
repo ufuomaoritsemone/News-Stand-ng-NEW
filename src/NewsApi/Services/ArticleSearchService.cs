@@ -18,11 +18,16 @@ public class ArticleSearchService : IArticleSearchService
 {
     private readonly NewsDbContext _db;
     private readonly ILogger<ArticleSearchService> _logger;
+    private readonly ISlugService _slugService;
 
-    public ArticleSearchService(NewsDbContext db, ILogger<ArticleSearchService> logger)
+    public ArticleSearchService(
+        NewsDbContext db,
+        ILogger<ArticleSearchService> logger,
+        ISlugService? slugService = null)
     {
         _db = db;
         _logger = logger;
+        _slugService = slugService ?? new SlugService();
     }
 
     public async Task<List<ArticleDto>> SearchArticlesAsync(
@@ -107,7 +112,12 @@ public class ArticleSearchService : IArticleSearchService
             cutoffFilter = DateTime.UtcNow.AddDays(-searchParams.Days.Value).ToString("yyyy-MM-dd HH:mm:ss");
         }
 
-        var sql = """
+        var sortByDate = string.Equals(searchParams.SortBy, "date", StringComparison.OrdinalIgnoreCase);
+        var orderByClause = sortByDate
+            ? """ORDER BY a."PublishedAt" DESC, bm25("Articles_fts", 0.0, 10.0, 5.0, 1.0)"""
+            : """ORDER BY bm25("Articles_fts", 0.0, 10.0, 5.0, 1.0), a."PublishedAt" DESC""";
+
+        var sql = $"""
             SELECT a.*
             FROM "Articles" a
             INNER JOIN "Articles_fts" fts ON a."Id" = fts."Id"
@@ -116,7 +126,7 @@ public class ArticleSearchService : IArticleSearchService
               AND (@source IS NULL OR lower(a."Source") LIKE '%' || @source || '%')
               AND (@contentType IS NULL OR lower(a."ContentType") = @contentType)
               AND (@cutoff IS NULL OR a."PublishedAt" >= @cutoff)
-            ORDER BY bm25("Articles_fts", 0.0, 10.0, 5.0, 1.0)
+            {orderByClause}
             LIMIT @limit OFFSET @offset;
             """;
 
@@ -176,7 +186,18 @@ public class ArticleSearchService : IArticleSearchService
             cutoffFilter = DateTime.UtcNow.AddDays(-searchParams.Days.Value);
         }
 
-        var sql = """
+        var sortByDate = string.Equals(searchParams.SortBy, "date", StringComparison.OrdinalIgnoreCase);
+        var orderByClause = sortByDate
+            ? """
+              ORDER BY a."PublishedAt" DESC NULLS LAST,
+                       ts_rank(a."SearchVector", query) DESC
+              """
+            : """
+              ORDER BY ts_rank(a."SearchVector", query) DESC,
+                       a."PublishedAt" DESC
+              """;
+
+        var sql = $"""
             SELECT a.*
             FROM "Articles" a, websearch_to_tsquery('english', @query) query
             WHERE a."SearchVector" @@ query
@@ -184,8 +205,7 @@ public class ArticleSearchService : IArticleSearchService
               AND (@source IS NULL OR lower(a."Source") LIKE '%' || @source || '%')
               AND (@contentType IS NULL OR lower(a."ContentType") = @contentType)
               AND (@cutoff IS NULL OR a."PublishedAt" >= @cutoff)
-            ORDER BY ts_rank(a."SearchVector", query) DESC,
-                     a."PublishedAt" DESC
+            {orderByClause}
             LIMIT @limit OFFSET @offset;
             """;
 
@@ -303,10 +323,19 @@ public class ArticleSearchService : IArticleSearchService
         return rawArticles.Select(a =>
         {
             var enr = enrichmentMap.GetValueOrDefault(a.Id);
+            var slug = !string.IsNullOrEmpty(a.Slug)
+                ? a.Slug
+                : _slugService.GenerateArticleSlug(a.Title, a.Id);
+            var excerpt = a.Excerpt ?? _slugService.GenerateExcerpt(a.Content, a.Summary, 300);
+
             return new ArticleDto
             {
                 Id = a.Id,
                 Title = a.Title,
+                Slug = slug,
+                Excerpt = excerpt,
+                SeoTitle = a.SeoTitle,
+                SeoDescription = a.SeoDescription,
                 Summary = a.Summary,
                 Content = a.Content,
                 Url = a.Url,

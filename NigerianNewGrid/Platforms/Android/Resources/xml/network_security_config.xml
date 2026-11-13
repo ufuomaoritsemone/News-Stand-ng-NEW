@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Allow clear-text HTTP for local development servers and media blogs. -->
-    <base-config cleartextTrafficPermitted="true">
+    <!-- Enforce HTTPS by default in production; allow cleartext HTTP only for local dev and legacy media hosts. -->
+    <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
             <certificates src="user" />

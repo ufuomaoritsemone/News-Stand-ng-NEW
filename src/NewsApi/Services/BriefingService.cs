@@ -20,23 +20,27 @@ public class BriefingService : IBriefingService
     private readonly NewsDbContext _db;
     private readonly IMemoryCache _cache;
     private readonly ILogger _logger;
+    private readonly ISlugService _slugService;
 
     public BriefingService(
         NewsDbContext db,
         IMemoryCache cache,
-        ILogger<BriefingService> logger)
-        : this(db, cache, (ILogger)logger)
+        ILogger<BriefingService> logger,
+        ISlugService? slugService = null)
+        : this(db, cache, (ILogger)logger, slugService)
     {
     }
 
     public BriefingService(
         NewsDbContext db,
         IMemoryCache cache,
-        ILogger logger)
+        ILogger logger,
+        ISlugService? slugService = null)
     {
         _db = db;
         _cache = cache;
         _logger = logger;
+        _slugService = slugService ?? new SlugService();
     }
 
     public async Task<BriefingResult> GetBriefingsAsync(
@@ -146,7 +150,7 @@ public class BriefingService : IBriefingService
                             },
                             Author          = a.Author,
                             ContentType     = string.IsNullOrWhiteSpace(a.ContentType) ? "News" : a.ContentType,
-                            Slug            = a.Slug,
+                            Slug            = !string.IsNullOrEmpty(a.Slug) ? a.Slug : _slugService.GenerateArticleSlug(a.Title, a.Id),
                             IsSponsored     = a.IsSponsored && (a.CampaignExpiresAt == null || a.CampaignExpiresAt > DateTime.UtcNow),
                             SponsorName     = a.SponsorName,
                             SponsorUrl      = a.SponsorUrl,

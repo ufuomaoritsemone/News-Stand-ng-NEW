@@ -13,7 +13,8 @@ public record ArticleSearchParams(
     int? Days = null,
     int Page = 1,
     int PageSize = 50,
-    string? ContentType = null
+    string? ContentType = null,
+    string? SortBy = null
 );
 
 /// <summary>

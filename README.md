@@ -23,6 +23,40 @@ Projects:
 
 ## Updates
 
+### November 13, 2026 — Fix 404 Story Not Found When Sharing Searched Articles
+Resolved the bug where searching for an article, opening any searched article, and sharing it produced a `https://newsstand.ng/news/...` link that returned `404 Story Not Found`:
+- **[Backend Search, Related, & Briefing Slug Hydration (`src/NewsApi/Services/ArticleSearchService.cs`, `src/NewsApi/Services/RelatedContentService.cs`, `src/NewsApi/Services/BriefingService.cs`)]**:
+  - Updated `ArticleSearchService.MapToArticleDtosAsync` (which previously omitted `Slug`, returning `Slug = ""` on every search result), `RelatedContentService`, and `BriefingService` to always populate `Slug` (`!string.IsNullOrEmpty(a.Slug) ? a.Slug : _slugService.GenerateArticleSlug(a.Title, a.Id)`), `Excerpt`, `SeoTitle`, and `SeoDescription`.
+- **[Resilient Slug Resolution & On-Demand Backfill (`src/NewsApi/Controllers/ArticlesController.cs`)]**:
+  - Updated `ArticlesController.GetBySlug` (`GET /api/v1/articles/by-slug/{slug}`) with `ResolveArticleBySynthesizedOrTitleSlugAsync` so that even if an article in the database has an empty `Slug` column (`""`) or a shared URL uses a synthesized slug (`title-sha256hash`) or a client-generated title-only slug (`NewsStandUrlHelper.Slugify(title)`), the article resolves with `200 OK` and automatically backfills `a.Slug` in the database.
+  - Updated `ArticlesController.GetArticleById` (`GET /api/v1/articles/{id}`) to backfill `a.Slug` if missing when hydrating an opened article.
+- **[Mobile App Local Cache & Related Story Navigation (`NigerianNewGrid/Models/CachedStoryEntity.cs`, `NigerianNewGrid/Models/RelatedStoryDisplayItem.cs`, `NigerianNewGrid/ViewModels/ArticleViewModel.cs`, `NigerianNewGrid/ArticleWebPage.xaml.cs`)]**:
+  - Added `Slug` persistence to `CachedStoryEntity` (`ToBriefingItem` / `FromBriefingItem`) and `RelatedStoryDisplayItem` so offline/cached and related article transitions preserve the canonical `Slug` when sharing.
+- **[Web Share URL Fallback Order (`src/NigerianNewsGrid.Web/src/services/share.js`)]**:
+  - Updated `getStoryUrl(article)` to prefer `article.slug`, then `article.id` (`/news/${encodeURIComponent(article.id)}`), before falling back to title slugification.
+- **[Testing & Verification]**: Added `Search_ReturnedArticle_HasValidSlugAndResolvesViaGetBySlugWithout404` and `GetBySlug_ResolvesSynthesizedAndTitleSlugsWhenDatabaseSlugWasEmpty` in `tests/NewsApiClient.Tests/ArticleSearchTests.cs` (`25/25` passed).
+
+### November 13, 2026 — Chronological Date Sorting for Mobile App Discover Search Results
+Updated the Discover page search and category feeds in the .NET 10 MAUI mobile app (`NigerianNewGrid`), client SDK (`NigerianNewsGrid.Client`), and backend search service (`NewsApi`) so search results are sorted chronologically by publication date descending (`PublishedAt DESC`) with the most current news story at the top:
+- **[Mobile App Discover ViewModel (`NigerianNewGrid/ViewModels/DiscoverViewModel.cs`)]**:
+  - Added `DiscoverViewModel.SortStoriesByDateDescending` (`OrderByDescending(i => i.PublishedAt ?? DateTime.MinValue)`) and applied it across `FetchSearchBatchAsync`, `ApplyCategoryFilterAsync` (including `KeywordAlerts`, `Opinion`, and category filters), `LoadMoreAsync`, and `LoadFromCacheAsync`.
+  - Updated `FetchSearchBatchAsync` to pass `sortBy: "date"` to `NewsApiClient.GetArticlesAsync` (for both primary queries and multi-word fallback queries), deduplicate paginated search results by `Id`, and fall back to searching cached local stories (`_allItems`) when offline.
+- **[Client SDK & Backend Search API (`src/NigerianNewsGrid.Client/NewsApiClient.cs`, `src/NewsApi/Controllers/ArticlesController.cs`, `src/NewsApi/Services/IArticleSearchService.cs`, `src/NewsApi/Services/ArticleSearchService.cs`)]**:
+  - Added optional `sortBy` query parameter support to `NewsApiClient.GetArticlesAsync`, `ArticlesController.GetArticles`, and `ArticleSearchParams`.
+  - Updated `ArticleSearchService` (`ExecuteSqliteFtsSearchAsync` and `ExecutePostgresTsSearchAsync`) so `sortBy=date` orders full-text search matches by `a."PublishedAt" DESC` first (with `bm25`/`ts_rank` as tie-breaker), ensuring page 1 always returns the newest matching stories across the database.
+- **[Testing & Verification]**: Added `Search_WithSortByDate_ReturnsMostCurrentStoryOnTop` in `ArticleSearchTests.cs` and `GetArticlesAsync_IncludesSortByQueryParameter_WhenProvided` in `NewsApiClientTests.cs` (all 23/23 targeted tests passing) and verified the MAUI Android build (`0 Error(s)`).
+
+### November 12, 2026 — iOS & Android Store-Readiness Hardening and Release XamlC Fix
+Completed pre-submission compliance updates for the .NET 10 MAUI mobile app (`NigerianNewGrid`) and verified the Android `Release` build:
+- **[iOS Privacy Manifest & App Tracking Transparency (`NigerianNewGrid/Platforms/iOS/Resources/PrivacyInfo.xcprivacy`, `Info.plist`, `AppDelegate.cs`)]**:
+  - Enabled `NSPrivacyAccessedAPICategoryUserDefaults` (`CA92.1`) in `PrivacyInfo.xcprivacy` to cover MAUI `Preferences` usage.
+  - Added `NSUserTrackingUsageDescription` to `Info.plist` and wired `ATTrackingManager.RequestTrackingAuthorizationAsync()` in `AppDelegate.OnActivated` (iOS 14+) for AdMob ATT compliance.
+- **[Android Network Security (`NigerianNewGrid/Platforms/Android/Resources/xml/network_security_config.xml`)]**:
+  - Updated `<base-config cleartextTrafficPermitted="false">` to enforce HTTPS by default in production while retaining explicit `<domain-config>` entries for local development and legacy media hosts.
+- **[Release XamlC Fix (`NigerianNewGrid/StoryClusterPage.xaml`)]**:
+  - Fixed `XC0040` Release XAML compilation error by changing `VerticalOptions="Top"` to `VerticalOptions="Start"` on the category badge `Border`.
+- **[Testing & Verification]**: Ran `dotnet build NigerianNewGrid/NigerianNewGrid.csproj -f net10.0-android -c Release --no-restore` — exited with code 0 (`0 Error(s)`).
+
 ### November 12, 2026 — Live News Update Pill Sonic Chime (`NewspaperHorn.mp3`)
 Added the `NewspaperHorn.mp3` audio chime to the web application (`NigerianNewsGrid.Web`) so it plays automatically whenever new stories are detected and the Floating Live News Update Pill appears:
 - **[Static Audio Asset & PWA Service Worker (`src/NigerianNewsGrid.Web/public/NewspaperHorn.mp3`, `src/NigerianNewsGrid.Web/public/sw.js`)]**:

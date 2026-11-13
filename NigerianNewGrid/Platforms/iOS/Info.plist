@@ -30,6 +30,8 @@
 	<string>Assets.xcassets/appicon.appiconset</string>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-0810356418854639~7145127262</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>This identifier will be used to deliver personalized news ads and support free access to News Stand NG.</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>

@@ -92,7 +92,7 @@
                                         </BoxView.Background>
                                     </BoxView>
                                     <Border HorizontalOptions="Start"
-                                            VerticalOptions="Top"
+                                            VerticalOptions="Start"
                                             Margin="12"
                                             Padding="10,4"
                                             StrokeShape="RoundRectangle 8"
