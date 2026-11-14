@@ -2,6 +2,7 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router';
 import { Flame, Layers, ChevronRight, ChevronLeft } from 'lucide-react';
 import { formatTimeAgo } from '../services/timeUtils';
+import { getOptimizedImageUrl } from '../services/api';
 
 export default function TrendingStoriesSection({ stories = [], onSelectStory }) {
   const railRef = useRef(null);
@@ -12,17 +13,7 @@ export default function TrendingStoriesSection({ stories = [], onSelectStory }) 
   const touchStartY = useRef(0);
   const isSwiping = useRef(false);
 
-  // Prefer developing stories from the last 36 hours, falling back to all provided stories so the rail never disappears when clusters are slightly older
-  const recentStories = (stories || []).filter((s) => {
-    const timestamp = s.updatedAt || s.createdAt;
-    if (!timestamp) return true;
-    const date = new Date(timestamp);
-    if (isNaN(date.getTime())) return true;
-    const ageHours = (Date.now() - date.getTime()) / (1000 * 60 * 60);
-    return ageHours <= 36;
-  });
-
-  const activeStories = recentStories.length > 0 ? recentStories : (stories || []);
+  const activeStories = Array.isArray(stories) ? stories : [];
 
   const updateActiveDot = useCallback(() => {
     if (!railRef.current || activeStories.length === 0) return;
@@ -144,15 +135,6 @@ export default function TrendingStoriesSection({ stories = [], onSelectStory }) 
                 key={story.id || story.slug}
                 className={`trending-rail-card ${idx === 0 ? 'trending-rail-card-top' : ''}`}
                 onClick={(e) => handleCardClick(e, story)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleCardClick(e, story);
-                  }
-                }}
-                aria-label={`Story #${idx + 1}: ${story.title}`}
               >
                 <div className="trending-rail-card-header">
                   <div className="trending-rail-badges">
@@ -168,7 +150,7 @@ export default function TrendingStoriesSection({ stories = [], onSelectStory }) 
                   <div className="trending-rail-meta-right">
                     <span className="trending-rail-category">{story.category || 'News'}</span>
                     <span className="meta-bullet">•</span>
-                    <span className="trending-rail-time">{formatTimeAgo(story.updatedAt)}</span>
+                    <span className="trending-rail-time" suppressHydrationWarning>{formatTimeAgo(story.updatedAt)}</span>
                   </div>
                 </div>
 
@@ -176,10 +158,13 @@ export default function TrendingStoriesSection({ stories = [], onSelectStory }) 
                   {thumbnail && (
                     <div className="trending-rail-thumb-wrapper">
                       <img
-                        src={thumbnail}
+                        src={getOptimizedImageUrl(thumbnail, 320)}
                         alt=""
+                        width="156"
+                        height="88"
                         className="trending-rail-thumb"
                         loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           if (e.currentTarget.parentElement) {
                             e.currentTarget.parentElement.style.display = 'none';
@@ -202,7 +187,6 @@ export default function TrendingStoriesSection({ stories = [], onSelectStory }) 
                             onSelectStory(story.leadArticle);
                           }
                         }}
-                        tabIndex={-1}
                       >
                         {story.title}
                       </Link>

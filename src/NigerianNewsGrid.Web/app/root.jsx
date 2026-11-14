@@ -32,7 +32,7 @@ export function headers() {
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-    "Content-Security-Policy": "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests",
+    "Content-Security-Policy": "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; upgrade-insecure-requests",
   };
 }
 
@@ -53,6 +53,7 @@ export function Layout({ children }) {
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="icon" type="image/png" href="/icon-192.png" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="NewsStand NG" />

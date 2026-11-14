@@ -78,6 +78,8 @@ export default function Navbar({
                 <img
                   src="/newsstand-masthead.png"
                   alt="News Stand NG"
+                  width="180"
+                  height="40"
                   className="brand-masthead-img"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
@@ -320,7 +322,7 @@ export default function Navbar({
       >
         <div className="mobile-drawer-header">
           <a href="/" className="mobile-drawer-brand" onClick={() => setIsMobileMenuOpen(false)}>
-            <img src="/newsstand-masthead.png" alt="News Stand NG" className="mobile-drawer-logo" />
+            <img src="/newsstand-masthead.png" alt="News Stand NG" width="150" height="34" className="mobile-drawer-logo" />
           </a>
           <button
             type="button"

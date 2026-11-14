@@ -371,7 +371,7 @@ img {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--danger);
+  background: #B91C1C;
   color: #FFFFFF;
   font-size: 0.72rem;
   font-weight: 800;
@@ -1679,8 +1679,12 @@ img {
 }
 
 .highlight-inspiration {
-  color: #10B981;
+  color: #047857;
   font-weight: 800;
+}
+
+[data-theme="dark"] .highlight-inspiration {
+  color: #34D399;
 }
 
 .highlight-knowledge {
@@ -4222,7 +4226,7 @@ img {
   gap: 6px;
   padding: 6px 14px;
   border-radius: var(--radius-pill);
-  background: var(--brand-red);
+  background: #047857;
   color: #FFFFFF;
   font-size: 0.84rem;
   font-weight: 700;
@@ -4859,10 +4863,10 @@ img {
 
 @keyframes pulseBreaking {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3);
+    opacity: 1;
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0);
+    opacity: 0.78;
   }
 }
 
@@ -6300,9 +6304,9 @@ img {
   align-items: center;
   padding: 3px 9px;
   border-radius: var(--radius-pill);
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: var(--brand-green);
+  background: rgba(4, 120, 87, 0.12);
+  border: 1px solid rgba(4, 120, 87, 0.35);
+  color: #047857;
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -6334,7 +6338,12 @@ img {
   align-items: center;
   font-size: 0.74rem;
   font-weight: 700;
-  color: var(--brand-green);
+  color: #047857;
+}
+
+[data-theme="dark"] .live-status-pill,
+[data-theme="dark"] .verified-badge-chip {
+  color: #34D399;
 }
 
 .welcome-subtitle {

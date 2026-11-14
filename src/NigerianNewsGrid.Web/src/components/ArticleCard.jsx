@@ -60,10 +60,6 @@ export default function ArticleCard({
     <article
       className={`buletin-card ${isSponsored ? 'sponsored-card' : ''}`}
       onClick={handleCardClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
-      aria-label={article.title}
     >
       {/* 1. Media Thumbnail */}
       <div className="buletin-card-media">
@@ -152,7 +148,7 @@ export default function ArticleCard({
           )}
 
           <span className="meta-dot">•</span>
-          <span className="buletin-card-time">{formatTimeAgo(article.publishedAt)}</span>
+          <span className="buletin-card-time" suppressHydrationWarning>{formatTimeAgo(article.publishedAt)}</span>
         </div>
 
         {/* Serif Card Title */}
@@ -249,7 +245,7 @@ export default function ArticleCard({
                       api.trackSponsoredClick(article.id);
                     }
                   }}
-                  aria-label={`Full read: Open story on ${isSponsored ? (article.sponsorName || 'Partner') : (article.source || 'Publisher')}`}
+                  aria-label={`Full read: ${article.title} on ${isSponsored ? (article.sponsorName || 'Partner') : (article.source || 'Publisher')}`}
                 >
                   <Newspaper size={13} className="btn-action-icon" />
                   <span>Full read</span>

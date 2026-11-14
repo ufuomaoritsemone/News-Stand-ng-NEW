@@ -115,14 +115,9 @@ const AUTHENTIC_NIGERIAN_FALLBACKS = [
 ];
 
 export default function App({ initialData = null, initialCategory = 'All' }) {
-  // Theme State
-  const [theme, setTheme] = useState(() => {
-    try {
-      return localStorage.getItem('nng_theme') || 'light';
-    } catch {
-      return 'light';
-    }
-  });
+  // Theme State (SSR-safe initial render, hydrated on client mount)
+  const [theme, setTheme] = useState('light');
+  const [themeHydrated, setThemeHydrated] = useState(false);
 
   // PWA Installation Hook
   const {
@@ -172,22 +167,40 @@ export default function App({ initialData = null, initialCategory = 'All' }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [verifiedUser, setVerifiedUser] = useState(() => getVerifiedUser());
+  const [verifiedUser, setVerifiedUser] = useState(null);
 
-  // Bookmarks State
-  const [bookmarks, setBookmarks] = useState(() => {
+  // Bookmarks State (SSR-safe initial render, hydrated on client mount)
+  const [bookmarks, setBookmarks] = useState([]);
+
+  // Hydrate persisted client preferences after initial SSR hydration
+  useEffect(() => {
     try {
-      return JSON.parse(localStorage.getItem('nng_saved_stories') || '[]');
-    } catch {
-      return [];
-    }
-  });
+      const savedTheme = localStorage.getItem('nng_theme');
+      if (savedTheme === 'dark' || savedTheme === 'light') {
+        setTheme(savedTheme);
+      }
+    } catch {}
+    setThemeHydrated(true);
+
+    try {
+      const user = getVerifiedUser();
+      if (user) setVerifiedUser(user);
+    } catch {}
+
+    try {
+      const savedBookmarks = JSON.parse(localStorage.getItem('nng_saved_stories') || '[]');
+      if (Array.isArray(savedBookmarks)) setBookmarks(savedBookmarks);
+    } catch {}
+  }, []);
 
   // Apply Theme to document root
   useEffect(() => {
+    if (!themeHydrated) return;
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('nng_theme', theme);
-  }, [theme]);
+    try {
+      localStorage.setItem('nng_theme', theme);
+    } catch {}
+  }, [theme, themeHydrated]);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -937,7 +950,7 @@ export default function App({ initialData = null, initialCategory = 'All' }) {
             onSelectStory={openArticle}
             isBookmarked={isArticleBookmarked}
             onToggleBookmark={toggleBookmark}
-            autoPlayInterval={6500}
+            autoPlayInterval={12000}
           />
         )}
 

@@ -44,6 +44,7 @@ export function formatTimeAgo(dateStr) {
     month: 'short',
     day: 'numeric',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+    timeZone: 'Africa/Lagos',
   });
 }
 
@@ -66,6 +67,7 @@ export function formatFullDate(dateStr) {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Africa/Lagos',
   });
 }
 
@@ -79,6 +81,7 @@ export function getNigerianDateBanner() {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+    timeZone: 'Africa/Lagos',
   });
 }
 

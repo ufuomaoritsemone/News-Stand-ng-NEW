@@ -4,14 +4,14 @@ import { XIcon, WhatsAppIcon } from './SocialIcons';
 import { shareOnX, shareOnWhatsApp, shareGeneric } from '../services/share';
 import { getRecencyTag, isHotStory } from '../services/articleMetadata';
 import { formatTimeAgo, cleanEditorialSummary } from '../services/timeUtils';
-import { getOptimizedImageUrl, DEFAULT_EDITORIAL_IMAGE } from '../services/api';
+import { getOptimizedImageUrl, safeExternalUrl, DEFAULT_EDITORIAL_IMAGE } from '../services/api';
 
 export default function HeroCarousel({
   stories = [],
   onSelectStory,
   isBookmarked,
   onToggleBookmark,
-  autoPlayInterval = 5000,
+  autoPlayInterval = 12000,
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -102,7 +102,6 @@ export default function HeroCarousel({
           <div className="hero-media-col">
             <div className="hero-image-frame">
               <img
-                key={current.id || currentIndex}
                 src={getOptimizedImageUrl(current.imageUrl, 800)}
                 srcSet={`${getOptimizedImageUrl(current.imageUrl, 640)} 640w, ${getOptimizedImageUrl(current.imageUrl, 800)} 800w, ${getOptimizedImageUrl(current.imageUrl, 1200)} 1200w`}
                 sizes="(max-width: 768px) 100vw, 50vw"
@@ -172,7 +171,7 @@ export default function HeroCarousel({
               )}
 
               <span className="meta-dot">•</span>
-              <span className="hero-timestamp">{formatTimeAgo(current.publishedAt)}</span>
+              <span className="hero-timestamp" suppressHydrationWarning>{formatTimeAgo(current.publishedAt)}</span>
             </div>
 
             {/* Serif Headline */}
@@ -254,16 +253,16 @@ export default function HeroCarousel({
 
                 {/* Full read button with Newspaper icon */}
                 <div className="btn-callout-wrapper action-flex-item">
-                  {current.url ? (
+                  {safeExternalUrl(current.url) ? (
                     <a
-                      href={current.url}
+                      href={safeExternalUrl(current.url)}
                       target="_blank"
-                      rel={current.isSponsored ? "sponsored noopener" : "noopener noreferrer"}
+                      rel={current.isSponsored ? "sponsored nofollow noopener noreferrer" : "noopener noreferrer nofollow"}
                       className="card-action-btn card-action-fullread"
                       onClick={(e) => {
                         e.stopPropagation();
                       }}
-                      aria-label={`Full read: Open story on ${current.source || 'Publisher'}`}
+                      aria-label={`Full read: Open ${current.title} on ${current.source || 'Publisher'}`}
                     >
                       <Newspaper size={13} className="btn-action-icon" />
                       <span>Full read</span>

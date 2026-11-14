@@ -621,7 +621,7 @@ newsstand.ng, www.newsstand.ng {
         Referrer-Policy "strict-origin-when-cross-origin"
         Cross-Origin-Opener-Policy "same-origin-allow-popups"
         Permissions-Policy "camera=(), microphone=(), geolocation=()"
-        Content-Security-Policy "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+        Content-Security-Policy "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; upgrade-insecure-requests"
         -Server
     }
 

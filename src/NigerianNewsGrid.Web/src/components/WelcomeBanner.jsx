@@ -19,7 +19,7 @@ export default function WelcomeBanner({
               <Radio size={12} style={{ marginRight: 4 }} />
               <span>LIVE NATIONAL DESK</span>
             </div>
-            <span className="welcome-date-text">{dateStr}</span>
+            <span className="welcome-date-text" suppressHydrationWarning>{dateStr}</span>
             <div className="verified-badge-chip">
               <ShieldCheck size={13} style={{ color: 'var(--brand-green)', marginRight: 4 }} />
               <span>Verified Aggregation</span>
