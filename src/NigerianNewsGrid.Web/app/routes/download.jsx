@@ -158,6 +158,27 @@ export default function DownloadAppsPage() {
     setShowIosModal,
   } = usePwaInstall();
 
+  const ALLOWED_STORE_HOSTS = new Set([
+  "play.google.com",
+  "apps.apple.com",
+  "itunes.apple.com",
+  "apps.microsoft.com",
+  "get.microsoft.com",
+  "newsstand.ng",
+  "www.newsstand.ng",
+]);
+
+function sanitizeStoreUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== "string") return "";
+  try {
+    const parsed = new URL(rawUrl.trim());
+    if (parsed.protocol !== "https:") return "";
+    if (!ALLOWED_STORE_HOSTS.has(parsed.hostname.toLowerCase())) return "";
+    return parsed.href;
+  } catch {
+    return "";
+  }
+}
   // Client-side OS refinement & hot-reloaded settings fetch
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -175,6 +196,11 @@ export default function DownloadAppsPage() {
       .catch(() => {});
   }, []);
 
+  const androidStoreUrl = sanitizeStoreUrl(appStores?.androidUrl);
+  const iosStoreUrl = sanitizeStoreUrl(appStores?.iosUrl);
+  const windowsStoreUrl = sanitizeStoreUrl(appStores?.windowsUrl);
+  const macStoreUrl = sanitizeStoreUrl(appStores?.macUrl);
+
   const platforms = [
     {
       id: "android",
@@ -183,8 +209,8 @@ export default function DownloadAppsPage() {
       badgeTopText: "GET IT ON",
       badgeMainText: "Google Play",
       requirements: "Android 8.0+ · Phones & Tablets",
-      url: (appStores?.androidUrl || "").trim(),
-      isConfigured: Boolean((appStores?.androidUrl || "").trim()),
+      url: androidStoreUrl,
+      isConfigured: Boolean(androidStoreUrl),
       accentColor: "#10b981",
       icon: <GooglePlayIcon size={28} />,
       description:
@@ -197,8 +223,8 @@ export default function DownloadAppsPage() {
       badgeTopText: "Download on the",
       badgeMainText: "App Store",
       requirements: "iOS 15.0+ / iPadOS 15.0+",
-      url: (appStores?.iosUrl || "").trim(),
-      isConfigured: Boolean((appStores?.iosUrl || "").trim()),
+      url: iosStoreUrl,
+      isConfigured: Boolean(iosStoreUrl),
       accentColor: "#38bdf8",
       icon: <AppleLogoIcon size={28} />,
       description:
@@ -211,8 +237,8 @@ export default function DownloadAppsPage() {
       badgeTopText: "Get it from",
       badgeMainText: "Microsoft",
       requirements: "Windows 10 & Windows 11 (64-bit)",
-      url: (appStores?.windowsUrl || "").trim(),
-      isConfigured: Boolean((appStores?.windowsUrl || "").trim()),
+      url: windowsStoreUrl,
+      isConfigured: Boolean(windowsStoreUrl),
       accentColor: "#00a4ef",
       icon: <WindowsLogoIcon size={26} />,
       description:
@@ -225,8 +251,8 @@ export default function DownloadAppsPage() {
       badgeTopText: "Download on the",
       badgeMainText: "Mac App Store",
       requirements: "macOS 12+ (Apple Silicon & Intel)",
-      url: (appStores?.macUrl || "").trim(),
-      isConfigured: Boolean((appStores?.macUrl || "").trim()),
+      url: macStoreUrl,
+      isConfigured: Boolean(macStoreUrl),
       accentColor: "#a855f7",
       icon: <AppleLogoIcon size={28} />,
       description:
@@ -237,25 +263,9 @@ export default function DownloadAppsPage() {
   const primaryPlatform =
     platforms.find((p) => p.id === detectedOs) || platforms[0];
 
-  // Sponsored campaign ?auto=1 or ?redirect=1 handler
-  useEffect(() => {
-    const autoRedirect =
-      searchParams.get("auto") === "1" ||
-      searchParams.get("redirect") === "1" ||
-      searchParams.get("auto") === "true";
-
-    if (!autoRedirect || typeof window === "undefined") return;
-
-    const target = platforms.find((p) => p.id === detectedOs);
-    if (target && target.isConfigured && target.url) {
-      setRedirectingToStore(true);
-      trackAppStoreClick(target.id, target.url, "sponsored_auto_redirect");
-      const timer = setTimeout(() => {
-        window.location.replace(target.url);
-      }, 650);
-      return () => clearTimeout(timer);
-    }
-  }, [searchParams, detectedOs, appStores]);
+  // Note: Automatic client-side redirects (?auto=1 / window.location.replace) are intentionally
+  // disabled to comply with Google Ads Destination & Sneaky Redirects policies.
+  // Users must explicitly click an official store button to navigate off-domain.
 
   const handleStoreButtonClick = (platform, sourcePlacement = "store_grid") => {
     if (platform.isConfigured && platform.url) {

@@ -148,11 +148,12 @@ public class ApiKeyMiddleware
             return true;
         }
 
-        // Mobile impression and click tracking for articles
+        // Mobile impression, click tracking, and on-demand AI Executive Briefing generation
         if (HttpMethods.IsPost(method) &&
             path.StartsWith("/api/v1/articles/", StringComparison.OrdinalIgnoreCase) &&
             (path.EndsWith("/track-impression", StringComparison.OrdinalIgnoreCase) ||
-             path.EndsWith("/track-click", StringComparison.OrdinalIgnoreCase)))
+             path.EndsWith("/track-click", StringComparison.OrdinalIgnoreCase) ||
+             path.EndsWith("/ai-summary", StringComparison.OrdinalIgnoreCase)))
         {
             return true;
         }

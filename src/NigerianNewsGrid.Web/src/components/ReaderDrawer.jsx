@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { X, Bookmark, Share2, ExternalLink, Type, Flame, Megaphone, ArrowRight, ArrowLeft, Sparkles, Clock, ChevronDown, CheckCircle, Zap, Layers } from 'lucide-react';
-import { api, getOptimizedImageUrl } from '../services/api';
+import { api, getOptimizedImageUrl, safeExternalUrl } from '../services/api';
 import { XIcon, WhatsAppIcon } from './SocialIcons';
 import { shareOnX, shareOnWhatsApp, shareGeneric } from '../services/share';
 import { getRecencyTag, isHotStory } from '../services/articleMetadata';
@@ -718,11 +718,11 @@ export default function ReaderDrawer({
                   <span>Read Sponsored Story</span>
                   <ArrowRight size={13} />
                 </button>
-                {midContentSponsor.sponsorUrl && (
+                {safeExternalUrl(midContentSponsor.sponsorUrl) && (
                   <a
-                    href={midContentSponsor.sponsorUrl}
+                    href={safeExternalUrl(midContentSponsor.sponsorUrl)}
                     target="_blank"
-                    rel="sponsored noopener noreferrer"
+                    rel="sponsored nofollow noopener noreferrer"
                     className="mid-sponsor-link-btn"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -739,15 +739,15 @@ export default function ReaderDrawer({
 
           {/* Actions & Attribution */}
           <div className="reader-actions-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-            {article.isSponsored && article.sponsorUrl && (
+            {article.isSponsored && safeExternalUrl(article.sponsorUrl) && (
               <a
-                href={article.sponsorUrl}
+                href={safeExternalUrl(article.sponsorUrl)}
                 target="_blank"
-                rel="sponsored noopener"
+                rel="sponsored nofollow noopener noreferrer"
                 className="primary-btn sponsored-partner-cta-btn"
                 onClick={() => {
                   api.trackSponsoredClick(article.id);
-                  trackOutboundClick(article, article.sponsorUrl);
+                  trackOutboundClick(article, safeExternalUrl(article.sponsorUrl));
                 }}
               >
                 <span>Visit {article.sponsorName || 'Partner'} Portal</span>
@@ -755,13 +755,13 @@ export default function ReaderDrawer({
               </a>
             )}
 
-            {article.url && (
+            {safeExternalUrl(article.url) && (
               <a
-                href={article.url}
+                href={safeExternalUrl(article.url)}
                 target="_blank"
-                rel={article.isSponsored ? "sponsored noopener" : "noopener noreferrer"}
+                rel={article.isSponsored ? "sponsored nofollow noopener noreferrer" : "noopener noreferrer nofollow"}
                 className="primary-btn"
-                onClick={() => trackOutboundClick(article, article.url)}
+                onClick={() => trackOutboundClick(article, safeExternalUrl(article.url))}
               >
                 <span>Read full story on {article.source || 'Publisher'}</span>
                 <ExternalLink size={15} />
@@ -924,11 +924,11 @@ export default function ReaderDrawer({
                     <span>Read Partner Story</span>
                     <ArrowRight size={14} />
                   </button>
-                  {activeFoot.sponsorUrl && (
+                  {safeExternalUrl(activeFoot.sponsorUrl) && (
                     <a
-                      href={activeFoot.sponsorUrl}
+                      href={safeExternalUrl(activeFoot.sponsorUrl)}
                       target="_blank"
-                      rel="sponsored nofollow noopener"
+                      rel="sponsored nofollow noopener noreferrer"
                       className="callout-visit-link"
                       onClick={() => api.trackSponsoredClick(activeFoot.id)}
                     >

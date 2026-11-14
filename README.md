@@ -23,6 +23,27 @@ Projects:
 
 ## Updates
 
+### November 14, 2026 — Google Ads "Compromised Site" Policy Appeal Hardening & PageSpeed Trust/Safety Fixes
+Resolved all technical triggers flagged by Google Ads' automated policy scanner (`AdsBot-Google`) and PageSpeed Insights (**Best Practices / Trust & Safety** and **SEO**) across the React Router v7 SSR frontend (`NigerianNewsGrid.Web`), ASP.NET Core backend (`NewsApi`), and Caddy production reverse proxy (`VPS_Deployment.md`):
+- **[PWA Service Worker Same-Origin Isolation (`src/NigerianNewsGrid.Web/public/sw.js`)]**:
+  - Bumped `CACHE_NAME` to `newsstand-pwa-v2` to evict any previously cached third-party scripts and added an explicit `url.origin !== self.location.origin` guard in the `fetch` listener so cross-origin scripts (`pagead2.googlesyndication.com/pagead/js/adsbygoogle.js`, `googletagmanager.com/gtm.js`) and `/api/` endpoints are never intercepted or cached via Stale-While-Revalidate.
+  - Added `sanitizeSameOriginUrl` in the `notificationclick` handler so push notification click targets strictly resolve to `self.location.origin`, eliminating open-redirect vectors.
+- **[Crawler & `AdsBot-Google` Access (`src/NigerianNewsGrid.Web/app/routes/robots[.]txt.jsx`)]**:
+  - Updated `robots.txt` to explicitly allow `/api/v1/img`, `/api/img`, and public read endpoints (`/api/v1/articles`, `/api/v1/stories`, `/api/v1/topics`, `/api/v1/sources`, `/api/v1/data`, `/api/v1/settings/public`, `/api/v1/briefings`) while restricting `Disallow` to `/api/v1/auth/`, `/api/v1/admin/`, and `/api/v1/push/`.
+  - Added dedicated `User-agent: AdsBot-Google` and `User-agent: AdsBot-Google-Mobile` (`Allow: /`) blocks so Google Ads' landing-page quality and malware scanners never encounter blocked image proxy or feed requests.
+- **[Iframe Embed & Redirect Hardening (`VideoReel.jsx`, `VideoSection.jsx`, `download.jsx`, `api.js`, `news.$slug.jsx`, `ArticleCard.jsx`, `ReaderDrawer.jsx`, `PartnerPerspectives.jsx`, `HeroSpotlightBanner.jsx`)]**:
+  - Removed the raw URL fallback (`return rawUrl;`) in `VideoReel.jsx` and restricted both `VideoReel.jsx` and `VideoSection.jsx` to verified 11-character YouTube IDs (`/^[A-Za-z0-9_-]{11}$/`) embedded exclusively via `https://www.youtube-nocookie.com/embed/...`.
+  - Removed the automated 650ms client-side `setTimeout(() => window.location.replace(...))` redirect on `/download` (`download.jsx`) and added `sanitizeStoreUrl` (`ALLOWED_STORE_HOSTS`) to prevent Google Ads "Sneaky Redirects" flags.
+  - Added `safeExternalUrl` in `src/services/api.js` (enforcing `https:`/`http:` protocols) and applied `rel="noopener noreferrer nofollow"` / `rel="sponsored nofollow noopener noreferrer"` across all outbound publisher and sponsor links.
+  - Updated `api.generateAiSummary` to use `GET /api/v1/articles/{id}/ai-summary` and whitelisted `/ai-summary` in `ApiKeyMiddleware.IsPublicClientEndpoint` to eliminate `401 Unauthorized` console errors during PageSpeed audits.
+- **[HTTP Security Headers, GTM Initialization, & Policy Trust Badges (`app/root.jsx`, `VPS_Deployment.md`, `privacy.jsx`, `terms.jsx`, `editorial-policy.jsx`, `corrections.jsx`, `about.jsx`, `ai-disclosure.jsx`)]**:
+  - Exported `headers()` in `app/root.jsx` and updated the production `Caddyfile` in `VPS_Deployment.md` to emit `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin-allow-popups`, `Permissions-Policy`, and `Content-Security-Policy` (`frame-ancestors 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests`).
+  - Initialized `window.dataLayer` with `gtm.start` prior to loading `gtm.js` in `app/root.jsx`.
+  - Replaced the placeholder `DRAFT – review before launch` banners (`draft-review-badge`) across all six legal/trust pages with verified policy badges (`policy-badge-verified`).
+- **[Public Comment Anti-Spam & HTML Sanitization (`src/NewsApi/Controllers/CommentsController.cs`, `CommentSection.jsx`)]**:
+  - Added compiled regex sanitizers (`HtmlTagRegex` and `SpamUrlRegex`) to `CommentsController.PostComment` (`POST /api/v1/articles/{articleId}/comments`) to strip HTML tags, reject comments containing external URLs/links (`400 Bad Request`), and enforce `https://` validation on `AuthorAvatar`.
+- **[Testing & Verification]**: Verified client and SSR production bundles with `npm run build` in `src/NigerianNewsGrid.Web` (`0 errors`) and `NewsApi.Tests` unit test suite.
+
 ### November 13, 2026 — Fix 404 Story Not Found When Sharing Searched Articles
 Resolved the bug where searching for an article, opening any searched article, and sharing it produced a `https://newsstand.ng/news/...` link that returned `404 Story Not Found`:
 - **[Backend Search, Related, & Briefing Slug Hydration (`src/NewsApi/Services/ArticleSearchService.cs`, `src/NewsApi/Services/RelatedContentService.cs`, `src/NewsApi/Services/BriefingService.cs`)]**:

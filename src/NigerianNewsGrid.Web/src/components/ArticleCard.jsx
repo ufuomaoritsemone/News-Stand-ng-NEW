@@ -5,7 +5,7 @@ import { XIcon, WhatsAppIcon } from './SocialIcons';
 import { shareOnX, shareOnWhatsApp, shareGeneric } from '../services/share';
 import { getRecencyTag, isHotStory } from '../services/articleMetadata';
 import { formatTimeAgo, cleanEditorialSummary } from '../services/timeUtils';
-import { api, getOptimizedImageUrl, DEFAULT_EDITORIAL_IMAGE } from '../services/api';
+import { api, getOptimizedImageUrl, safeExternalUrl, DEFAULT_EDITORIAL_IMAGE } from '../services/api';
 
 export default function ArticleCard({
   article,
@@ -237,11 +237,11 @@ export default function ArticleCard({
 
             {/* Full read button with Newspaper icon */}
             <div className="btn-callout-wrapper action-flex-item">
-              {(article.url || article.sponsorUrl) ? (
+              {safeExternalUrl(isSponsored ? (article.sponsorUrl || article.url) : article.url) ? (
                 <a
-                  href={isSponsored ? (article.sponsorUrl || article.url) : article.url}
+                  href={safeExternalUrl(isSponsored ? (article.sponsorUrl || article.url) : article.url)}
                   target="_blank"
-                  rel={isSponsored ? "sponsored noopener" : "noopener noreferrer"}
+                  rel={isSponsored ? "sponsored nofollow noopener noreferrer" : "noopener noreferrer nofollow"}
                   className={`card-action-btn card-action-fullread ${isSponsored ? 'card-sponsored-cta' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();

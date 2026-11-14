@@ -65,16 +65,37 @@ async function fetchJson(url, options = {}) {
 export const DEFAULT_EDITORIAL_IMAGE = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80';
 
 /**
+ * Validates that an external URL strictly uses http: or https: protocol
+ * to prevent javascript:/data:/vbscript: URI injection or malformed redirects.
+ */
+export function safeExternalUrl(rawUrl, fallback = null) {
+  if (!rawUrl || typeof rawUrl !== 'string') return fallback;
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return fallback;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      return parsed.href;
+    }
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
  * Generates an optimized WebP image URL via the NewsApi image proxy.
  * Falls back to raw URL if already local, data URI, or already proxied.
  */
 export function getOptimizedImageUrl(rawUrl, width = 800) {
-  if (!rawUrl) return DEFAULT_EDITORIAL_IMAGE;
-  if (rawUrl.startsWith('/') || rawUrl.startsWith('data:')) return rawUrl;
+  if (!rawUrl || typeof rawUrl !== 'string') return DEFAULT_EDITORIAL_IMAGE;
+  if (rawUrl.startsWith('/') || rawUrl.startsWith('data:image/')) return rawUrl;
   if (rawUrl.includes('/img?url=')) return rawUrl;
+  const validated = safeExternalUrl(rawUrl);
+  if (!validated) return DEFAULT_EDITORIAL_IMAGE;
   // Same value on server and client: prevents leaking internal hosts into HTML and hydration mismatches.
   const base = getPublicApiBaseUrl().replace(/\/$/, '');
-  return `${base}/img?url=${encodeURIComponent(rawUrl)}&w=${width}`;
+  return `${base}/img?url=${encodeURIComponent(validated)}&w=${width}`;
 }
 
 export const api = {
@@ -126,9 +147,7 @@ export const api = {
    */
   async generateAiSummary(idOrSlug) {
     const base = getApiBaseUrl();
-    return fetchJson(`${base}/articles/${encodeURIComponent(idOrSlug)}/ai-summary`, {
-      method: 'POST'
-    });
+    return fetchJson(`${base}/articles/${encodeURIComponent(idOrSlug)}/ai-summary`);
   },
 
   /**

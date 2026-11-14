@@ -1,29 +1,31 @@
 import React, { useState } from 'react';
 import { Play, X, Tv, ExternalLink } from 'lucide-react';
+import { safeExternalUrl } from '../services/api';
+
+const YT_ID_REGEX = /^[A-Za-z0-9_-]{11}$/;
 
 export default function VideoReel({ videos = [] }) {
   const [activeVideo, setActiveVideo] = useState(null);
 
   if (!videos || videos.length === 0) return null;
 
-  // Extract YouTube ID if present and generate responsive iframe embed URL
+  // Extract YouTube ID if present and generate responsive iframe embed URL (strictly youtube-nocookie.com)
   const getEmbedUrl = (vid) => {
     if (!vid) return null;
 
     // Check if videoId is direct 11-char YouTube ID (e.g. 'r8FW2pqYrq4')
-    const directId = vid.videoId || (typeof vid.id === 'string' && vid.id.length === 11 ? vid.id : null);
-    if (directId && directId.length === 11) {
-      return `https://www.youtube.com/embed/${directId}?autoplay=1&rel=0&playsinline=1&modestbranding=1`;
+    const directId = vid.videoId || (typeof vid.id === 'string' && YT_ID_REGEX.test(vid.id) ? vid.id : null);
+    if (directId && YT_ID_REGEX.test(directId)) {
+      return `https://www.youtube-nocookie.com/embed/${directId}?autoplay=1&rel=0&playsinline=1&modestbranding=1`;
     }
 
-    // Check videoUrl, url or embedUrl
+    // Check videoUrl, url or embedUrl for a valid YouTube video ID
     const rawUrl = vid.videoUrl || vid.url || vid.embedUrl;
-    if (rawUrl) {
-      const match = rawUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-      if (match && match[1]) {
-        return `https://www.youtube.com/embed/${match[1]}?autoplay=1&rel=0&playsinline=1&modestbranding=1`;
+    if (typeof rawUrl === 'string') {
+      const match = rawUrl.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      if (match && match[1] && YT_ID_REGEX.test(match[1])) {
+        return `https://www.youtube-nocookie.com/embed/${match[1]}?autoplay=1&rel=0&playsinline=1&modestbranding=1`;
       }
-      return rawUrl;
     }
 
     return null;
@@ -31,11 +33,9 @@ export default function VideoReel({ videos = [] }) {
 
   const getWatchUrl = (vid) => {
     if (!vid) return 'https://www.youtube.com';
-    if (vid.videoUrl) return vid.videoUrl;
-    const vId = vid.videoId || (typeof vid.id === 'string' && vid.id.length === 11 ? vid.id : null);
-    if (vId) return `https://www.youtube.com/watch?v=${vId}`;
-    if (vid.url) return vid.url;
-    return 'https://www.youtube.com';
+    const vId = vid.videoId || (typeof vid.id === 'string' && YT_ID_REGEX.test(vid.id) ? vid.id : null);
+    if (vId && YT_ID_REGEX.test(vId)) return `https://www.youtube.com/watch?v=${vId}`;
+    return safeExternalUrl(vid.videoUrl || vid.url, 'https://www.youtube.com');
   };
 
   return (

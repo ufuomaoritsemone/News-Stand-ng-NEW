@@ -74,9 +74,9 @@ export default function AboutPage() {
         </nav>
 
         <article className="static-policy-card">
-          <div className="draft-review-badge">
-            <AlertCircle size={14} />
-            <span>DRAFT – review before launch</span>
+          <div className="policy-badge-verified">
+            <Shield size={14} />
+            <span>Verified Nigerian News Aggregator</span>
           </div>
 
           <h1 className="static-policy-title">About News Stand NG</h1>

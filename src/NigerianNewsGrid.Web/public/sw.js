@@ -1,6 +1,18 @@
 // Service Worker for News Stand NG PWA & Web Push Notifications
-const CACHE_NAME = 'newsstand-pwa-v1';
+const CACHE_NAME = 'newsstand-pwa-v2';
 const OFFLINE_URL = '/offline.html';
+
+function sanitizeSameOriginUrl(rawUrl) {
+  try {
+    const resolved = new URL(rawUrl || '/', self.location.origin);
+    if (resolved.origin !== self.location.origin) {
+      return '/';
+    }
+    return resolved.pathname + resolved.search + resolved.hash;
+  } catch {
+    return '/';
+  }
+}
 
 const PRECACHE_ASSETS = [
   '/',
@@ -44,8 +56,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Skip non-GET requests or external API mutations
-  if (event.request.method !== 'GET') return;
+  // Never intercept non-GET requests or cross-origin scripts/resources (e.g. Google Ads, GTM)
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
+
+  // Never cache dynamic API endpoints in the Service Worker cache
+  if (url.pathname.startsWith('/api/')) return;
 
   // Handle navigation requests (HTML pages)
   if (event.request.mode === 'navigate') {
@@ -147,7 +162,10 @@ self.addEventListener('notificationclick', (event) => {
 
   if (event.action === 'close') return;
 
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  const safePath = sanitizeSameOriginUrl(
+    event.notification.data && event.notification.data.url
+  );
+  const targetUrl = new URL(safePath, self.location.origin).href;
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
@@ -157,7 +175,7 @@ self.addEventListener('notificationclick', (event) => {
           return client.focus();
         }
       }
-      // Otherwise open a new window
+      // Otherwise open a new same-origin window
       if (self.clients.openWindow) {
         return self.clients.openWindow(targetUrl);
       }

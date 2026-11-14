@@ -71,9 +71,8 @@ export default function CorrectionsPage() {
         </nav>
 
         <article className="static-policy-card">
-          <div className="draft-review-badge">
-            <AlertCircle size={14} />
-            <span>DRAFT – review before launch</span>
+          <div className="policy-badge-verified">
+            <span>Official Corrections & Retractions Standard</span>
           </div>
 
           <h1 className="static-policy-title">Corrections & Retractions Policy</h1>

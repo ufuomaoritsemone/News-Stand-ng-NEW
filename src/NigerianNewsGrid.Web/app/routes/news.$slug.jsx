@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
 import { useLoaderData, Link, redirect } from "react-router";
-import { api, getOptimizedImageUrl } from "../../src/services/api";
+import { api, getOptimizedImageUrl, safeExternalUrl } from "../../src/services/api";
 import { formatFullDate, formatTimeAgo, cleanEditorialSummary } from "../../src/services/timeUtils";
 import { shareOnX, shareOnWhatsApp, shareGeneric } from "../../src/services/share";
 import {
@@ -416,13 +416,13 @@ export default function ArticleLandingPage() {
                 ? "This article is sponsored commercial content presented in collaboration with our verified partners. News Stand NG labels all paid features transparently."
                 : `News Stand NG operates under ethical news aggregation guidelines. Source: ${article.source || "Original Publisher"}. To read the unabridged investigative reporting and full gallery, visit the original publication.`}
             </p>
-            {(article.sourceUrl || article.sponsorUrl) && (
+            {safeExternalUrl(article.isSponsored ? (article.sponsorUrl || article.sourceUrl) : (article.sourceUrl || article.url)) && (
               <a
-                href={article.isSponsored ? (article.sponsorUrl || article.sourceUrl) : article.sourceUrl}
+                href={safeExternalUrl(article.isSponsored ? (article.sponsorUrl || article.sourceUrl) : (article.sourceUrl || article.url))}
                 target="_blank"
-                rel={article.isSponsored ? "sponsored noopener" : "noopener noreferrer"}
+                rel={article.isSponsored ? "sponsored nofollow noopener noreferrer" : "noopener noreferrer nofollow"}
                 className="referral-primary-btn"
-                onClick={() => trackOutboundClick(article, article.isSponsored ? (article.sponsorUrl || article.sourceUrl) : article.sourceUrl)}
+                onClick={() => trackOutboundClick(article, safeExternalUrl(article.isSponsored ? (article.sponsorUrl || article.sourceUrl) : (article.sourceUrl || article.url)))}
               >
                 <span>Read Full Story on {article.isSponsored ? (article.sponsorName || article.source || "Partner") : (article.source || "Publisher")}</span>
                 <ExternalLink size={15} />
@@ -508,11 +508,11 @@ export default function ArticleLandingPage() {
                     <span>
                       Synthesized by AI from reporting by <strong>{article.isSponsored ? (article.sponsorName || article.source || "Partner") : (article.source || "Publisher")}</strong>.
                     </span>
-                    {(article.sourceUrl || article.url) && (
+                    {safeExternalUrl(article.sourceUrl || article.url) && (
                       <a
-                        href={article.sourceUrl || article.url}
+                        href={safeExternalUrl(article.sourceUrl || article.url)}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="noopener noreferrer nofollow"
                         className="briefing-publisher-link"
                       >
                         <span>Read full story on {article.source || "Publisher"}</span>

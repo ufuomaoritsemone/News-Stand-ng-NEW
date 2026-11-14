@@ -11,7 +11,7 @@ import {
   Pin,
   ShieldCheck,
 } from 'lucide-react';
-import { api } from '../services/api';
+import { api, safeExternalUrl } from '../services/api';
 import {
   getOrCreateForumUserId,
   getStoredForumUserName,
@@ -80,7 +80,7 @@ function CommentItem({
     .toUpperCase();
 
   const authorName = comment.AuthorName || comment.authorName || 'Anonymous';
-  const authorAvatar = comment.AuthorAvatar || comment.authorAvatar;
+  const authorAvatar = safeExternalUrl(comment.AuthorAvatar || comment.authorAvatar);
   const content = comment.Content || comment.content || '';
   const upvotes = comment.Upvotes ?? comment.upvotes ?? 0;
   const downvotes = comment.Downvotes ?? comment.downvotes ?? 0;

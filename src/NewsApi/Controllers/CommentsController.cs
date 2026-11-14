@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NewsApi.Data;
@@ -6,10 +7,16 @@ using NewsApi.Models;
 namespace NewsApi.Controllers;
 
 [ApiController]
-public class CommentsController : ControllerBase
+public partial class CommentsController : ControllerBase
 {
     private readonly NewsDbContext _db;
     private readonly ILogger<CommentsController> _logger;
+
+    [GeneratedRegex(@"<[^>]+>", RegexOptions.Compiled)]
+    private static partial Regex HtmlTagRegex();
+
+    [GeneratedRegex(@"(?:https?://|www\.|javascript:|vbscript:|data:text/html)", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    private static partial Regex SpamUrlRegex();
 
     public CommentsController(NewsDbContext db, ILogger<CommentsController> logger)
     {
@@ -116,7 +123,8 @@ public class CommentsController : ControllerBase
             return BadRequest(new { error = "Invalid comment payload." });
         }
 
-        var content = request.Content?.Trim();
+        var rawContent = request.Content?.Trim() ?? string.Empty;
+        var content = HtmlTagRegex().Replace(rawContent, string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(content) || content.Length < 2)
         {
             return BadRequest(new { error = "Comment cannot be empty." });
@@ -127,10 +135,28 @@ public class CommentsController : ControllerBase
             return BadRequest(new { error = "Comment exceeds maximum limit of 1500 characters." });
         }
 
-        var authorName = string.IsNullOrWhiteSpace(request.AuthorName) ? "Anonymous Reader" : request.AuthorName.Trim();
+        if (SpamUrlRegex().IsMatch(content))
+        {
+            return BadRequest(new { error = "External URLs and links are not permitted in reader comments." });
+        }
+
+        var rawAuthor = string.IsNullOrWhiteSpace(request.AuthorName) ? "Anonymous Reader" : request.AuthorName.Trim();
+        var authorName = HtmlTagRegex().Replace(rawAuthor, string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(authorName))
+        {
+            authorName = "Anonymous Reader";
+        }
         if (authorName.Length > 50)
         {
             authorName = authorName[..50];
+        }
+
+        string? safeAvatar = null;
+        if (!string.IsNullOrWhiteSpace(request.AuthorAvatar) &&
+            Uri.TryCreate(request.AuthorAvatar.Trim(), UriKind.Absolute, out var avatarUri) &&
+            avatarUri.Scheme == Uri.UriSchemeHttps)
+        {
+            safeAvatar = avatarUri.AbsoluteUri;
         }
 
         // Verify article exists or fetch title
@@ -144,7 +170,7 @@ public class CommentsController : ControllerBase
             ArticleTitle = articleTitle,
             ParentCommentId = string.IsNullOrWhiteSpace(request.ParentCommentId) ? null : request.ParentCommentId.Trim(),
             AuthorName = authorName,
-            AuthorAvatar = request.AuthorAvatar,
+            AuthorAvatar = safeAvatar,
             AuthorId = string.IsNullOrWhiteSpace(request.AuthorId) ? Guid.NewGuid().ToString() : request.AuthorId.Trim(),
             Content = content,
             Status = "Published",

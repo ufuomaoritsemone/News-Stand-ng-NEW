@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Play, X, ExternalLink, Flame, Tv, Eye, Clock } from 'lucide-react';
+import { safeExternalUrl } from '../services/api';
+
+const YT_ID_REGEX = /^[A-Za-z0-9_-]{11}$/;
 
 export default function VideoSection({
   title = 'Featured Videos',
@@ -10,26 +13,28 @@ export default function VideoSection({
 }) {
   const [selectedVideo, setSelectedVideo] = useState(null);
 
-  // Helper to extract clean embed URL
+  // Helper to extract clean embed URL (strictly youtube-nocookie.com)
   const getEmbedUrl = (vid) => {
     if (!vid) return null;
     const videoId = vid.videoId || vid.id;
-    if (videoId && videoId.length === 11) {
-      return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+    if (typeof videoId === 'string' && YT_ID_REGEX.test(videoId)) {
+      return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`;
     }
-    if (vid.videoUrl || vid.url) {
-      const match = (vid.videoUrl || vid.url).match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-      if (match && match[1]) {
-        return `https://www.youtube.com/embed/${match[1]}?autoplay=1&rel=0`;
+    const rawUrl = vid.videoUrl || vid.url;
+    if (typeof rawUrl === 'string') {
+      const match = rawUrl.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      if (match && match[1] && YT_ID_REGEX.test(match[1])) {
+        return `https://www.youtube-nocookie.com/embed/${match[1]}?autoplay=1&rel=0`;
       }
     }
     return null;
   };
 
   const getWatchUrl = (vid) => {
-    if (vid.videoUrl) return vid.videoUrl;
-    if (vid.videoId) return `https://www.youtube.com/watch?v=${vid.videoId}`;
-    return 'https://www.youtube.com';
+    if (vid?.videoId && YT_ID_REGEX.test(vid.videoId)) {
+      return `https://www.youtube.com/watch?v=${vid.videoId}`;
+    }
+    return safeExternalUrl(vid?.videoUrl || vid?.url, 'https://www.youtube.com');
   };
 
   const isTrending = type === 'trending';

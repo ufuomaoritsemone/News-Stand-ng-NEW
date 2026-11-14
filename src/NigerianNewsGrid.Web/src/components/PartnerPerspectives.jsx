@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Megaphone, ExternalLink, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
-import { api } from '../services/api';
+import { api, safeExternalUrl } from '../services/api';
 
 export default function PartnerPerspectives({
   stories = [],
@@ -108,11 +108,11 @@ export default function PartnerPerspectives({
                     <ArrowRight size={14} />
                   </button>
 
-                  {story.sponsorUrl && (
+                  {safeExternalUrl(story.sponsorUrl) && (
                     <a
-                      href={story.sponsorUrl}
+                      href={safeExternalUrl(story.sponsorUrl)}
                       target="_blank"
-                      rel="sponsored nofollow noopener"
+                      rel="sponsored nofollow noopener noreferrer"
                       className="partner-outbound-link"
                       onClick={(e) => {
                         e.stopPropagation();

@@ -613,6 +613,18 @@ newsstand.ng, www.newsstand.ng {
         redir https://newsstand.ng{uri} permanent
     }
 
+    # Security & Trust Headers (PageSpeed Best Practices & Google Ads Safety)
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Cross-Origin-Opener-Policy "same-origin-allow-popups"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        Content-Security-Policy "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+        -Server
+    }
+
     # Proxy all web and same-origin /api/* requests to the news-web SSR container
     reverse_proxy 127.0.0.1:3000 {
         header_up Host {host}

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Megaphone, ExternalLink, ArrowRight, Sparkles } from 'lucide-react';
-import { api } from '../services/api';
+import { api, safeExternalUrl } from '../services/api';
 
 export default function HeroSpotlightBanner({
   campaign,
@@ -61,11 +61,11 @@ export default function HeroSpotlightBanner({
               <ArrowRight size={15} />
             </button>
 
-            {campaign.sponsorUrl && (
+            {safeExternalUrl(campaign.sponsorUrl) && (
               <a
-                href={campaign.sponsorUrl}
+                href={safeExternalUrl(campaign.sponsorUrl)}
                 target="_blank"
-                rel="sponsored noopener noreferrer"
+                rel="sponsored nofollow noopener noreferrer"
                 className="hero-spotlight-btn secondary"
                 onClick={handleOutbound}
               >

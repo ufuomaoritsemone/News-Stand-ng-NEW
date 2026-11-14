@@ -24,12 +24,25 @@ function AnalyticsTracker() {
   return null;
 }
 
+export function headers() {
+  return {
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Content-Security-Policy": "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests",
+  };
+}
+
 export function Layout({ children }) {
   return (
     <html lang="en" data-theme="light" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="referrer" content="strict-origin-when-cross-origin" />
         {/* Apply persisted theme before first paint on every route (prevents light-on-light / flash) */}
         <script
           dangerouslySetInnerHTML={{
@@ -125,6 +138,18 @@ export function Layout({ children }) {
         <Links />
         {/* Google Tag Manager & Google Ads Tag (gtag.js) */}
         <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              window.dataLayer.push({'gtm.start': new Date().getTime(), event: 'gtm.js'});
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              ${GA_MEASUREMENT_ID ? `gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: false });` : ''}
+              ${GOOGLE_ADS_ID ? `gtag('config', '${GOOGLE_ADS_ID}');` : ''}
+            `,
+          }}
+        />
+        <script
           async
           src="https://www.googletagmanager.com/gtm.js?id=GTM-MWBX3W2R"
         />
@@ -134,17 +159,6 @@ export function Layout({ children }) {
             src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`}
           />
         ) : null}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              ${GA_MEASUREMENT_ID ? `gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: false });` : ''}
-              ${GOOGLE_ADS_ID ? `gtag('config', '${GOOGLE_ADS_ID}');` : ''}
-            `,
-          }}
-        />
         {/* End Google Tag Manager & Google Ads Tag */}
       </head>
       <body>
