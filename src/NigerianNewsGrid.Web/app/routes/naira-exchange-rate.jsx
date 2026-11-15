@@ -380,7 +380,16 @@ export default function NairaExchangeRatePage() {
     '@type': 'Dataset',
     'name': 'Nigerian Naira (USD/NGN) Exchange Rate Daily Fixings',
     'description': 'Historical and real-time exchange rates for the Nigerian Naira against the US Dollar across official NAFEM and parallel markets.',
-    'url': 'https://newsstand.ng/naira-exchange-rate',
+    'url': isPidgin ? 'https://newsstand.ng/pcm/naira-exchange-rate' : 'https://newsstand.ng/naira-exchange-rate',
+    'license': 'https://creativecommons.org/licenses/by/4.0/',
+    'isAccessibleForFree': true,
+    'keywords': [
+      'Naira exchange rate',
+      'USD to NGN',
+      'CBN NAFEM rate',
+      'Nigeria parallel market forex',
+      'AbokiFX Naira rate'
+    ],
     'creator': {
       '@type': 'Organization',
       'name': 'News Stand NG',

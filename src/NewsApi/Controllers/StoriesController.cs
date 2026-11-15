@@ -353,6 +353,7 @@ public class StoriesController : ControllerBase
         }
 
         var normalizedSlug = slug.Trim().ToLowerInvariant();
+        string? redirectSlug = null;
 
         var cluster = await _db.StoryClusters
             .AsNoTracking()
@@ -371,6 +372,37 @@ public class StoriesController : ControllerBase
                 }
             }
 
+            // Fallback 1: Strip numeric collision suffix (e.g. "-1", "-2") or match by prefix/overlap
+            var strippedSlug = System.Text.RegularExpressions.Regex.Replace(normalizedSlug, @"-\d+$", "");
+            var candidates = await _db.StoryClusters
+                .AsNoTracking()
+                .Where(sc => sc.ArticleCount >= 2 && sc.SourceCount >= 2)
+                .OrderByDescending(sc => sc.UpdatedAt)
+                .Take(200)
+                .Include(sc => sc.ClusterArticles)
+                    .ThenInclude(ca => ca.Article)
+                .ToListAsync(ct);
+
+            cluster = candidates.FirstOrDefault(sc =>
+                string.Equals(sc.Slug, strippedSlug, StringComparison.OrdinalIgnoreCase) ||
+                sc.Slug.StartsWith(strippedSlug, StringComparison.OrdinalIgnoreCase) ||
+                strippedSlug.StartsWith(sc.Slug, StringComparison.OrdinalIgnoreCase));
+
+            if (cluster == null && candidates.Count > 0)
+            {
+                var slugAsHeadline = strippedSlug.Replace("-", " ");
+                cluster = candidates.FirstOrDefault(sc =>
+                    StoryClusteringService.AreArticlesRelatedForCluster(slugAsHeadline, null, sc.Title, sc.Summary));
+            }
+
+            if (cluster != null && !string.Equals(cluster.Slug, normalizedSlug, StringComparison.OrdinalIgnoreCase))
+            {
+                redirectSlug = cluster.Slug;
+            }
+        }
+
+        if (cluster == null)
+        {
             return NotFound(new ErrorResponseDto
             {
                 Error = new ErrorPayload
@@ -422,6 +454,7 @@ public class StoriesController : ControllerBase
         {
             Id = cluster.Id,
             Slug = cluster.Slug,
+            RedirectSlug = redirectSlug,
             Title = cluster.Title,
             Summary = cluster.Summary,
             ImageUrl = CategoryImageMap.Resolve(cluster.ImageUrl, clusterCategory),

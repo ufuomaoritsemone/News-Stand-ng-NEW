@@ -1,5 +1,5 @@
 import React from "react";
-import { useLoaderData, Link } from "react-router";
+import { useLoaderData, Link, redirect } from "react-router";
 import { api, getOptimizedImageUrl } from "../../src/services/api";
 import { formatTimeAgo, formatFullDate } from "../../src/services/timeUtils";
 import Footer from "../../src/components/Footer";
@@ -62,11 +62,16 @@ export async function loader({ params }) {
       throw new Response("Story Cluster Not Found", { status: 404 });
     }
 
+    if (story.redirectSlug && story.redirectSlug !== slug) {
+      return redirect(`/story/${story.redirectSlug}`, 301);
+    }
+
     return { story };
   } catch (err) {
     if (err instanceof Response) throw err;
     console.warn(`[SSR Story Cluster Loader] Failed for slug '${slug}':`, err.message);
-    throw new Response("Story Cluster Not Found", { status: 404 });
+    const status = err?.status === 404 ? 404 : 503;
+    throw new Response(status === 404 ? "Story Cluster Not Found" : "Service Temporarily Unavailable", { status });
   }
 }
 

@@ -23,6 +23,51 @@ Projects:
 
 ## Updates
 
+### November 15, 2026 — "News by States" Architecture Overhaul (Canonical Slug Unification, Hybrid Retrieval, Output Caching & Rich State Hub UI)
+Upgraded the regional **News by States** pipeline across `NewsApi`, `NewsScraperService`, and `NigerianNewsGrid.Web` to resolve topic/state slug fragmentation, eliminate the empty seeded-topic trap, add pagination and category filtering, and render the complete state hub experience:
+- **[Canonical State Topic Seeding & Gazetteer Alias Expansion (`NigerianStateRegistry.cs`, `DataSeeder.cs`, `ng-entities.json`)]**:
+  - Added `NigerianStateRegistry.GetCandidateSlugs` and `GetCandidateTopicNames` to unify canonical and legacy state slugs (`lagos` / `lagos-state`, `fct` / `abuja` / `abuja-fct` / `federal-capital-territory`) alongside state capitals and major cities.
+  - Updated `DataSeeder.SeedDefaultTopicsAsync` to idempotently seed `TopicType.Place` entries for all 36 states + FCT (`topic_state_*`) with their regional descriptions, and synchronized all `MajorCities` across `src/NewsApi/Data/ng-entities.json` and `src/NewsScraperService/data/ng-entities.json`.
+- **[Hybrid State Retrieval, Confidence Ranking, Pagination & Tag-Evicted Output Caching (`StatesController.cs`, `Dtos.cs`, `ServiceCollectionExtensions.cs`, `ArticleIngestionService.cs`)]**:
+  - Refactored `StatesController.GetStates` (`GET /api/v1/states`) and `StatesController.GetStateBySlug` (`GET /api/v1/states/{slug}`) to resolve distinct article counts across all candidate state/city topics and combine `ArticleTopics` relations with title/summary keyword matching—fixing the bug where states with a seeded topic but 0 `ArticleTopics` rows skipped fallback matching and returned 0 stories.
+  - Added headline/confidence-weighted ordering (`Confidence >= 0.9f` or headline match prioritized ahead of passing body mentions), pagination (`page`, `pageSize`, `totalPages`), and category filtering (`category`, `activeCategory`, `availableCategories`) on `StateDetailDto`.
+  - Registered the `"PublicStates"` output cache policy (`Tag("states")`, varying by `page`, `pageSize`, `category`) in `ServiceCollectionExtensions.cs`, applied `[OutputCache(PolicyName = "PublicStates")]` with `ETag` / `304 Not Modified` support on `StatesController`, and wired `EvictByTagAsync("states")` into `ArticleIngestionService.IngestArticlesAsync`.
+- **[State Hub UI & `/pcm/` Localization (`state.$slug.jsx`, `states.jsx`, `api.js`)]**:
+  - Upgraded `state.$slug.jsx` to render the full `.state-detail-masthead` (capital, slogan, major commercial hubs, total verified report count, and state intro), the `.state-topics-bar` regional entity chip cloud, dynamic category filter chips, pagination controls (`rel="prev"` / `rel="next"`), and the visible FAQ accordion matching the `FAQPage` JSON-LD schema.
+  - Updated `states.jsx` and `state.$slug.jsx` so all internal navigation links and breadcrumbs preserve the `/pcm` prefix when browsing in Nigerian Pidgin.
+- **[Testing & Verification]**: Added `StatesEndpointTests.cs` (`GetStates_ResolvesCountsAcrossCanonicalAndLegacySlugs_IncludingFct` and `GetStateBySlug_CombinesEmptySeededTopicWithTitleMatches_AndSupportsPaginationAndCategoryFilter`), updated `OutputCacheTests.cs` (`8/8` passing), and verified client/SSR production bundles via `npm --prefix src/NigerianNewsGrid.Web run build`.
+
+### November 15, 2026 — Google Search Console Indexing Coverage Fixes (404 Story Cluster Persistence, `/pcm/` Canonical Alignment, & Crawl Budget Guardrails)
+Resolved the Google Search Console Indexing Coverage issues (`Not found (404)`, `Alternate page with proper canonical tag`, and crawl-budget leakage into `Excluded by 'noindex' tag` thin topic hubs) across `NewsApi` and `NigerianNewsGrid.Web`:
+- **[Fix 1 — Historical Story Cluster Persistence & `301` Redirect Fallback (`StoryClusteringService.cs`, `StoriesController.cs`, `Dtos.cs`, `story.$slug.jsx`, `api.js`)]**:
+  - Scoped `StoryClusteringService.RunClusteringAsync` so graduated multi-source clusters (`ArticleCount >= 2 && SourceCount >= 2`) older than the 72-hour active clustering window (`UpdatedAt < cutoff`) are preserved permanently in PostgreSQL rather than pruned, preventing indexed `/story/{slug}` URLs from decaying into `404 Not Found`.
+  - Added fallback slug resolution (`RedirectSlug` on `StoryClusterDto`) in `StoriesController.GetStoryBySlug` (`GET /api/v1/stories/{slug}`) to match numeric suffix variations (e.g., `-1`, `-2`), prefix overlaps, or event similarity, paired with an HTTP `301` redirect in `story.$slug.jsx`.
+  - Attached HTTP status codes (`error.status = res.status`) in `src/services/api.js` and updated SSR route loaders (`news.$slug.jsx`, `story.$slug.jsx`, `topic.$slug.jsx`, `source.$slug.jsx`, `state.$slug.jsx`) to return `503 Service Temporarily Unavailable` on transient backend timeouts instead of false `404` responses.
+- **[Fix 2 — Self-Referencing Nigerian Pidgin (`/pcm/`) Canonicals & Reciprocal Sitemaps (`state.$slug.jsx`, `sitemap-states[.]xml.jsx`, `sitemap-data[.]xml.jsx`)]**:
+  - Fixed `meta()` and `AdministrativeArea` / `BreadcrumbList` JSON-LD in `src/NigerianNewsGrid.Web/app/routes/state.$slug.jsx` so `/pcm/state/:slug` emits a self-referencing canonical URL (`https://newsstand.ng/pcm/state/${state.slug}`) instead of canonicalizing back to the English `/state/${state.slug}` URL.
+  - Updated `sitemap-states.xml` and `sitemap-data.xml` to include dedicated `<url><loc>` entries for both English and `/pcm/` Nigerian Pidgin routes with full reciprocal `xhtml:link rel="alternate" hreflang` annotations (`en-ng`, `pcm`, `x-default`).
+- **[Fix 3 — Thin Topic Hub Crawl-Budget Guardrail (`ArticlesController.cs`, `news.$slug.jsx`)]**:
+  - Hydrated `TopicDto.ArticleCount` in `ArticlesController.GetBySlug` (`GET /api/v1/articles/by-slug/{slug}`) via a single grouped query on `ArticleTopics`.
+  - Updated the article topic pill cloud in `news.$slug.jsx` to attach `rel="nofollow"` when `topic.articleCount < MIN_TOPIC_ARTICLES_FOR_INDEXING` (`5`), preventing Googlebot from wasting crawl budget on thin `noindex` topic hubs while automatically removing `nofollow` once a topic accumulates 5+ articles.
+- **[Testing & Verification]**: Added `RunClustering_PreservesGraduatedHistoricalClustersOlderThan72h` in `StoryClusteringTests.cs` and `GetStoryBySlug_ResolvesRedirectSlug_WhenNumericSuffixOrEventMatches` in `StoriesEndpointTests.cs` (`14/14` passing) and verified SSR + client production bundles with `npm --prefix src/NigerianNewsGrid.Web run build`.
+
+### November 15, 2026 — Google Search Console `Dataset` Schema Compliance (`license`, `isAccessibleForFree`, `keywords`)
+Resolved the Google Search Console structured data warning (`Datasets — Missing field "license"`) across the evergreen market and energy tracker routes in `NigerianNewsGrid.Web`:
+- **[Evergreen Dataset JSON-LD Enrichment (`src/NigerianNewsGrid.Web/app/routes/fuel-price-nigeria.jsx`, `src/NigerianNewsGrid.Web/app/routes/naira-exchange-rate.jsx`)]**:
+  - Added `'license': 'https://creativecommons.org/licenses/by/4.0/'`, `'isAccessibleForFree': true`, `'keywords'` arrays, and `'temporalCoverage': '2026'` to the `Dataset` JSON-LD blocks on `/fuel-price-nigeria` (`/pcm/fuel-price-nigeria`) and `/naira-exchange-rate` (`/pcm/naira-exchange-rate`), and aligned `datasetJsonLd.url` with the localized Pidgin route when `isPidgin` is active.
+- **[Testing & Verification]**: Verified client and SSR production bundles with `npm run build` in `src/NigerianNewsGrid.Web`.
+
+### November 14, 2026 — AWS Lightsail Bucket Offsite Backup Architecture, Docker Log Rotation & 80 GB SSD Hygiene
+Updated the production deployment configuration (`docker-compose.yml` and `VPS_Deployment.md`) to prevent root SSD exhaustion on the 80 GB AWS Lightsail instance and establish offsite S3-compatible backups using an AWS Lightsail Object Storage Bucket:
+- **[Docker Container Log Rotation (`docker-compose.yml`)]**:
+  - Added a shared YAML extension anchor (`x-logging: &default-logging`) with `driver: "json-file"` and `options: { max-size: "10m", max-file: "3" }` across all 6 production services (`postgres`, `news-api`, `admin-dashboard`, `news-web`, `news-scraper-service`, and `tts-worker`), capping container stdout/stderr JSON logs at `30 MB` per service (`180 MB` total).
+- **[Database Backup Fix & Offsite Lightsail Bucket Replication (`VPS_Deployment.md` Part 7)]**:
+  - Fixed the daily `pg_dump` cron job in Part 7.1 to target the configured `newsstand` database (`POSTGRES_DB=newsstand`) instead of the fallback `newsgrid` identifier, and tightened local `.sql.gz` retention on the root SSD to 7 days (`-mtime +7 -delete`).
+  - Added architectural guidance comparing **AWS Lightsail Buckets (Object Storage)** (`$1/mo`–`$3/mo`, isolated failure domain, S3 Lifecycle expiration) against **Lightsail Disks (Block Storage)**, plus Part 7.2 instructions for zero-key instance-attached `aws s3 cp` / `aws s3 sync` replication of `pg_dump` archives and the `newsstand_audio-data` volume.
+- **[Docker BuildKit Cache Pruning & Disk Hygiene (`VPS_Deployment.md` Part 9.1 & 9.5)]**:
+  - Updated rolling deployments (Part 9.1) to execute `docker image prune -af` and `docker builder prune -af`, and added Part 9.5 (`Reclaiming VPS Disk Space`) documenting `docker system df -v`, BuildKit compiler cache reclamation, and `journalctl --vacuum-size=200M`.
+- **[Testing & Verification]**: Validated `docker-compose.yml` schema and verified all commands and section references in `VPS_Deployment.md`.
+
 ### November 14, 2026 — Google Ads "Compromised Site" Policy Appeal Hardening & PageSpeed Trust/Safety Fixes
 Resolved all technical triggers flagged by Google Ads' automated policy scanner (`AdsBot-Google`) and PageSpeed Insights (**Best Practices / Trust & Safety** and **SEO**) across the React Router v7 SSR frontend (`NigerianNewsGrid.Web`), ASP.NET Core backend (`NewsApi`), and Caddy production reverse proxy (`VPS_Deployment.md`):
 - **[PWA Service Worker Same-Origin Isolation (`src/NigerianNewsGrid.Web/public/sw.js`)]**:

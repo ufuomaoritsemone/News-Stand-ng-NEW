@@ -54,6 +54,12 @@ public static class ServiceCollectionExtensions
                 .SetVaryByQuery("page", "pageSize")
                 .Tag("topics"));
 
+            // Regional 36 states + FCT directory and state detail hubs (180 seconds)
+            options.AddPolicy("PublicStates", builder => builder
+                .Expire(TimeSpan.FromSeconds(180))
+                .SetVaryByQuery("page", "pageSize", "category")
+                .Tag("states"));
+
             // Publisher sources registry (600 seconds)
             options.AddPolicy("PublicSources", builder => builder
                 .Expire(TimeSpan.FromSeconds(600))

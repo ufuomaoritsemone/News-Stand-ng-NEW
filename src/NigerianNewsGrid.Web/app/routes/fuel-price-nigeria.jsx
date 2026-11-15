@@ -93,12 +93,22 @@ export default function FuelPriceNigeriaPage() {
     '@type': 'Dataset',
     'name': 'Nigeria Retail Petrol (PMS) Pump Prices by State',
     'description': 'Real-time retail price benchmark for Premium Motor Spirit across major Nigerian metropolitan centers and distribution hubs.',
-    'url': 'https://newsstand.ng/fuel-price-nigeria',
+    'url': isPidgin ? 'https://newsstand.ng/pcm/fuel-price-nigeria' : 'https://newsstand.ng/fuel-price-nigeria',
+    'license': 'https://creativecommons.org/licenses/by/4.0/',
+    'isAccessibleForFree': true,
+    'keywords': [
+      'Nigeria fuel price',
+      'PMS pump price Nigeria',
+      'NNPCL petrol price',
+      'Dangote refinery petrol price',
+      'Nigeria energy data'
+    ],
     'creator': {
       '@type': 'Organization',
       'name': 'News Stand NG',
       'url': 'https://newsstand.ng'
     },
+    'temporalCoverage': '2026',
     'spatialCoverage': {
       '@type': 'Place',
       'name': 'Nigeria'

@@ -409,4 +409,115 @@ public class StoryClusteringTests
         Assert.DoesNotContain(cluster.ClusterArticles, ca => ca.ArticleId == "breweries-1");
         Assert.DoesNotContain(cluster.ClusterArticles, ca => ca.ArticleId == "ikeja-1");
     }
+
+    [Fact]
+    public async Task RunClustering_PreservesGraduatedHistoricalClustersOlderThan72h()
+    {
+        using var db = CreateInMemoryDb();
+        var embeddingProvider = new LocalFallbackEmbeddingProvider();
+        var slugService = new SlugService();
+        var config = new ConfigurationBuilder().Build();
+
+        var service = new StoryClusteringService(
+            db,
+            embeddingProvider,
+            slugService,
+            config,
+            NullLogger<StoryClusteringService>.Instance);
+
+        var now = DateTime.UtcNow;
+
+        // Historical graduated cluster from 5 days ago (> 72h cutoff)
+        var oldArt1 = new Article
+        {
+            Id = "old-1",
+            Title = "NNPCL signs $3bn crude oil prepayment deal in Abuja",
+            Summary = "Nigerian National Petroleum Company Limited secured a landmark facility.",
+            Source = "Punch",
+            Category = "Business",
+            PublishedAt = now.AddDays(-5),
+            Slug = "nnpcl-signs-3bn-crude-deal"
+        };
+        var oldArt2 = new Article
+        {
+            Id = "old-2",
+            Title = "NNPCL secures $3 billion crude oil facility to boost reserves",
+            Summary = "State oil company finalized the $3bn prepayment agreement.",
+            Source = "Vanguard",
+            Category = "Business",
+            PublishedAt = now.AddDays(-5).AddHours(1),
+            Slug = "nnpcl-secures-3bn-facility"
+        };
+        var historicalCluster = new StoryCluster
+        {
+            Id = "hist-cluster-1",
+            Slug = "nnpcl-signs-3bn-crude-oil-prepayment-deal-in-abuja",
+            Title = "NNPCL signs $3bn crude oil prepayment deal in Abuja",
+            Summary = "Nigerian National Petroleum Company Limited secured a landmark facility.",
+            CreatedAt = now.AddDays(-5),
+            UpdatedAt = now.AddDays(-5).AddHours(1),
+            ArticleCount = 2,
+            SourceCount = 2
+        };
+
+        // Recent articles inside the 72h window (>= 4 so the 72h window is used without 14d fallback)
+        db.Articles.AddRange(
+            oldArt1,
+            oldArt2,
+            new Article
+            {
+                Id = "new-1",
+                Title = "CBN Governor Cardoso announces new Naira foreign exchange rules for banks",
+                Summary = "Central Bank of Nigeria introduces updated FX market guidelines.",
+                Source = "BusinessDay",
+                Category = "Business",
+                PublishedAt = now.AddHours(-2),
+                Slug = "cbn-cardoso-naira-fx-rules"
+            },
+            new Article
+            {
+                Id = "new-2",
+                Title = "Cardoso unveils fresh CBN foreign exchange guidelines to stabilize Naira",
+                Summary = "New circular from the apex bank targets liquidity in the FX market.",
+                Source = "Premium Times",
+                Category = "Business",
+                PublishedAt = now.AddHours(-1),
+                Slug = "cardoso-unveils-cbn-fx-guidelines"
+            },
+            new Article
+            {
+                Id = "new-3",
+                Title = "Super Eagles arrive in Uyo camp ahead of World Cup qualifier",
+                Summary = "National football team begins training sessions in Akwa Ibom.",
+                Source = "Channels TV",
+                Category = "Sports",
+                PublishedAt = now.AddHours(-3),
+                Slug = "super-eagles-arrive-uyo"
+            },
+            new Article
+            {
+                Id = "new-4",
+                Title = "FAAN upgrades international terminal security scanners at Lagos airport",
+                Summary = "Federal Airports Authority of Nigeria deployed new screening equipment.",
+                Source = "Daily Trust",
+                Category = "General",
+                PublishedAt = now.AddHours(-4),
+                Slug = "faan-upgrades-lagos-airport"
+            });
+
+        db.StoryClusters.Add(historicalCluster);
+        db.StoryClusterArticles.AddRange(
+            new StoryClusterArticle { ClusterId = historicalCluster.Id, ArticleId = oldArt1.Id, SimilarityScore = 1.0f },
+            new StoryClusterArticle { ClusterId = historicalCluster.Id, ArticleId = oldArt2.Id, SimilarityScore = 0.92f });
+
+        await db.SaveChangesAsync();
+
+        var activeUpdated = await service.RunClusteringAsync();
+        Assert.Equal(1, activeUpdated);
+
+        // Both the new cluster AND the graduated historical cluster must remain in the DB
+        var allClusters = await db.StoryClusters.ToListAsync();
+        Assert.Equal(2, allClusters.Count);
+        Assert.Contains(allClusters, sc => sc.Slug == "nnpcl-signs-3bn-crude-oil-prepayment-deal-in-abuja");
+    }
 }

@@ -440,6 +440,21 @@ public class ArticlesController : ControllerBase
             TargetPlatform = a.TargetPlatform ?? "All"
         }).ToList();
 
+        var topicIds = article.ArticleTopics
+            .Where(at => at.Topic != null)
+            .Select(at => at.Topic!.Id)
+            .Distinct()
+            .ToList();
+
+        var topicArticleCounts = topicIds.Count > 0
+            ? await _db.ArticleTopics
+                .AsNoTracking()
+                .Where(at => topicIds.Contains(at.TopicId))
+                .GroupBy(at => at.TopicId)
+                .Select(g => new { TopicId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.TopicId, x => x.Count, cancellationToken)
+            : new Dictionary<string, int>();
+
         var detailDto = new ArticleDetailDto
         {
             Id             = article.Id,
@@ -467,12 +482,13 @@ public class ArticlesController : ControllerBase
                 .Where(at => at.Topic != null)
                 .Select(at => new TopicDto
                 {
-                    Id          = at.Topic!.Id,
-                    Slug        = at.Topic.Slug,
-                    Name        = at.Topic.Name,
-                    Type        = at.Topic.Type.ToString(),
-                    Description = at.Topic.Description,
-                    CreatedAt   = at.Topic.CreatedAt
+                    Id           = at.Topic!.Id,
+                    Slug         = at.Topic.Slug,
+                    Name         = at.Topic.Name,
+                    Type         = at.Topic.Type.ToString(),
+                    Description  = at.Topic.Description,
+                    ArticleCount = topicArticleCounts.GetValueOrDefault(at.Topic.Id, 1),
+                    CreatedAt    = at.Topic.CreatedAt
                 })
                 .ToList(),
             RelatedArticles = relatedArticles,

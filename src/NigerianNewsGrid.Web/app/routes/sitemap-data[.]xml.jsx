@@ -13,15 +13,17 @@ export async function loader() {
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n';
 
   for (const page of dataPages) {
-    xml += '  <url>\n';
-    xml += `    <loc>${baseUrl}${page.path}</loc>\n`;
-    xml += `    <lastmod>${now}</lastmod>\n`;
-    xml += `    <changefreq>${page.freq}</changefreq>\n`;
-    xml += `    <priority>${page.priority}</priority>\n`;
-    xml += `    <xhtml:link rel="alternate" hreflang="en-ng" href="${baseUrl}${page.path}"/>\n`;
-    xml += `    <xhtml:link rel="alternate" hreflang="pcm" href="${baseUrl}/pcm${page.path}"/>\n`;
-    xml += `    <xhtml:link rel="alternate" hreflang="x-default" href="${baseUrl}${page.path}"/>\n`;
-    xml += '  </url>\n';
+    for (const prefix of ['', '/pcm']) {
+      xml += '  <url>\n';
+      xml += `    <loc>${baseUrl}${prefix}${page.path}</loc>\n`;
+      xml += `    <lastmod>${now}</lastmod>\n`;
+      xml += `    <changefreq>${page.freq}</changefreq>\n`;
+      xml += `    <priority>${page.priority}</priority>\n`;
+      xml += `    <xhtml:link rel="alternate" hreflang="en-ng" href="${baseUrl}${page.path}"/>\n`;
+      xml += `    <xhtml:link rel="alternate" hreflang="pcm" href="${baseUrl}/pcm${page.path}"/>\n`;
+      xml += `    <xhtml:link rel="alternate" hreflang="x-default" href="${baseUrl}${page.path}"/>\n`;
+      xml += '  </url>\n';
+    }
   }
 
   xml += '</urlset>';

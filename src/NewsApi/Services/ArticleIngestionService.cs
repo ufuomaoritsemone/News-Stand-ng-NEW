@@ -198,6 +198,7 @@ public class ArticleIngestionService : IArticleIngestionService
             {
                 await _outputCacheStore.EvictByTagAsync("articles", cancellationToken);
                 await _outputCacheStore.EvictByTagAsync("stories", cancellationToken);
+                await _outputCacheStore.EvictByTagAsync("states", cancellationToken);
             }
 
             if (_indexNowService != null && ingestedSlugs.Count > 0)

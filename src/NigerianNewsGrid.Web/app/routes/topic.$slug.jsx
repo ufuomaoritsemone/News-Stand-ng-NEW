@@ -98,7 +98,8 @@ export async function loader({ params, request }) {
   } catch (err) {
     if (err instanceof Response) throw err;
     console.warn(`[SSR Topic Loader] Failed for slug '${slug}':`, err.message);
-    throw new Response("Topic Not Found", { status: 404 });
+    const status = err?.status === 404 ? 404 : 503;
+    throw new Response(status === 404 ? "Topic Not Found" : "Service Temporarily Unavailable", { status });
   }
 }
 
@@ -124,8 +125,8 @@ export default function TopicHubPage() {
   const aboutType =
     topic.type === "Person" ? "Person"
       : topic.type === "Place" ? "Place"
-      : topic.type === "Organization" ? "Organization"
-      : "Thing";
+        : topic.type === "Organization" ? "Organization"
+          : "Thing";
 
   const collectionPageJsonLd = {
     "@context": "https://schema.org",

@@ -137,11 +137,52 @@ public static class NigerianStateRegistry
             clean = clean[..^6];
         }
 
-        if (clean == "abuja" || clean == "abuja-fct" || clean == "fct-abuja")
+        if (clean == "abuja" || clean == "abuja-fct" || clean == "fct-abuja" || clean == "federal-capital-territory")
         {
             clean = "fct";
         }
 
         return _states.FirstOrDefault(s => s.Slug == clean || s.Name.Equals(clean, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Returns all canonical and legacy topic slugs and entity names associated with a state.
+    /// </summary>
+    public static IReadOnlyList<string> GetCandidateSlugs(StateInfo state)
+    {
+        if (state.Slug == "fct")
+        {
+            return ["fct", "abuja", "abuja-fct", "fct-abuja", "federal-capital-territory"];
+        }
+
+        return [state.Slug, $"{state.Slug}-state"];
+    }
+
+    /// <summary>
+    /// Returns all candidate topic names (state name, "{Name} State", capital, and major cities).
+    /// </summary>
+    public static IReadOnlyList<string> GetCandidateTopicNames(StateInfo state)
+    {
+        var names = new List<string>
+        {
+            state.Name,
+            $"{state.Name} State",
+            state.Capital
+        };
+
+        if (state.Slug == "fct")
+        {
+            names.AddRange(["Abuja FCT", "FCT Abuja", "Abuja", "FCT"]);
+        }
+
+        foreach (var city in state.MajorCities)
+        {
+            if (!names.Contains(city, StringComparer.OrdinalIgnoreCase))
+            {
+                names.Add(city);
+            }
+        }
+
+        return names;
     }
 }

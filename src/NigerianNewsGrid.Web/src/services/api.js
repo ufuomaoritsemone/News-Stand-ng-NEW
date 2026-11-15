@@ -52,7 +52,9 @@ async function fetchJson(url, options = {}) {
 
     if (!res.ok) {
       const errorText = await res.text().catch(() => '');
-      throw new Error(`HTTP ${res.status}: ${errorText || res.statusText}`);
+      const error = new Error(`HTTP ${res.status}: ${errorText || res.statusText}`);
+      error.status = res.status;
+      throw error;
     }
 
     return await res.json();
@@ -265,11 +267,16 @@ export const api = {
   },
 
   /**
-   * Fetch a state by slug (e.g. lagos, kano, fct, rivers) with latest articles and FAQs.
+   * Fetch a state by slug (e.g. lagos, kano, fct, rivers) with latest articles, pagination, category filter, and FAQs.
    */
-  async getState(slug) {
+  async getState(slug, { page = 1, pageSize = 18, category = '' } = {}) {
     const base = getApiBaseUrl();
-    return fetchJson(`${base}/states/${encodeURIComponent(slug)}`);
+    const params = new URLSearchParams();
+    if (page && page > 1) params.append('page', String(page));
+    if (pageSize) params.append('pageSize', String(pageSize));
+    if (category && category !== 'All') params.append('category', category);
+    const qs = params.toString();
+    return fetchJson(`${base}/states/${encodeURIComponent(slug)}${qs ? `?${qs}` : ''}`);
   },
 
   /**

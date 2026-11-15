@@ -352,6 +352,7 @@ public class StoryClusterDto
 {
     public string Id { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
+    public string? RedirectSlug { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Summary { get; set; }
     public string? ImageUrl { get; set; }
@@ -467,6 +468,11 @@ public class StateDetailDto
     public string? Slogan { get; set; }
     public string Intro { get; set; } = string.Empty;
     public int ArticleCount { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 18;
+    public int TotalPages { get; set; } = 1;
+    public string? ActiveCategory { get; set; }
+    public List<string> AvailableCategories { get; set; } = [];
     public List<string> MajorCities { get; set; } = [];
     public List<ArticleDto> Articles { get; set; } = [];
     public List<TopicDto> TopTopics { get; set; } = [];

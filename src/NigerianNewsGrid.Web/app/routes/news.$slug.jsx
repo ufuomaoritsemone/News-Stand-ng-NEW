@@ -11,7 +11,7 @@ import {
 } from "../../src/services/analytics";
 import { XIcon, WhatsAppIcon } from "../../src/components/SocialIcons";
 import Footer from "../../src/components/Footer";
-import { toAbsoluteImageUrl, buildAuthorNode } from "../utils/seo";
+import { toAbsoluteImageUrl, buildAuthorNode, MIN_TOPIC_ARTICLES_FOR_INDEXING } from "../utils/seo";
 
 const CommentSection = lazy(() => import("../../src/components/CommentSection"));
 import {
@@ -97,7 +97,8 @@ export async function loader({ params }) {
   } catch (err) {
     if (err instanceof Response) throw err;
     console.warn(`[SSR News Loader] Failed for slug '${slug}':`, err.message);
-    throw new Response("Article Not Found", { status: 404 });
+    const status = err?.status === 404 ? 404 : 503;
+    throw new Response(status === 404 ? "Article Not Found" : "Service Temporarily Unavailable", { status });
   }
 }
 
@@ -677,16 +678,22 @@ export default function ArticleLandingPage() {
                 <span>Related Topics & Entities</span>
               </h2>
               <div className="topics-pill-cloud">
-                {article.topics.map((topic) => (
-                  <Link
-                    key={topic.id || topic.slug}
-                    to={`/topic/${topic.slug}`}
-                    className="topic-cloud-pill"
-                  >
-                    <span className="topic-type-dot" />
-                    <span className="topic-name">{topic.name}</span>
-                  </Link>
-                ))}
+                {article.topics.map((topic) => {
+                  const isThinTopic =
+                    typeof topic.articleCount === "number" &&
+                    topic.articleCount < MIN_TOPIC_ARTICLES_FOR_INDEXING;
+                  return (
+                    <Link
+                      key={topic.id || topic.slug}
+                      to={`/topic/${topic.slug}`}
+                      rel={isThinTopic ? "nofollow" : undefined}
+                      className="topic-cloud-pill"
+                    >
+                      <span className="topic-type-dot" />
+                      <span className="topic-name">{topic.name}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </section>
           )}

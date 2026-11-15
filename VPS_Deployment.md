@@ -710,9 +710,14 @@ Ensure your Docker services automatically start after any server maintenance or 
 
 ---
 
-## Part 7: Automated Database Backups
+## Part 7: Automated Database & Offsite Lightsail Bucket Backups
 
-Set up an automated daily cron job to back up the PostgreSQL database to local storage:
+> [!TIP]
+> **Lightsail Bucket (Object Storage) vs. Lightsail Disk (Block Storage) for Backups**:
+> Always use an **AWS Lightsail Object Storage Bucket** (`$1/month` for `5 GB` or `$3/month` for `100 GB`) rather than a Block Storage Disk (`$0.10/GB/month`) for backups. A Lightsail Disk mounts directly into the Linux filesystem (`/mnt/...`) and shares the same OS failure domain, whereas a Lightsail Bucket is S3-compatible object storage completely isolated from the VPS filesystem, supports automatic S3 Lifecycle expiration rules, and protects your `pg_dump` archives and synthesized audio briefings even if the instance is accidentally wiped. Reserve Lightsail Block Storage Disks strictly for expanding live high-IOPS Docker volume capacity (`/var/lib/docker`) if PostgreSQL ever outgrows the 80 GB system SSD.
+
+### 7.1 Local Daily Database Backups
+Set up an automated daily cron job to back up the `newsstand` PostgreSQL database to local storage:
 
 1. Create backup directory:
    ```bash
@@ -725,10 +730,36 @@ Set up an automated daily cron job to back up the PostgreSQL database to local s
    crontab -e
    ```
 
-3. Add daily backup at 2:00 AM WAT (with automatic 14-day retention cleanup):
+3. Add daily backup at 2:00 AM WAT (with automatic 7-day local retention cleanup):
    ```cron
-   0 2 * * * docker exec nigeriannewsgrid-postgres pg_dump -U newsuser newsgrid | gzip > /var/backups/newsstand/newsstand_$(date +\%F).sql.gz
-   0 3 * * * find /var/backups/newsstand -name "*.sql.gz" -type f -mtime +14 -delete
+   0 2 * * * docker exec nigeriannewsgrid-postgres pg_dump -U newsuser newsstand | gzip > /var/backups/newsstand/newsstand_$(date +\%F).sql.gz
+   0 3 * * * find /var/backups/newsstand -name "*.sql.gz" -type f -mtime +7 -delete
+   ```
+
+### 7.2 Offsite Sync to an AWS Lightsail Bucket (Recommended)
+To automatically replicate daily PostgreSQL dumps and synthesized `audio-data` briefings off-instance:
+
+1. **Create a Lightsail Bucket & Grant Instance Access**:
+   - In the [AWS Lightsail Console](https://lightsail.aws.amazon.com/), navigate to **Storage** > **Create bucket**.
+   - Select the same AWS Region as your VPS, choose the **`$1/month` (5 GB)** or **`$3/month` (100 GB)** plan, and name the bucket (e.g. `newsstand-backups`).
+   - Open the bucket > **Permissions** tab > under **Resource access**, select your `newsstand-production` instance and click **Attach** (this grants your VPS zero-key IAM role access to the bucket; alternatively, generate an Access Key under the **Access keys** tab and run `aws configure`).
+   - *(Optional)* Under the **Lifecycle rules** tab, add a rule to automatically expire objects in `db/` older than `30 days`.
+
+2. **Install AWS CLI on the VPS**:
+   ```bash
+   sudo apt update && sudo apt install -y awscli
+   ```
+
+3. **Upgrade Crontab (`crontab -e`) for Automated Offsite S3 Replication**:
+   ```cron
+   # 2:00 AM: Dump PostgreSQL ('newsstand') locally and upload to Lightsail Bucket
+   0 2 * * * docker exec nigeriannewsgrid-postgres pg_dump -U newsuser newsstand | gzip > /var/backups/newsstand/newsstand_$(date +\%F).sql.gz && aws s3 cp /var/backups/newsstand/newsstand_$(date +\%F).sql.gz s3://newsstand-backups/db/
+
+   # 2:30 AM: Sync synthesized audio briefings volume to Lightsail Bucket
+   30 2 * * * sudo aws s3 sync /var/lib/docker/volumes/newsstand_audio-data/_data/ s3://newsstand-backups/audio/
+
+   # 3:00 AM: Retain 7 days of local SQL dumps on the 80 GB VPS SSD
+   0 3 * * * find /var/backups/newsstand -name "*.sql.gz" -type f -mtime +7 -delete
    ```
 
 ---
@@ -795,12 +826,13 @@ Run these commands from your local machine or VPS terminal to verify complete en
 ## Part 9: Day-2 Operations, AI Telemetry & Rolling Updates
 
 ### 9.1 Zero-Downtime Rolling Code Updates
-To deploy new commits from `main` to your AWS Lightsail VPS:
+To deploy new commits from `main` to your AWS Lightsail VPS and automatically reclaim intermediate `.NET 10` / `Node 22` compiler cache layers:
 ```bash
 cd /opt/newsstand
 git pull origin main
 docker compose up -d --build
-docker image prune -f
+docker image prune -af
+docker builder prune -af
 ```
 
 ### 9.2 Inspecting Gemini AI & Extractive ML Audit Logs
@@ -833,4 +865,21 @@ for vol in audio-data img-cache ai-logs; do
   docker run --rm -v "newsstand_${vol}:/mnt" alpine chown -R 1654:1654 /mnt
 done
 chmod 644 /opt/newsstand/secrets/*.json 2>/dev/null || true
+```
+
+### 9.5 Reclaiming VPS Disk Space (80 GB SSD Hygiene)
+Building multi-stage `.NET 10` (`mcr.microsoft.com/dotnet/sdk:10.0`) and `Node 22` images locally on the VPS accumulates 12–18+ GB of Docker BuildKit compiler cache over time. While `docker-compose.yml` enforces a `10m` x `3` (`30 MB` max per container) JSON log rotation cap, you can inspect and reclaim disk space at any time with zero container downtime:
+```bash
+# 1. Inspect detailed Docker storage usage (Images, Containers, Named Volumes, Build Cache)
+docker system df -v
+
+# 2. Reclaim all unused SDK base images and BuildKit compiler cache
+docker builder prune -af
+docker image prune -af
+
+# 3. Trim Ubuntu systemd journal logs to 200 MB
+sudo journalctl --vacuum-size=200M
+
+# 4. Verify reclaimed space on the root 80 GB SSD
+df -h /
 ```

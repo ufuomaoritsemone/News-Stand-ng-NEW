@@ -279,8 +279,12 @@ public partial class StoryClusteringService : IStoryClusteringService
         _logger.LogInformation("Identified {ClusterCount} multi-source story clusters from {TotalCandidates} candidates",
             validCandidates.Count, candidates.Count);
 
-        // 5. Persist clusters to database and prune stale/polluted clusters
+        // 5. Persist clusters to database and prune stale/polluted clusters within the active clustering window.
+        // Historical clusters (UpdatedAt < cutoff) that have already graduated with >= 2 articles and >= 2 sources
+        // are preserved permanently so indexed /story/{slug} permalinks never decay into 404 Not Found.
+        var activeClusterWindow = cutoff.AddDays(-7);
         var existingClusters = await _db.StoryClusters
+            .Where(sc => sc.UpdatedAt >= activeClusterWindow || sc.ArticleCount < 2 || sc.SourceCount < 2)
             .Include(sc => sc.ClusterArticles)
             .ToListAsync(cancellationToken);
 
@@ -393,9 +397,11 @@ public partial class StoryClusteringService : IStoryClusteringService
             updatedClustersCount++;
         }
 
-        // Remove unclaimed clusters in the active window whose articles were re-evaluated and did not form a valid cluster
+        // Only prune unclaimed clusters that are inside the active re-evaluation window (UpdatedAt >= cutoff)
+        // or invalid single-article/single-source remnants. Graduated clusters older than cutoff stay archived.
         var obsoleteClusters = existingClusters
-            .Where(sc => !claimedClusterIds.Contains(sc.Id))
+            .Where(sc => !claimedClusterIds.Contains(sc.Id) &&
+                         (sc.UpdatedAt >= cutoff || sc.ArticleCount < 2 || sc.SourceCount < 2 || sc.ClusterArticles.Count < 2))
             .ToList();
         if (obsoleteClusters.Count > 0)
         {

@@ -459,7 +459,11 @@ public class DataSeeder : IDataSeeder
 
     private async Task SeedDefaultTopicsAsync(CancellationToken ct)
     {
-        if (await _db.Topics.AnyAsync(ct)) return;
+        var existingSlugs = await _db.Topics
+            .AsNoTracking()
+            .Select(t => t.Slug)
+            .ToListAsync(ct);
+        var slugSet = new HashSet<string>(existingSlugs, StringComparer.OrdinalIgnoreCase);
 
         var defaultTopics = new List<Topic>
         {
@@ -473,18 +477,34 @@ public class DataSeeder : IDataSeeder
             new() { Id = "topic_efcc",     Slug = "efcc",                Name = "EFCC",                    Type = TopicType.Organization, Description = "Economic and Financial Crimes Commission." },
             new() { Id = "topic_eagles",   Slug = "super-eagles",        Name = "Super Eagles",            Type = TopicType.Organization, Description = "Nigeria national men's football team." },
 
-            new() { Id = "topic_lagos",    Slug = "lagos",               Name = "Lagos State",             Type = TopicType.Place,        Description = "Commercial nerve centre and economic capital of Nigeria." },
-            new() { Id = "topic_abuja",    Slug = "abuja",               Name = "Abuja FCT",               Type = TopicType.Place,        Description = "Federal Capital Territory and political seat of Nigeria." },
-            new() { Id = "topic_kano",     Slug = "kano",                Name = "Kano State",              Type = TopicType.Place,        Description = "Major northern commercial and historic metropolis." },
-            new() { Id = "topic_rivers",   Slug = "rivers",              Name = "Rivers State",            Type = TopicType.Place,        Description = "Niger Delta industrial and hydrocarbon hub." },
-
             new() { Id = "topic_fx",       Slug = "naira-exchange-rate", Name = "Naira Exchange Rate",     Type = TopicType.Theme,        Description = "Real-time updates on official and parallel market foreign exchange rates." },
             new() { Id = "topic_fuel",     Slug = "fuel-prices",         Name = "Fuel & Energy Prices",    Type = TopicType.Theme,        Description = "Petroleum pump price monitoring, refinery output, and energy policy." },
             new() { Id = "topic_tech",     Slug = "fintech-startups",    Name = "Fintech & Startups",      Type = TopicType.Theme,        Description = "Venture investments, digital banking, and innovation ecosystem across Africa." }
         };
 
-        _db.Topics.AddRange(defaultTopics);
-        await _db.SaveChangesAsync(ct);
-        _logger.LogInformation("Seeded {Count} canonical topics.", defaultTopics.Count);
+        foreach (var state in NigerianStateRegistry.AllStates)
+        {
+            var stateSlug = state.Slug == "fct" ? "abuja-fct" : $"{state.Slug}-state";
+            var stateName = state.Slug == "fct" ? "Federal Capital Territory" : $"{state.Name} State";
+            defaultTopics.Add(new Topic
+            {
+                Id = $"topic_state_{state.Slug.Replace("-", "_")}",
+                Slug = stateSlug,
+                Name = stateName,
+                Type = TopicType.Place,
+                Description = state.Intro
+            });
+        }
+
+        var missingTopics = defaultTopics
+            .Where(t => !slugSet.Contains(t.Slug))
+            .ToList();
+
+        if (missingTopics.Count > 0)
+        {
+            _db.Topics.AddRange(missingTopics);
+            await _db.SaveChangesAsync(ct);
+            _logger.LogInformation("Seeded {Count} canonical topics (including 36 states + FCT).", missingTopics.Count);
+        }
     }
 }

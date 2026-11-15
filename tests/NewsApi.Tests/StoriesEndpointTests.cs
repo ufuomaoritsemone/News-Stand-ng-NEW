@@ -333,4 +333,42 @@ public class StoriesEndpointTests
         var clusterDto = Assert.IsType<StoryClusterDto>(slugOk.Value);
         Assert.Equal(2, clusterDto.Articles.Count);
     }
+
+    [Fact]
+    public async Task GetStoryBySlug_ResolvesRedirectSlug_WhenNumericSuffixOrEventMatches()
+    {
+        using var db = CreateInMemoryDb();
+        var now = DateTime.UtcNow;
+
+        var cluster = new StoryCluster
+        {
+            Id = "cluster-redir",
+            Slug = "dangote-refinery-slashes-petrol-price",
+            Title = "Dangote Refinery slashes petrol gantry price across Nigeria",
+            Summary = "Marketers confirm new PMS ex-depot rate.",
+            CreatedAt = now.AddHours(-5),
+            UpdatedAt = now.AddHours(-2),
+            ArticleCount = 2,
+            SourceCount = 2
+        };
+
+        var a1 = new Article { Id = "dr-1", Title = "Dangote slashes petrol price", Source = "Punch", Category = "Business", PublishedAt = now.AddHours(-2) };
+        var a2 = new Article { Id = "dr-2", Title = "Refinery reduces PMS price", Source = "Vanguard", Category = "Business", PublishedAt = now.AddHours(-3) };
+
+        db.Articles.AddRange(a1, a2);
+        db.StoryClusters.Add(cluster);
+        db.StoryClusterArticles.AddRange(
+            new StoryClusterArticle { ClusterId = cluster.Id, ArticleId = a1.Id },
+            new StoryClusterArticle { ClusterId = cluster.Id, ArticleId = a2.Id }
+        );
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(db);
+        var result = await controller.GetStoryBySlug("dangote-refinery-slashes-petrol-price-1");
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<StoryClusterDto>(okResult.Value);
+
+        Assert.Equal("dangote-refinery-slashes-petrol-price", dto.Slug);
+        Assert.Equal("dangote-refinery-slashes-petrol-price", dto.RedirectSlug);
+    }
 }

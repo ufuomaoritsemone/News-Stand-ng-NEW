@@ -88,7 +88,8 @@ export async function loader({ params, request }) {
   } catch (err) {
     if (err instanceof Response) throw err;
     console.warn(`[SSR Source Loader] Failed for slug '${slug}':`, err.message);
-    throw new Response("Publisher Not Found", { status: 404 });
+    const status = err?.status === 404 ? 404 : 503;
+    throw new Response(status === 404 ? "Publisher Not Found" : "Service Temporarily Unavailable", { status });
   }
 }
 

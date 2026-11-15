@@ -15,27 +15,31 @@ export async function loader() {
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n';
 
-  // States directory index
-  xml += '  <url>\n';
-  xml += `    <loc>${baseUrl}/states</loc>\n`;
-  xml += `    <lastmod>${now}</lastmod>\n`;
-  xml += '    <changefreq>daily</changefreq>\n';
-  xml += '    <priority>0.8</priority>\n';
-  xml += `    <xhtml:link rel="alternate" hreflang="en-ng" href="${baseUrl}/states"/>\n`;
-  xml += `    <xhtml:link rel="alternate" hreflang="pcm" href="${baseUrl}/pcm/states"/>\n`;
-  xml += `    <xhtml:link rel="alternate" hreflang="x-default" href="${baseUrl}/states"/>\n`;
-  xml += '  </url>\n';
-
-  for (const slug of ALL_STATE_SLUGS) {
+  // States directory index (English + Nigerian Pidgin reciprocal <url> entries)
+  for (const prefix of ['', '/pcm']) {
     xml += '  <url>\n';
-    xml += `    <loc>${baseUrl}/state/${slug}</loc>\n`;
+    xml += `    <loc>${baseUrl}${prefix}/states</loc>\n`;
     xml += `    <lastmod>${now}</lastmod>\n`;
     xml += '    <changefreq>daily</changefreq>\n';
-    xml += '    <priority>0.7</priority>\n';
-    xml += `    <xhtml:link rel="alternate" hreflang="en-ng" href="${baseUrl}/state/${slug}"/>\n`;
-    xml += `    <xhtml:link rel="alternate" hreflang="pcm" href="${baseUrl}/pcm/state/${slug}"/>\n`;
-    xml += `    <xhtml:link rel="alternate" hreflang="x-default" href="${baseUrl}/state/${slug}"/>\n`;
+    xml += '    <priority>0.8</priority>\n';
+    xml += `    <xhtml:link rel="alternate" hreflang="en-ng" href="${baseUrl}/states"/>\n`;
+    xml += `    <xhtml:link rel="alternate" hreflang="pcm" href="${baseUrl}/pcm/states"/>\n`;
+    xml += `    <xhtml:link rel="alternate" hreflang="x-default" href="${baseUrl}/states"/>\n`;
     xml += '  </url>\n';
+  }
+
+  for (const slug of ALL_STATE_SLUGS) {
+    for (const prefix of ['', '/pcm']) {
+      xml += '  <url>\n';
+      xml += `    <loc>${baseUrl}${prefix}/state/${slug}</loc>\n`;
+      xml += `    <lastmod>${now}</lastmod>\n`;
+      xml += '    <changefreq>daily</changefreq>\n';
+      xml += '    <priority>0.7</priority>\n';
+      xml += `    <xhtml:link rel="alternate" hreflang="en-ng" href="${baseUrl}/state/${slug}"/>\n`;
+      xml += `    <xhtml:link rel="alternate" hreflang="pcm" href="${baseUrl}/pcm/state/${slug}"/>\n`;
+      xml += `    <xhtml:link rel="alternate" hreflang="x-default" href="${baseUrl}/state/${slug}"/>\n`;
+      xml += '  </url>\n';
+    }
   }
 
   xml += '</urlset>';

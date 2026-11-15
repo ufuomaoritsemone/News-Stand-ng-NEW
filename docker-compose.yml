@@ -1,7 +1,14 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:16-alpine
     container_name: nigeriannewsgrid-postgres
+    logging: *default-logging
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-newsgrid}
       - POSTGRES_USER=${POSTGRES_USER:-newsuser}
@@ -21,6 +28,7 @@ services:
   news-api:
     image: nigeriannewsgrid-newsapi:latest
     container_name: nigeriannewsgrid-newsapi
+    logging: *default-logging
     build:
       context: .
       dockerfile: src/NewsApi/Dockerfile
@@ -81,6 +89,7 @@ services:
   admin-dashboard:
     image: nigeriannewsgrid-admindashboard:latest
     container_name: nigeriannewsgrid-admindashboard
+    logging: *default-logging
     build:
       context: .
       dockerfile: src/AdminDashboard/Dockerfile
@@ -103,6 +112,7 @@ services:
   news-web:
     image: nigeriannewsgrid-web:latest
     container_name: nigeriannewsgrid-web
+    logging: *default-logging
     build:
       context: src/NigerianNewsGrid.Web
       dockerfile: Dockerfile
@@ -123,6 +133,7 @@ services:
   news-scraper-service:
     image: nigeriannewsgrid-newsscraperservice:latest
     container_name: nigeriannewsgrid-scraperservice
+    logging: *default-logging
     build:
       context: .
       dockerfile: src/NewsScraperService/Dockerfile
@@ -144,6 +155,7 @@ services:
   tts-worker:
     image: nigeriannewsgrid-ttsworker:latest
     container_name: nigeriannewsgrid-ttsworker
+    logging: *default-logging
     build:
       context: .
       dockerfile: src/TtsWorker/Dockerfile

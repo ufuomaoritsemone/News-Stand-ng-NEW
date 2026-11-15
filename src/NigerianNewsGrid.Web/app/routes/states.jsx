@@ -65,6 +65,10 @@ export default function StatesDirectoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedZone, setSelectedZone] = useState('All');
 
+  const homePath = isPidgin ? '/pcm' : '/';
+  const statePathPrefix = isPidgin ? '/pcm/state' : '/state';
+  const directoryCanonicalUrl = isPidgin ? 'https://newsstand.ng/pcm/states' : 'https://newsstand.ng/states';
+
   const filteredGroups = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
 
@@ -89,11 +93,11 @@ export default function StatesDirectoryPage() {
     '@type': 'CollectionPage',
     'name': 'Nigeria State News Directory',
     'description': 'Verified regional and local news directories across all 36 Nigerian states and the Federal Capital Territory.',
-    'url': 'https://newsstand.ng/states',
+    'url': directoryCanonicalUrl,
     'hasPart': groups.flatMap(g => g.states.map(s => ({
       '@type': 'AdministrativeArea',
       'name': s.name,
-      'url': `https://newsstand.ng/state/${s.slug}`
+      'url': `https://newsstand.ng${statePathPrefix}/${s.slug}`
     })))
   };
 
@@ -101,8 +105,8 @@ export default function StatesDirectoryPage() {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     'itemListElement': [
-      { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://newsstand.ng/' },
-      { '@type': 'ListItem', 'position': 2, 'name': 'States Directory', 'item': 'https://newsstand.ng/states' }
+      { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': `https://newsstand.ng${homePath}` },
+      { '@type': 'ListItem', 'position': 2, 'name': 'States Directory', 'item': directoryCanonicalUrl }
     ]
   };
 
@@ -123,11 +127,11 @@ export default function StatesDirectoryPage() {
       {/* Top Header */}
       <header className="article-page-header">
         <div className="article-header-container">
-          <Link to="/" className="article-header-back-btn" title="Back to Headlines">
+          <Link to={homePath} className="article-header-back-btn" title="Back to Headlines">
             <ArrowLeft size={18} />
             <span>Headlines</span>
           </Link>
-          <Link to="/" className="article-header-brand">
+          <Link to={homePath} className="article-header-brand">
             <span className="brand-dot" />
             <span className="brand-title">News Stand NG</span>
           </Link>
@@ -142,7 +146,7 @@ export default function StatesDirectoryPage() {
         {/* Breadcrumb Navigation */}
         <nav className="article-breadcrumb-nav" aria-label="Breadcrumb">
           <ol>
-            <li><Link to="/">Home</Link></li>
+            <li><Link to={homePath}>Home</Link></li>
             <li><span className="breadcrumb-sep">/</span></li>
             <li className="breadcrumb-active" aria-current="page">36 States & FCT</li>
           </ol>
@@ -218,7 +222,7 @@ export default function StatesDirectoryPage() {
                 {group.states.map((state) => (
                   <Link
                     key={state.slug}
-                    to={`/state/${state.slug}`}
+                    to={`${statePathPrefix}/${state.slug}`}
                     className="state-directory-card"
                   >
                     <div className="state-card-top">

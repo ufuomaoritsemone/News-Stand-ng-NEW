@@ -4,259 +4,259 @@
     "slug": "abia-state",
     "type": "Place",
     "description": "State in southeastern Nigeria, with Umuahia as capital and Aba as commercial hub.",
-    "aliases": ["Abia", "Abia State", "Umuahia", "Aba"]
+    "aliases": ["Abia", "Abia State", "Umuahia", "Aba", "Ohafia", "Arochukwu"]
   },
   {
     "name": "Adamawa State",
     "slug": "adamawa-state",
     "type": "Place",
     "description": "State in northeastern Nigeria, capital Yola.",
-    "aliases": ["Adamawa", "Adamawa State", "Yola"]
+    "aliases": ["Adamawa", "Adamawa State", "Yola", "Mubi", "Jimeta", "Numan"]
   },
   {
     "name": "Akwa Ibom State",
     "slug": "akwa-ibom-state",
     "type": "Place",
     "description": "Coastal oil-producing state in southern Nigeria, capital Uyo.",
-    "aliases": ["Akwa Ibom", "Akwa Ibom State", "Uyo"]
+    "aliases": ["Akwa Ibom", "Akwa Ibom State", "Uyo", "Eket", "Ikot Ekpene", "Oron"]
   },
   {
     "name": "Anambra State",
     "slug": "anambra-state",
     "type": "Place",
     "description": "Commercial state in southeastern Nigeria, capital Awka and commercial center Onitsha.",
-    "aliases": ["Anambra", "Anambra State", "Awka", "Onitsha", "Nnewi"]
+    "aliases": ["Anambra", "Anambra State", "Awka", "Onitsha", "Nnewi", "Ekwulobia"]
   },
   {
     "name": "Bauchi State",
     "slug": "bauchi-state",
     "type": "Place",
     "description": "State in northeastern Nigeria, capital Bauchi.",
-    "aliases": ["Bauchi", "Bauchi State"]
+    "aliases": ["Bauchi", "Bauchi State", "Azare", "Misau", "Jama'are"]
   },
   {
     "name": "Bayelsa State",
     "slug": "bayelsa-state",
     "type": "Place",
     "description": "Oil-rich state in the Niger Delta region of southern Nigeria, capital Yenagoa.",
-    "aliases": ["Bayelsa", "Bayelsa State", "Yenagoa"]
+    "aliases": ["Bayelsa", "Bayelsa State", "Yenagoa", "Brass", "Ogbia", "Nembe"]
   },
   {
     "name": "Benue State",
     "slug": "benue-state",
     "type": "Place",
     "description": "Agricultural state in north-central Nigeria, capital Makurdi.",
-    "aliases": ["Benue", "Benue State", "Makurdi"]
+    "aliases": ["Benue", "Benue State", "Makurdi", "Gboko", "Otukpo", "Katsina-Ala"]
   },
   {
     "name": "Borno State",
     "slug": "borno-state",
     "type": "Place",
     "description": "State in northeastern Nigeria, capital Maiduguri.",
-    "aliases": ["Borno", "Borno State", "Maiduguri"]
+    "aliases": ["Borno", "Borno State", "Maiduguri", "Biu", "Bama", "Monguno"]
   },
   {
     "name": "Cross River State",
     "slug": "cross-river-state",
     "type": "Place",
     "description": "Coastal state in southern Nigeria, capital Calabar.",
-    "aliases": ["Cross River", "Cross River State", "Calabar"]
+    "aliases": ["Cross River", "Cross River State", "Calabar", "Ikom", "Ogoja", "Obudu"]
   },
   {
     "name": "Delta State",
     "slug": "delta-state",
     "type": "Place",
     "description": "Oil-producing state in south-south Nigeria, capital Asaba and commercial center Warri.",
-    "aliases": ["Delta", "Delta State", "Asaba", "Warri"]
+    "aliases": ["Delta", "Delta State", "Asaba", "Warri", "Sapele", "Ughelli", "Agbor"]
   },
   {
     "name": "Ebonyi State",
     "slug": "ebonyi-state",
     "type": "Place",
     "description": "State in southeastern Nigeria, capital Abakaliki.",
-    "aliases": ["Ebonyi", "Ebonyi State", "Abakaliki"]
+    "aliases": ["Ebonyi", "Ebonyi State", "Abakaliki", "Afikpo", "Onueke", "Ishielu"]
   },
   {
     "name": "Edo State",
     "slug": "edo-state",
     "type": "Place",
     "description": "State in southern Nigeria, capital Benin City.",
-    "aliases": ["Edo", "Edo State", "Benin City"]
+    "aliases": ["Edo", "Edo State", "Benin City", "Auchi", "Ekpoma", "Uromi"]
   },
   {
     "name": "Ekiti State",
     "slug": "ekiti-state",
     "type": "Place",
     "description": "State in southwestern Nigeria, capital Ado-Ekiti.",
-    "aliases": ["Ekiti", "Ekiti State", "Ado-Ekiti"]
+    "aliases": ["Ekiti", "Ekiti State", "Ado-Ekiti", "Ikere", "Ijero", "Oye"]
   },
   {
     "name": "Enugu State",
     "slug": "enugu-state",
     "type": "Place",
     "description": "Historical coal city state in southeastern Nigeria, capital Enugu.",
-    "aliases": ["Enugu", "Enugu State", "Nsukka"]
+    "aliases": ["Enugu", "Enugu State", "Nsukka", "Awgu", "Udi"]
   },
   {
     "name": "Federal Capital Territory",
     "slug": "abuja-fct",
     "type": "Place",
     "description": "Federal capital territory of Nigeria, home to the presidency at Aso Rock and the National Assembly.",
-    "aliases": ["Abuja", "FCT", "Federal Capital Territory", "Aso Rock", "Three Arms Zone"]
+    "aliases": ["Abuja", "FCT", "Federal Capital Territory", "Aso Rock", "Three Arms Zone", "Garki", "Wuse", "Maitama", "Gwarinpa", "Kuje", "Bwari"]
   },
   {
     "name": "Gombe State",
     "slug": "gombe-state",
     "type": "Place",
     "description": "State in northeastern Nigeria, capital Gombe.",
-    "aliases": ["Gombe", "Gombe State"]
+    "aliases": ["Gombe", "Gombe State", "Kaltungo", "Bajoga", "Billiri"]
   },
   {
     "name": "Imo State",
     "slug": "imo-state",
     "type": "Place",
     "description": "State in southeastern Nigeria, capital Owerri.",
-    "aliases": ["Imo", "Imo State", "Owerri"]
+    "aliases": ["Imo", "Imo State", "Owerri", "Orlu", "Okigwe", "Oguta"]
   },
   {
     "name": "Jigawa State",
     "slug": "jigawa-state",
     "type": "Place",
     "description": "State in northwestern Nigeria, capital Dutse.",
-    "aliases": ["Jigawa", "Jigawa State", "Dutse"]
+    "aliases": ["Jigawa", "Jigawa State", "Dutse", "Hadejia", "Kazaure", "Gumel"]
   },
   {
     "name": "Kaduna State",
     "slug": "kaduna-state",
     "type": "Place",
     "description": "Major political and commercial state in northwestern Nigeria, capital Kaduna.",
-    "aliases": ["Kaduna", "Kaduna State", "Zaria", "Kafanchan"]
+    "aliases": ["Kaduna", "Kaduna State", "Zaria", "Kafanchan", "Saminaka"]
   },
   {
     "name": "Kano State",
     "slug": "kano-state",
     "type": "Place",
     "description": "Northern Nigeria's principal commercial and industrial hub, capital Kano.",
-    "aliases": ["Kano", "Kano State"]
+    "aliases": ["Kano", "Kano State", "Wudil", "Bichi", "Rano"]
   },
   {
     "name": "Katsina State",
     "slug": "katsina-state",
     "type": "Place",
     "description": "State in northwestern Nigeria, capital Katsina.",
-    "aliases": ["Katsina", "Katsina State", "Daura"]
+    "aliases": ["Katsina", "Katsina State", "Daura", "Funtua", "Malumfashi"]
   },
   {
     "name": "Kebbi State",
     "slug": "kebbi-state",
     "type": "Place",
     "description": "Agricultural state in northwestern Nigeria, capital Birnin Kebbi.",
-    "aliases": ["Kebbi", "Kebbi State", "Birnin Kebbi"]
+    "aliases": ["Kebbi", "Kebbi State", "Birnin Kebbi", "Argungu", "Yauri", "Zuru"]
   },
   {
     "name": "Kogi State",
     "slug": "kogi-state",
     "type": "Place",
     "description": "Confluence state in north-central Nigeria, capital Lokoja.",
-    "aliases": ["Kogi", "Kogi State", "Lokoja"]
+    "aliases": ["Kogi", "Kogi State", "Lokoja", "Okene", "Kabba", "Idah", "Ajaokuta"]
   },
   {
     "name": "Kwara State",
     "slug": "kwara-state",
     "type": "Place",
     "description": "State in north-central Nigeria, capital Ilorin.",
-    "aliases": ["Kwara", "Kwara State", "Ilorin"]
+    "aliases": ["Kwara", "Kwara State", "Ilorin", "Offa", "Omu-Aran", "Lafiagi"]
   },
   {
     "name": "Lagos State",
     "slug": "lagos-state",
     "type": "Place",
     "description": "Nigeria's economic and financial capital, major megacity and port.",
-    "aliases": ["Lagos", "Lagos State", "Ikeja", "Victoria Island", "Lekki", "Ikoyi", "Alausa"]
+    "aliases": ["Lagos", "Lagos State", "Ikeja", "Victoria Island", "Lekki", "Ikoyi", "Alausa", "Ikorodu", "Epe", "Badagry", "Yaba"]
   },
   {
     "name": "Nasarawa State",
     "slug": "nasarawa-state",
     "type": "Place",
     "description": "Mineral-rich state in north-central Nigeria, capital Lafia.",
-    "aliases": ["Nasarawa", "Nasarawa State", "Lafia", "Keffi"]
+    "aliases": ["Nasarawa", "Nasarawa State", "Lafia", "Keffi", "Akwanga", "Karu"]
   },
   {
     "name": "Niger State",
     "slug": "niger-state",
     "type": "Place",
     "description": "Largest state by landmass in Nigeria, capital Minna.",
-    "aliases": ["Niger State", "Minna", "Suleja", "Bida"]
+    "aliases": ["Niger State", "Minna", "Suleja", "Bida", "Kontagora"]
   },
   {
     "name": "Ogun State",
     "slug": "ogun-state",
     "type": "Place",
     "description": "Industrial manufacturing corridor in southwestern Nigeria, capital Abeokuta.",
-    "aliases": ["Ogun", "Ogun State", "Abeokuta", "Sagamu", "Ota"]
+    "aliases": ["Ogun", "Ogun State", "Abeokuta", "Ijebu Ode", "Sagamu", "Ota"]
   },
   {
     "name": "Ondo State",
     "slug": "ondo-state",
     "type": "Place",
     "description": "State in southwestern Nigeria known for cocoa production and coastal oil, capital Akure.",
-    "aliases": ["Ondo", "Ondo State", "Akure", "Owo"]
+    "aliases": ["Ondo", "Ondo State", "Akure", "Ondo Town", "Owo", "Ikare"]
   },
   {
     "name": "Osun State",
     "slug": "osun-state",
     "type": "Place",
     "description": "Cultural state in southwestern Nigeria, capital Osogbo.",
-    "aliases": ["Osun", "Osun State", "Osogbo", "Ile-Ife", "Ede"]
+    "aliases": ["Osun", "Osun State", "Osogbo", "Ile-Ife", "Ilesa", "Ede"]
   },
   {
     "name": "Oyo State",
     "slug": "oyo-state",
     "type": "Place",
     "description": "Historical state in southwestern Nigeria, capital Ibadan.",
-    "aliases": ["Oyo", "Oyo State", "Ibadan", "Ogbomoso"]
+    "aliases": ["Oyo", "Oyo State", "Ibadan", "Ogbomoso", "Iseyin"]
   },
   {
     "name": "Plateau State",
     "slug": "plateau-state",
     "type": "Place",
     "description": "Highland state in north-central Nigeria, capital Jos.",
-    "aliases": ["Plateau", "Plateau State", "Jos", "Bukuru"]
+    "aliases": ["Plateau", "Plateau State", "Jos", "Bukuru", "Pankshin", "Shendam"]
   },
   {
     "name": "Rivers State",
     "slug": "rivers-state",
     "type": "Place",
     "description": "Major hydrocarbon and maritime state in southern Nigeria, capital Port Harcourt.",
-    "aliases": ["Rivers", "Rivers State", "Port Harcourt", "Bonny"]
+    "aliases": ["Rivers", "Rivers State", "Port Harcourt", "Bonny", "Eleme", "Ahoada"]
   },
   {
     "name": "Sokoto State",
     "slug": "sokoto-state",
     "type": "Place",
     "description": "Seat of the Caliphate in northwestern Nigeria, capital Sokoto.",
-    "aliases": ["Sokoto", "Sokoto State"]
+    "aliases": ["Sokoto", "Sokoto State", "Tambuwal", "Wamakko", "Gwadabawa"]
   },
   {
     "name": "Taraba State",
     "slug": "taraba-state",
     "type": "Place",
     "description": "State in northeastern Nigeria, capital Jalingo.",
-    "aliases": ["Taraba", "Taraba State", "Jalingo"]
+    "aliases": ["Taraba", "Taraba State", "Jalingo", "Wukari", "Gembu", "Bali"]
   },
   {
     "name": "Yobe State",
     "slug": "yobe-state",
     "type": "Place",
     "description": "State in northeastern Nigeria, capital Damaturu.",
-    "aliases": ["Yobe", "Yobe State", "Damaturu", "Potiskum"]
+    "aliases": ["Yobe", "Yobe State", "Damaturu", "Potiskum", "Gashua", "Nguru"]
   },
   {
     "name": "Zamfara State",
     "slug": "zamfara-state",
     "type": "Place",
     "description": "State in northwestern Nigeria, capital Gusau.",
-    "aliases": ["Zamfara", "Zamfara State", "Gusau"]
+    "aliases": ["Zamfara", "Zamfara State", "Gusau", "Kaura Namoda", "Talata Mafara", "Anka"]
   },
   {
     "name": "Bola Ahmed Tinubu",

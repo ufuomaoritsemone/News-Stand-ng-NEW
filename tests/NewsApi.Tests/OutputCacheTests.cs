@@ -89,6 +89,7 @@ public class OutputCacheTests
         Assert.Equal(1, response.IngestedCount);
         Assert.Contains("articles", cacheStore.EvictedTags);
         Assert.Contains("stories", cacheStore.EvictedTags);
+        Assert.Contains("states", cacheStore.EvictedTags);
     }
 
     [Fact]
