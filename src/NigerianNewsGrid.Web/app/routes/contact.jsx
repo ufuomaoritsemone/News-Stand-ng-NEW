@@ -648,7 +648,7 @@ export default function ContactPage() {
                           display: "inline-flex",
                           alignItems: "center",
                           gap: "8px",
-                          background: "rgba(255, 255, 255, 0.08)",
+                          background: "var(--bg-elevated)",
                           color: "var(--text-primary, #f8fafc)",
                           padding: "12px 20px",
                           borderRadius: "10px",
@@ -729,7 +729,7 @@ export default function ContactPage() {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "20px", margin: "16px 0 36px 0" }}>
               {/* Admin Desk */}
-              <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--border-card, rgba(255, 255, 255, 0.1))", borderRadius: "12px", padding: "20px" }}>
+              <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-card, rgba(255, 255, 255, 0.1))", borderRadius: "12px", padding: "20px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "var(--brand-green, #10b981)", marginBottom: "8px", fontWeight: 700 }}>
                   <Mail size={18} />
                   <span>Administrative Office</span>
@@ -739,7 +739,7 @@ export default function ContactPage() {
               </div>
 
               {/* Editorial & Newsroom */}
-              <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--border-card, rgba(255, 255, 255, 0.1))", borderRadius: "12px", padding: "20px" }}>
+              <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-card, rgba(255, 255, 255, 0.1))", borderRadius: "12px", padding: "20px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#38bdf8", marginBottom: "8px", fontWeight: 700 }}>
                   <MessageSquare size={18} />
                   <span>Editorial & Newsroom</span>
@@ -749,7 +749,7 @@ export default function ContactPage() {
               </div>
 
               {/* Corrections & Retractions */}
-              <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--border-card, rgba(255, 255, 255, 0.1))", borderRadius: "12px", padding: "20px" }}>
+              <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-card, rgba(255, 255, 255, 0.1))", borderRadius: "12px", padding: "20px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#f59e0b", marginBottom: "8px", fontWeight: 700 }}>
                   <AlertCircle size={18} />
                   <span>Corrections & Fact-Checking</span>
@@ -759,7 +759,7 @@ export default function ContactPage() {
               </div>
 
               {/* Headquarters */}
-              <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--border-card, rgba(255, 255, 255, 0.1))", borderRadius: "12px", padding: "20px" }}>
+              <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-card, rgba(255, 255, 255, 0.1))", borderRadius: "12px", padding: "20px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#ec4899", marginBottom: "8px", fontWeight: 700 }}>
                   <MapPin size={18} />
                   <span>Headquarters & Bureaus</span>

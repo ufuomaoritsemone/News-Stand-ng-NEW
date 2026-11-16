@@ -155,7 +155,7 @@ export default function HeroCarousel({
                     padding: '2px 8px',
                     borderRadius: '4px',
                     background: 'rgba(217, 119, 6, 0.15)',
-                    color: '#b45309',
+                    color: 'var(--warning, #d97706)',
                     border: '1px solid rgba(217, 119, 6, 0.3)'
                   }}
                 >

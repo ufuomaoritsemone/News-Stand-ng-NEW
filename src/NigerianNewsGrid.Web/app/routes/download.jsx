@@ -438,7 +438,7 @@ function sanitizeStoreUrl(rawUrl) {
             overflow: "hidden",
             borderRadius: 24,
             background:
-              "linear-gradient(135deg, rgba(6, 78, 59, 0.45) 0%, rgba(15, 23, 42, 0.95) 60%, rgba(2, 6, 23, 0.98) 100%)",
+              "linear-gradient(135deg, #064e3b 0%, #0f172a 60%, #020617 100%)",
             border: "1px solid rgba(16, 185, 129, 0.28)",
             padding: "clamp(24px, 4vw, 48px)",
             marginBottom: 36,
@@ -482,7 +482,7 @@ function sanitizeStoreUrl(rawUrl) {
                   fontWeight: 800,
                   lineHeight: 1.15,
                   letterSpacing: "-0.025em",
-                  color: "var(--text-primary, #f8fafc)",
+                  color: "#f8fafc",
                   margin: "0 0 16px 0",
                 }}
               >
@@ -494,7 +494,7 @@ function sanitizeStoreUrl(rawUrl) {
                 style={{
                   fontSize: "1.02rem",
                   lineHeight: 1.65,
-                  color: "var(--text-secondary, #cbd5e1)",
+                  color: "#cbd5e1",
                   margin: "0 0 28px 0",
                   maxWidth: 540,
                 }}
@@ -571,7 +571,7 @@ function sanitizeStoreUrl(rawUrl) {
                         borderRadius: 14,
                         background: "rgba(30, 41, 59, 0.85)",
                         border: "1px solid rgba(148, 163, 184, 0.28)",
-                        color: "var(--text-primary, #f8fafc)",
+                        color: "#f8fafc",
                       }}
                     >
                       {primaryPlatform.icon}
@@ -634,7 +634,7 @@ function sanitizeStoreUrl(rawUrl) {
                       borderRadius: 14,
                       background: "rgba(30, 41, 59, 0.75)",
                       border: "1px solid rgba(148, 163, 184, 0.25)",
-                      color: "var(--text-primary, #f8fafc)",
+                      color: "#f8fafc",
                       cursor: "pointer",
                       fontWeight: 600,
                       fontSize: "0.88rem",
@@ -653,7 +653,7 @@ function sanitizeStoreUrl(rawUrl) {
                   flexWrap: "wrap",
                   gap: 16,
                   fontSize: "0.82rem",
-                  color: "var(--text-secondary, #94a3b8)",
+                  color: "#cbd5e1",
                 }}
               >
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -896,8 +896,8 @@ function sanitizeStoreUrl(rawUrl) {
                     padding: 22,
                     borderRadius: 18,
                     background: isDetected
-                      ? "linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, rgba(15, 23, 42, 0.92) 100%)"
-                      : "var(--bg-card, rgba(15, 23, 42, 0.8))",
+                      ? "linear-gradient(180deg, rgba(16, 185, 129, 0.12) 0%, var(--bg-card) 100%)"
+                      : "var(--bg-card)",
                     border: isDetected
                       ? "1.5px solid rgba(16, 185, 129, 0.5)"
                       : "1px solid var(--border-card, rgba(148, 163, 184, 0.18))",
@@ -941,7 +941,7 @@ function sanitizeStoreUrl(rawUrl) {
                               padding: "2px 8px",
                               borderRadius: 999,
                               background: "rgba(16, 185, 129, 0.2)",
-                              color: "#34d399",
+                              color: "var(--brand-green)",
                               textTransform: "uppercase",
                             }}
                           >
@@ -959,7 +959,7 @@ function sanitizeStoreUrl(rawUrl) {
                               padding: "3px 10px",
                               borderRadius: 999,
                               background: "rgba(16, 185, 129, 0.14)",
-                              color: "#10b981",
+                              color: "var(--brand-green)",
                               border: "1px solid rgba(16, 185, 129, 0.3)",
                             }}
                           >
@@ -977,7 +977,7 @@ function sanitizeStoreUrl(rawUrl) {
                               padding: "3px 10px",
                               borderRadius: 999,
                               background: "rgba(245, 158, 11, 0.14)",
-                              color: "#fbbf24",
+                              color: "var(--warning)",
                               border: "1px solid rgba(245, 158, 11, 0.3)",
                             }}
                           >
@@ -1038,8 +1038,8 @@ function sanitizeStoreUrl(rawUrl) {
                           width: "100%",
                           padding: "12px 16px",
                           borderRadius: 12,
-                          background: "#f8fafc",
-                          color: "#0f172a",
+                          background: "var(--text-primary)",
+                          color: "var(--bg-primary)",
                           textDecoration: "none",
                           fontWeight: 800,
                           fontSize: "0.9rem",
@@ -1058,9 +1058,9 @@ function sanitizeStoreUrl(rawUrl) {
                             textAlign: "center",
                             padding: "9px 12px",
                             borderRadius: 10,
-                            background: "rgba(30, 41, 59, 0.65)",
-                            border: "1px dashed rgba(148, 163, 184, 0.25)",
-                            color: "#94a3b8",
+                            background: "var(--bg-elevated)",
+                            border: "1px dashed var(--border-subtle)",
+                            color: "var(--text-secondary)",
                             fontSize: "0.8rem",
                             fontWeight: 600,
                           }}
@@ -1080,7 +1080,7 @@ function sanitizeStoreUrl(rawUrl) {
                             borderRadius: 10,
                             background: "rgba(16, 185, 129, 0.15)",
                             border: "1px solid rgba(16, 185, 129, 0.35)",
-                            color: "#34d399",
+                            color: "var(--brand-green)",
                             cursor: "pointer",
                             fontWeight: 700,
                             fontSize: "0.84rem",
@@ -1147,7 +1147,7 @@ function sanitizeStoreUrl(rawUrl) {
                   gap: 6,
                   fontSize: "0.75rem",
                   fontWeight: 700,
-                  color: "#10b981",
+                  color: "var(--brand-green)",
                   textTransform: "uppercase",
                   marginBottom: 6,
                 }}
@@ -1192,14 +1192,14 @@ function sanitizeStoreUrl(rawUrl) {
                 gap: 8,
                 padding: "10px 14px",
                 borderRadius: 12,
-                background: "rgba(2, 6, 23, 0.65)",
-                border: "1px solid rgba(148, 163, 184, 0.2)",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border-subtle)",
               }}
             >
               <code
                 style={{
                   flex: 1,
-                  color: "#38bdf8",
+                  color: "var(--brand-green)",
                   fontSize: "0.86rem",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
