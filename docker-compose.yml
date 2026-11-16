@@ -125,6 +125,7 @@ services:
       - NEWS_API_URL=http://news-api:8080
       - VITE_API_BASE=${VITE_API_BASE:-/api/v1}
       - INDEXNOW_KEY=${INDEXNOW_KEY:-3a7b9c1d2e4f5a6b7c8d9e0f1a2b3c4d}
+      - API_KEY=${API_KEY:-}
     depends_on:
       news-api:
         condition: service_healthy

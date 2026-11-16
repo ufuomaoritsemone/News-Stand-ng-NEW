@@ -37,8 +37,11 @@ export function headers() {
 }
 
 export function Layout({ children }) {
+  const location = useLocation();
+  const htmlLang = location?.pathname?.startsWith("/pcm") ? "pcm" : "en";
+
   return (
-    <html lang="en" data-theme="light" suppressHydrationWarning>
+    <html lang={htmlLang} data-theme="light" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />

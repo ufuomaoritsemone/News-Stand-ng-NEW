@@ -36,14 +36,19 @@ async function fetchJson(url, options = {}) {
 
   try {
     const { headers, ...restOptions } = options;
+    const isServer = typeof window === 'undefined';
+    const internalBypassKey = isServer && typeof process !== 'undefined'
+      ? (process.env?.RATE_LIMIT_BYPASS_SECRET || process.env?.API_KEY || '')
+      : '';
     // Bound SSR backend calls so a slow/unreachable API cannot stall Time-To-First-Byte (and therefore LCP).
     const ssrSignal =
-      typeof window === 'undefined' && !restOptions.signal && typeof AbortSignal?.timeout === 'function'
+      isServer && !restOptions.signal && typeof AbortSignal?.timeout === 'function'
         ? AbortSignal.timeout(SSR_FETCH_TIMEOUT_MS)
         : undefined;
     const res = await fetch(targetUrl, {
       headers: {
         'Accept': 'application/json',
+        ...(internalBypassKey ? { 'X-Bypass-Rate-Limit': internalBypassKey } : {}),
         ...headers,
       },
       ...(ssrSignal ? { signal: ssrSignal } : {}),

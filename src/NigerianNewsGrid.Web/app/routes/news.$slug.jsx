@@ -47,12 +47,15 @@ export function meta({ data }) {
     "Read the latest curated news report on News Stand NG.";
   const canonicalUrl = `https://newsstand.ng/news/${article.slug}`;
   const imageUrl = toAbsoluteImageUrl(article.imageUrl);
+  const robotsDirective = article.isSponsored
+    ? "noindex, follow"
+    : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
 
   return [
     { title },
     { name: "description", content: description },
     { tagName: "link", rel: "canonical", href: canonicalUrl },
-    { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
+    { name: "robots", content: robotsDirective },
     { property: "og:type", content: "article" },
     { property: "og:site_name", content: "News Stand NG" },
     { property: "og:title", content: article.title },
@@ -421,7 +424,7 @@ export default function ArticleLandingPage() {
               <a
                 href={safeExternalUrl(article.isSponsored ? (article.sponsorUrl || article.sourceUrl) : (article.sourceUrl || article.url))}
                 target="_blank"
-                rel={article.isSponsored ? "sponsored nofollow noopener noreferrer" : "noopener noreferrer nofollow"}
+                rel={article.isSponsored ? "sponsored nofollow noopener noreferrer" : "noopener noreferrer"}
                 className="referral-primary-btn"
                 onClick={() => trackOutboundClick(article, safeExternalUrl(article.isSponsored ? (article.sponsorUrl || article.sourceUrl) : (article.sourceUrl || article.url)))}
               >
@@ -513,7 +516,7 @@ export default function ArticleLandingPage() {
                       <a
                         href={safeExternalUrl(article.sourceUrl || article.url)}
                         target="_blank"
-                        rel="noopener noreferrer nofollow"
+                        rel={article.isSponsored ? "sponsored nofollow noopener noreferrer" : "noopener noreferrer"}
                         className="briefing-publisher-link"
                       >
                         <span>Read full story on {article.source || "Publisher"}</span>
@@ -537,30 +540,33 @@ export default function ArticleLandingPage() {
               <div className="shimmer-line" style={{ width: "70%" }} />
             </div>
           ) : (
-            <div className="briefing-generate-card">
-              <div className="briefing-generate-info">
-                <div className="briefing-generate-title">
-                  <Sparkles size={17} className="briefing-icon" />
-                  <span>AI Executive Briefing</span>
-                </div>
-                <div className="briefing-generate-desc">
-                  Generate a deep executive synthesis of the full article with Gemini 3.1 Flash-Lite in ~2 seconds.
-                </div>
-                {summaryError && (
-                  <div style={{ color: "#ef4444", fontSize: "0.78rem", marginTop: "4px" }}>
-                    {summaryError}
+            <div className="ai-executive-briefing-box" aria-label="Editorial Briefing">
+              <div className="briefing-header">
+                <div className="briefing-header-left">
+                  <div className="briefing-badge">
+                    <Sparkles size={16} className="briefing-icon" />
+                    <span>Executive Briefing</span>
                   </div>
-                )}
+                  <span className="briefing-engine-tag">Verified Synthesis</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGenerateSummary}
+                  className="briefing-generate-btn"
+                  disabled={isGeneratingSummary}
+                >
+                  <Sparkles size={15} />
+                  <span>Enhance with AI</span>
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={handleGenerateSummary}
-                className="briefing-generate-btn"
-                disabled={isGeneratingSummary}
-              >
-                <Sparkles size={15} />
-                <span>Generate Summary</span>
-              </button>
+              <div className="briefing-overview">
+                {cleanEditorialSummary(article.summary || article.excerpt || article.title)}
+              </div>
+              {summaryError && (
+                <div style={{ color: "#ef4444", fontSize: "0.78rem", marginTop: "4px" }}>
+                  {summaryError}
+                </div>
+              )}
             </div>
           )}
 
@@ -741,14 +747,14 @@ export default function ArticleLandingPage() {
           )}
 
           {/* Outbound Deep-Link Callout */}
-          {article.sourceUrl && (
+          {safeExternalUrl(article.isSponsored ? (article.sponsorUrl || article.sourceUrl) : (article.sourceUrl || article.url)) && (
             <div className="outbound-cta-container">
               <a
-                href={article.sourceUrl}
+                href={safeExternalUrl(article.isSponsored ? (article.sponsorUrl || article.sourceUrl) : (article.sourceUrl || article.url))}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel={article.isSponsored ? "sponsored nofollow noopener noreferrer" : "noopener noreferrer"}
                 className="outbound-big-cta"
-                onClick={() => trackOutboundClick(article, article.sourceUrl)}
+                onClick={() => trackOutboundClick(article, safeExternalUrl(article.isSponsored ? (article.sponsorUrl || article.sourceUrl) : (article.sourceUrl || article.url)))}
               >
                 <div className="outbound-cta-text">
                   <div className="outbound-cta-lead">Continue Reading Full Article</div>

@@ -65,7 +65,7 @@ export default function StatesDirectoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedZone, setSelectedZone] = useState('All');
 
-  const homePath = isPidgin ? '/pcm' : '/';
+  const homePath = '/';
   const statePathPrefix = isPidgin ? '/pcm/state' : '/state';
   const directoryCanonicalUrl = isPidgin ? 'https://newsstand.ng/pcm/states' : 'https://newsstand.ng/states';
 

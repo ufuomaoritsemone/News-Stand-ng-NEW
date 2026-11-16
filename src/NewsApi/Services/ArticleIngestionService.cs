@@ -122,7 +122,7 @@ public class ArticleIngestionService : IArticleIngestionService
             var slug = _slugService.GenerateArticleSlug(title, articleId);
             var excerpt = _slugService.GenerateExcerpt(item.Content, item.Summary, 300);
 
-            _db.Articles.Add(new Article
+            var articleEntity = new Article
             {
                 Id          = articleId,
                 Title       = title,
@@ -138,8 +138,11 @@ public class ArticleIngestionService : IArticleIngestionService
                 AudioUrl    = item.AudioUrl,
                 Author      = item.Author,
                 ContentType = string.IsNullOrWhiteSpace(item.ContentType) ? "News" : item.ContentType
-            });
+            };
 
+            _db.Articles.Add(articleEntity);
+
+            var topicNamesForEnrichment = new List<string>();
             if (item.Topics != null && item.Topics.Count > 0)
             {
                 var assignedTopicIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -173,6 +176,7 @@ public class ArticleIngestionService : IArticleIngestionService
 
                     if (assignedTopicIds.Add(topic.Id))
                     {
+                        topicNamesForEnrichment.Add(topic.Name);
                         _db.ArticleTopics.Add(new ArticleTopic
                         {
                             ArticleId  = articleId,
@@ -182,6 +186,11 @@ public class ArticleIngestionService : IArticleIngestionService
                     }
                 }
             }
+
+            // Guarantee every newly ingested article immediately has structured Executive Briefing,
+            // Key Takeaways, Timeline Facts, and FAQ schema before IndexNow or sitemaps expose its URL.
+            var initialEnrichment = ArticleEnrichmentService.CreateDeterministicEnrichment(articleEntity, topicNamesForEnrichment);
+            _db.ArticleEnrichments.Add(initialEnrichment);
 
             if (!string.IsNullOrEmpty(urlNorm)) existingUrls.Add(urlNorm);
             existingTitles.Add(titleNorm);

@@ -277,9 +277,11 @@ public class StatesController(
 
         var topTopics = await db.Topics
             .AsNoTracking()
-            .Where(t => candidateSlugs.Contains(t.Slug) ||
-                        candidateNames.Contains(t.Name) ||
-                        (sampleArticleIds.Count > 0 && t.ArticleTopics.Any(at => sampleArticleIds.Contains(at.ArticleId))))
+            .Where(t => !string.IsNullOrEmpty(t.Slug) &&
+                        t.ArticleTopics.Count >= SeoController.MinTopicArticlesForIndexing &&
+                        (candidateSlugs.Contains(t.Slug) ||
+                         candidateNames.Contains(t.Name) ||
+                         (sampleArticleIds.Count > 0 && t.ArticleTopics.Any(at => sampleArticleIds.Contains(at.ArticleId)))))
             .OrderByDescending(t => t.ArticleTopics.Count)
             .Take(8)
             .Select(t => new TopicDto

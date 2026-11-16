@@ -26,6 +26,11 @@ export function meta({ data }) {
     ? Math.ceil(total / pageSize)
     : ((data?.initialArticles?.length || 0) >= pageSize ? page + 1 : page);
 
+  const hasArticles = Array.isArray(data?.initialArticles) && data.initialArticles.length > 0;
+  const robotsDirective = hasArticles
+    ? "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    : "noindex, follow";
+
   return [
     { title },
     { name: "description", content: description },
@@ -37,7 +42,7 @@ export function meta({ data }) {
       title: `${category} Headlines RSS Feed | News Stand NG`,
       href: `${SITE_URL}${categoryPath}/feed.xml`,
     },
-    { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
+    { name: "robots", content: robotsDirective },
     { property: "og:type", content: "website" },
     { property: "og:site_name", content: "News Stand NG" },
     { property: "og:title", content: baseTitle },
@@ -61,7 +66,7 @@ export async function loader({ params, request }) {
 
   try {
     const [articlesData, categories, sources] = await Promise.all([
-      api.getArticles({ category, page, pageSize }).catch(() => []),
+      api.getArticles({ category, page, pageSize }),
       api.getCategories().catch(() => []),
       api.getSources().catch(() => []),
     ]);
@@ -84,17 +89,12 @@ export async function loader({ params, request }) {
       initialSponsored: [],
     };
   } catch (err) {
+    if (err instanceof Response) throw err;
     console.warn(`[SSR Category Loader] Failed for ${category}:`, err.message);
-    return {
-      category,
-      page,
-      pageSize,
-      total: 0,
-      initialArticles: [],
-      initialCategories: null,
-      initialSources: null,
-      initialSponsored: [],
-    };
+    throw new Response("Service Temporarily Unavailable", {
+      status: 503,
+      headers: { "Retry-After": "60" },
+    });
   }
 }
 

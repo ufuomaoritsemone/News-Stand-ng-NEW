@@ -25,6 +25,7 @@ public class ArticleEnrichmentBackgroundService(
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            int processed = 0;
             try
             {
                 using var scope = _scopeFactory.CreateScope();
@@ -37,7 +38,7 @@ public class ArticleEnrichmentBackgroundService(
                     "╚══════════════════════════════════════════════════════════════════════════════╝");
 
                 var sw = Stopwatch.StartNew();
-                int processed = await enrichmentService.ProcessUnenrichedBatchAsync(batchSize: 20, stoppingToken);
+                processed = await enrichmentService.ProcessUnenrichedBatchAsync(batchSize: 50, stoppingToken);
                 sw.Stop();
 
                 if (processed > 0)
@@ -56,7 +57,8 @@ public class ArticleEnrichmentBackgroundService(
 
             try
             {
-                await Task.Delay(Interval, stoppingToken);
+                var nextDelay = processed >= 50 ? TimeSpan.FromMinutes(2) : Interval;
+                await Task.Delay(nextDelay, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

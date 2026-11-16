@@ -111,6 +111,8 @@ public class StatesEndpointTests
         Assert.Equal(2, detailAll.Articles.Count);
         Assert.Contains("Metro", detailAll.AvailableCategories);
         Assert.Contains("Technology", detailAll.AvailableCategories);
+        // Empty seeded topic (< 5 articles) must not be exposed in TopTopics to avoid linking to noindex thin topic hubs
+        Assert.DoesNotContain(detailAll.TopTopics, t => t.Slug == "lagos-state");
 
         // 2. Category filter should return only matching category while keeping AvailableCategories intact
         var resultTech = await controller.GetStateBySlug("lagos", page: 1, pageSize: 18, category: "Technology");

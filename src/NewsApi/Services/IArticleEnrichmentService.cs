@@ -10,6 +10,12 @@ public interface IArticleEnrichmentService
     Task<ArticleEnrichment?> EnrichArticleAsync(string articleId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Enriches an article by ID and persists the enrichment record to the database,
+    /// optionally bypassing Cloud AI to guarantee sub-10ms deterministic local TextRank execution during synchronous SSR requests.
+    /// </summary>
+    Task<ArticleEnrichment?> EnrichArticleAsync(string articleId, bool skipCloudAi, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Processes a batch of up to <paramref name="batchSize"/> unenriched articles.
     /// Returns the number of articles newly enriched.
     /// </summary>

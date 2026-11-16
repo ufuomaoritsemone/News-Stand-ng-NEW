@@ -3,7 +3,7 @@ import { useLoaderData, Link, redirect } from 'react-router';
 import { api } from '../../src/services/api';
 import { formatTimeAgo } from '../../src/services/timeUtils';
 import { getHreflangTags } from '../../src/services/localization';
-import { paginatedUrl, paginationLinks } from '../utils/seo';
+import { paginatedUrl, paginationLinks, MIN_TOPIC_ARTICLES_FOR_INDEXING } from '../utils/seo';
 import Footer from '../../src/components/Footer';
 import {
   MapPin,
@@ -25,8 +25,11 @@ export function meta({ data, location }) {
     ];
   }
 
-  const { state, page = 1 } = data;
+  const { state, page = 1, category = '' } = data;
   const isPidgin = location?.pathname?.startsWith('/pcm');
+  const hasCategoryFilter = Boolean(
+    category || (location?.search && new URLSearchParams(location.search).get('category'))
+  );
   const baseTitle = isPidgin
     ? `${state.name} News Today: Latest Local Tori From ${state.capital} | News Stand NG`
     : `${state.name} State News Today: Latest Headlines & Local Developments | News Stand NG`;
@@ -38,12 +41,15 @@ export function meta({ data, location }) {
   const canonicalUrl = paginatedUrl(canonicalPath, page);
   const hreflangs = getHreflangTags(`/state/${state.slug}`);
   const totalPages = state.totalPages || 1;
+  const robotsDirective = hasCategoryFilter
+    ? 'noindex, follow'
+    : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 
   return [
     { title },
     { name: 'description', content: description },
     { tagName: 'link', rel: 'canonical', href: canonicalUrl },
-    { name: 'robots', content: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' },
+    { name: 'robots', content: robotsDirective },
     { property: 'og:type', content: 'website' },
     { property: 'og:title', content: title },
     { property: 'og:description', content: description },
@@ -92,10 +98,10 @@ export async function loader({ params, request }) {
 export default function StateDetailPage() {
   const { state, isPidgin, page = 1, category = '' } = useLoaderData();
 
-  const homePath = isPidgin ? '/pcm' : '/';
+  const homePath = '/';
   const canonicalStatePath = isPidgin ? `/pcm/state/${state.slug}` : `/state/${state.slug}`;
   const statesDirectoryPath = isPidgin ? '/pcm/states' : '/states';
-  const newsPathPrefix = isPidgin ? '/pcm/news' : '/news';
+  const newsPathPrefix = '/news';
 
   const totalCount = typeof state.articleCount === 'number' ? state.articleCount : (state.articles?.length || 0);
   const totalPages = state.totalPages || Math.max(1, Math.ceil(totalCount / (state.pageSize || 18)));
@@ -114,12 +120,42 @@ export default function StateDetailPage() {
     return `${canonicalStatePath}${qs ? `?${qs}` : ''}`;
   };
 
+  const articles = state.articles || [];
+  const topTopics = state.topTopics || [];
+  const majorCities = state.majorCities || [];
+  const stateLabel = state.name === 'Federal Capital Territory' ? state.name : `${state.name} State`;
+
+  const displayIntro = isPidgin
+    ? `Read clean, verified local tori and breaking news wey dey happen for ${stateLabel} (${state.geopoliticalZone} Zone). Follow government updates from ${state.capital}, business and market matter across ${majorCities.length > 0 ? majorCities.join(', ') : state.capital}, plus community gists from trusted Nigerian newsrooms.`
+    : state.intro;
+
+  const displayFaqs = isPidgin
+    ? [
+        {
+          question: `Wetin be di official state capital for ${state.name}?`,
+          answer: `${state.capital} na di official administrative capital city for ${stateLabel} where state government secretariat and ministries dey.`
+        },
+        {
+          question: `Which geopolitical zone ${state.name} dey inside Nigeria?`,
+          answer: `${state.name} dey inside di ${state.geopoliticalZone} geopolitical zone of Nigeria.`
+        },
+        {
+          question: `Which big commercial cities and towns dey inside ${state.name}?`,
+          answer: `Di major towns, commercial markets, and urban centers for ${state.name} na ${majorCities.length > 0 ? majorCities.join(', ') : state.capital}.`
+        },
+        {
+          question: `How many times una dey update ${state.name} tori for News Stand NG?`,
+          answer: `News Stand NG dey gather verified local news for ${state.name} every hour from top Nigerian newspapers and broadcast stations as new tori dey drop.`
+        }
+      ]
+    : (state.faqs || []);
+
   const placeJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'AdministrativeArea',
-    'name': state.name === 'Federal Capital Territory' ? state.name : `${state.name} State`,
+    'name': stateLabel,
     'alternateName': state.name,
-    'description': state.intro,
+    'description': displayIntro,
     'url': `https://newsstand.ng${canonicalStatePath}`,
     'containedInPlace': {
       '@type': 'Country',
@@ -127,10 +163,10 @@ export default function StateDetailPage() {
     }
   };
 
-  const faqJsonLd = state.faqs && state.faqs.length > 0 ? {
+  const faqJsonLd = displayFaqs.length > 0 ? {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    'mainEntity': state.faqs.map(faq => ({
+    'mainEntity': displayFaqs.map(faq => ({
       '@type': 'Question',
       'name': faq.question,
       'acceptedAnswer': {
@@ -149,11 +185,6 @@ export default function StateDetailPage() {
       { '@type': 'ListItem', 'position': 3, 'name': state.name, 'item': `https://newsstand.ng${canonicalStatePath}` }
     ]
   };
-
-  const articles = state.articles || [];
-  const topTopics = state.topTopics || [];
-  const majorCities = state.majorCities || [];
-  const faqs = state.faqs || [];
 
   return (
     <div className="data-page-layout">
@@ -178,7 +209,7 @@ export default function StateDetailPage() {
         <div className="article-header-container">
           <Link to={statesDirectoryPath} className="article-header-back-btn" title="Back to All States">
             <ArrowLeft size={18} />
-            <span>All States</span>
+            <span>{isPidgin ? 'All States' : 'All States'}</span>
           </Link>
           <Link to={homePath} className="article-header-brand">
             <span className="brand-dot" />
@@ -210,41 +241,43 @@ export default function StateDetailPage() {
               <div className="state-badge-row">
                 <span className="state-zone-badge">{state.geopoliticalZone}</span>
                 <span className="state-count-pill">
-                  {totalCount} {totalCount === 1 ? 'Story' : 'Stories'}
+                  {totalCount} {isPidgin ? 'Tori' : (totalCount === 1 ? 'Story' : 'Stories')}
                 </span>
                 {state.slogan && (
                   <span className="state-slogan-badge">"{state.slogan}"</span>
                 )}
               </div>
               <h1 className="state-masthead-title">
-                {state.name} {state.name !== 'Federal Capital Territory' && 'State'} News & Stories
+                {isPidgin
+                  ? `${stateLabel} Local Tori & Breaking News`
+                  : `${stateLabel} News & Stories`}
               </h1>
             </div>
             <Link to={statesDirectoryPath} className="state-back-all-btn">
               <ArrowLeft size={15} />
-              <span>All 36 States</span>
+              <span>{isPidgin ? 'All 36 States' : 'All 36 States'}</span>
             </Link>
           </div>
 
           <div className="state-meta-strip">
             <div className="state-meta-item">
               <Building size={15} />
-              <span>Capital: <strong>{state.capital}</strong></span>
+              <span>{isPidgin ? 'State Capital:' : 'Capital:'} <strong>{state.capital}</strong></span>
             </div>
             {majorCities.length > 0 && (
               <div className="state-meta-item">
                 <Compass size={15} />
-                <span>Major Hubs: <strong>{majorCities.join(', ')}</strong></span>
+                <span>{isPidgin ? 'Big Towns:' : 'Major Hubs:'} <strong>{majorCities.join(', ')}</strong></span>
               </div>
             )}
             <div className="state-meta-item">
               <Layers size={15} />
-              <span>{totalCount} Verified Reports</span>
+              <span>{totalCount} {isPidgin ? 'Verified Tori' : 'Verified Reports'}</span>
             </div>
           </div>
 
-          {state.intro && (
-            <p className="state-masthead-intro">{state.intro}</p>
+          {displayIntro && (
+            <p className="state-masthead-intro">{displayIntro}</p>
           )}
         </section>
 
@@ -256,15 +289,21 @@ export default function StateDetailPage() {
               <span>{isPidgin ? 'Related Topics:' : 'Regional Topics & Entities:'}</span>
             </div>
             <div className="state-topics-list">
-              {topTopics.map((topic) => (
-                <Link
-                  key={topic.slug || topic.id}
-                  to={`/topic/${topic.slug}`}
-                  className="state-topic-chip"
-                >
-                  {topic.name}
-                </Link>
-              ))}
+              {topTopics.map((topic) => {
+                const isThinTopic =
+                  typeof topic.articleCount === 'number' &&
+                  topic.articleCount < MIN_TOPIC_ARTICLES_FOR_INDEXING;
+                return (
+                  <Link
+                    key={topic.slug || topic.id}
+                    to={`/topic/${topic.slug}`}
+                    rel={isThinTopic ? 'nofollow' : undefined}
+                    className="state-topic-chip"
+                  >
+                    {topic.name}
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}
@@ -276,12 +315,13 @@ export default function StateDetailPage() {
               to={buildFilterUrl(1, '')}
               className={`zone-chip-btn ${!activeCategory ? 'active' : ''}`}
             >
-              All Categories
+              {isPidgin ? 'All Tori' : 'All Categories'}
             </Link>
             {availableCategories.map((cat) => (
               <Link
                 key={cat}
                 to={buildFilterUrl(1, cat)}
+                rel="nofollow"
                 className={`zone-chip-btn ${activeCategory.toLowerCase() === cat.toLowerCase() ? 'active' : ''}`}
               >
                 {cat}
@@ -332,7 +372,7 @@ export default function StateDetailPage() {
                       )}
                       <div className="state-story-footer-actions">
                         <Link to={`${newsPathPrefix}/${art.slug || art.id}`} className="state-read-story-btn">
-                          <span>Read full story</span>
+                          <span>{isPidgin ? 'Read complete tori' : 'Read full story'}</span>
                           <ArrowRight size={13} />
                         </Link>
                       </div>
@@ -347,6 +387,7 @@ export default function StateDetailPage() {
                   {page > 1 && (
                     <Link
                       to={buildFilterUrl(page - 1, activeCategory)}
+                      rel={activeCategory ? 'nofollow' : undefined}
                       className="pagination-btn"
                     >
                       Previous
@@ -358,6 +399,7 @@ export default function StateDetailPage() {
                   {page < totalPages && (
                     <Link
                       to={buildFilterUrl(page + 1, activeCategory)}
+                      rel={activeCategory ? 'nofollow' : undefined}
                       className="pagination-btn"
                     >
                       Next
@@ -387,14 +429,18 @@ export default function StateDetailPage() {
         </section>
 
         {/* Visible FAQ Accordion matching FAQPage JSON-LD Schema */}
-        {faqs.length > 0 && (
+        {displayFaqs.length > 0 && (
           <section className="story-faq-section" aria-label={`Frequently Asked Questions about ${state.name}`}>
             <h2 className="faq-section-title">
               <HelpCircle size={18} />
-              <span>Frequently Asked Questions About {state.name}</span>
+              <span>
+                {isPidgin
+                  ? `Questions People Dey Ask About ${state.name}`
+                  : `Frequently Asked Questions About ${state.name}`}
+              </span>
             </h2>
             <div className="faq-accordion-group">
-              {faqs.map((faq, idx) => (
+              {displayFaqs.map((faq, idx) => (
                 <details key={idx} className="story-faq-item" open={idx === 0}>
                   <summary className="story-faq-question">
                     <span className="faq-q-text">{faq.question}</span>

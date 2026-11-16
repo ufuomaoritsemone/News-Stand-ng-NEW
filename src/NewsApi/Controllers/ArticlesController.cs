@@ -455,6 +455,37 @@ public class ArticlesController : ControllerBase
                 .ToDictionaryAsync(x => x.TopicId, x => x.Count, cancellationToken)
             : new Dictionary<string, int>();
 
+        var enrichment = article.Enrichment;
+        if (enrichment == null && _enrichmentService != null)
+        {
+            try
+            {
+                enrichment = await _enrichmentService.EnrichArticleAsync(article.Id, skipCloudAi: true, cancellationToken)
+                    ?? await _enrichmentService.EnrichArticleAsync(article.Id, cancellationToken);
+            }
+            catch
+            {
+                // Fall back to deterministic in-memory synthesis below
+            }
+        }
+
+        if (enrichment == null)
+        {
+            enrichment = ArticleEnrichmentService.CreateDeterministicEnrichment(article);
+            try
+            {
+                if (!await _db.ArticleEnrichments.AnyAsync(e => e.ArticleId == article.Id, cancellationToken))
+                {
+                    _db.ArticleEnrichments.Add(enrichment);
+                    await _db.SaveChangesAsync(cancellationToken);
+                }
+            }
+            catch
+            {
+                // Non-fatal: still return the deterministic enrichment DTO for SSR
+            }
+        }
+
         var detailDto = new ArticleDetailDto
         {
             Id             = article.Id,
@@ -492,7 +523,7 @@ public class ArticlesController : ControllerBase
                 })
                 .ToList(),
             RelatedArticles = relatedArticles,
-            Enrichment      = ArticleIngestionService.MapToEnrichmentDto(article.Enrichment)
+            Enrichment      = ArticleIngestionService.MapToEnrichmentDto(enrichment)
         };
 
         return Ok(detailDto);

@@ -214,7 +214,10 @@ public partial class ArticleEnrichmentService(
     [GeneratedRegex(@"(?:₦|\$|Naira|dollars?)\s*[\d,.]+(?:\s*(?:trillion|billion|million|k))?|\b\d+(?:\.\d+)?%", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex FinancialNumericRegex();
 
-    public async Task<ArticleEnrichment?> EnrichArticleAsync(string articleId, CancellationToken cancellationToken = default)
+    public Task<ArticleEnrichment?> EnrichArticleAsync(string articleId, CancellationToken cancellationToken = default)
+        => EnrichArticleAsync(articleId, skipCloudAi: false, cancellationToken);
+
+    public async Task<ArticleEnrichment?> EnrichArticleAsync(string articleId, bool skipCloudAi, CancellationToken cancellationToken = default)
     {
         var article = await _db.Articles
             .Include(a => a.ArticleTopics).ThenInclude(at => at.Topic)
@@ -238,7 +241,7 @@ public partial class ArticleEnrichmentService(
             article.Content,
             article.Category,
             knownEntities,
-            skipCloudAi: false,
+            skipCloudAi: skipCloudAi,
             articleId: article.Id,
             cancellationToken: cancellationToken);
 
@@ -274,13 +277,107 @@ public partial class ArticleEnrichmentService(
         return article.Enrichment;
     }
 
+    /// <summary>
+    /// Synchronously builds a deterministic <see cref="ArticleEnrichment"/> using extractive heuristics
+    /// without external network calls, ensuring newly ingested or on-demand SSR articles are never thin.
+    /// </summary>
+    public static ArticleEnrichment CreateDeterministicEnrichment(Article article, IEnumerable<string>? topicNames = null)
+    {
+        var entities = topicNames?.Where(n => !string.IsNullOrWhiteSpace(n)).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
+            ?? article.ArticleTopics?
+                .Where(at => at.Topic != null && !string.IsNullOrWhiteSpace(at.Topic.Name))
+                .Select(at => at.Topic!.Name)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList()
+            ?? [];
+
+        var rawText = !string.IsNullOrWhiteSpace(article.Content)
+            ? article.Content
+            : (!string.IsNullOrWhiteSpace(article.Summary)
+                ? $"{article.Title}. {article.Summary}"
+                : (!string.IsNullOrWhiteSpace(article.Excerpt)
+                    ? $"{article.Title}. {article.Excerpt}"
+                    : article.Title));
+
+        var sentences = SplitSentences(rawText);
+        var takeaways = sentences.Take(3).Select(CleanSentence).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+        if (takeaways.Count == 0)
+        {
+            var fallback = CleanSentence(!string.IsNullOrWhiteSpace(article.Summary)
+                ? article.Summary!
+                : (!string.IsNullOrWhiteSpace(article.Excerpt) ? article.Excerpt! : article.Title));
+            if (!string.IsNullOrWhiteSpace(fallback))
+            {
+                takeaways.Add(fallback);
+            }
+        }
+
+        var timelineFacts = new List<TimelineFactDto>();
+        foreach (var sentence in sentences)
+        {
+            var dateMatch = DateTemporalRegex().Match(sentence);
+            var finMatch = FinancialNumericRegex().Match(sentence);
+            if (dateMatch.Success || finMatch.Success)
+            {
+                timelineFacts.Add(new TimelineFactDto
+                {
+                    DateText = dateMatch.Success ? dateMatch.Value : finMatch.Value,
+                    Fact = CleanSentence(sentence),
+                    Entity = entities.FirstOrDefault(e => sentence.Contains(e, StringComparison.OrdinalIgnoreCase))
+                });
+                if (timelineFacts.Count >= 3) break;
+            }
+        }
+
+        var faqs = GenerateStructuredFaqs(article.Title, article.Category, entities, takeaways, timelineFacts);
+
+        var executiveOverview = takeaways.Count > 0
+            ? string.Join(" ", takeaways.Take(Math.Min(2, takeaways.Count)))
+            : CleanSentence(article.Title);
+
+        var contextAndBackground = takeaways.Skip(2).Take(2).ToList();
+        if (contextAndBackground.Count == 0)
+        {
+            contextAndBackground.Add($"Reported under Nigeria's {article.Category ?? "General"} news sector by {article.Source ?? "News Stand NG"}.");
+        }
+
+        var keyFigures = timelineFacts
+            .Select(f => !string.IsNullOrWhiteSpace(f.DateText) ? $"{f.DateText}: {f.Fact}" : f.Fact)
+            .Take(3)
+            .ToList();
+        if (keyFigures.Count == 0 && entities.Count > 0)
+        {
+            keyFigures.AddRange(entities.Take(3));
+        }
+
+        var fullSummary = new FullSummaryPayload
+        {
+            ExecutiveOverview = executiveOverview,
+            ContextAndBackground = contextAndBackground,
+            KeyFiguresAndEntities = keyFigures,
+            OutlookOrNextSteps = "Follow original publisher reporting for subsequent developments, official responses, and verified updates.",
+            ReadingTimeSeconds = Math.Max(25, Math.Max(1, sentences.Count) * 3)
+        };
+
+        return new ArticleEnrichment
+        {
+            ArticleId = article.Id,
+            KeyTakeaways = takeaways,
+            TimelineFacts = timelineFacts,
+            Faqs = faqs,
+            FullSummary = fullSummary,
+            Engine = "TextRank-Extractive",
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+
     public async Task<int> ProcessUnenrichedBatchAsync(int batchSize = 25, CancellationToken cancellationToken = default)
     {
-        var cutoff = DateTime.UtcNow.AddDays(-14);
-
+        // Process all unenriched non-sponsored articles regardless of age (newest first) so historical articles
+        // in sitemaps never remain unenriched and trigger "Crawled - currently not indexed".
         var unenrichedArticles = await _db.Articles
             .Include(a => a.ArticleTopics).ThenInclude(at => at.Topic)
-            .Where(a => a.PublishedAt >= cutoff && !_db.ArticleEnrichments.Any(e => e.ArticleId == a.Id))
+            .Where(a => !a.IsSponsored && !_db.ArticleEnrichments.Any(e => e.ArticleId == a.Id))
             .OrderByDescending(a => a.PublishedAt)
             .Take(batchSize)
             .ToListAsync(cancellationToken);

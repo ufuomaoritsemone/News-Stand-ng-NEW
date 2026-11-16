@@ -164,6 +164,21 @@ public partial class SearchConsoleService(
             });
         }
 
+        // Check for unenriched articles (risk of Google "Crawled - currently not indexed" thin aggregator penalty)
+        var unenrichedCount = await _db.Articles
+            .CountAsync(a => !a.IsSponsored && !string.IsNullOrEmpty(a.Slug) && !_db.ArticleEnrichments.Any(e => e.ArticleId == a.Id), ct);
+        if (unenrichedCount > 0)
+        {
+            issues.Add(new CrawlIssueDto
+            {
+                Url = "/news/*",
+                IssueType = "Unenriched Article Pages (Thin Content Risk)",
+                Severity = unenrichedCount > 50 ? "Critical" : "Warning",
+                Message = $"{unenrichedCount} article pages lack persisted AI/TextRank enrichment (Executive Summary, Key Takeaways, FAQPage schema).",
+                RecommendedAction = "Trigger BackfillEnrichment remediation or allow ArticleEnrichmentBackgroundService to complete backfill."
+            });
+        }
+
         // Retrieve IndexNow configuration
         var indexNowDto = new IndexNowDiagnosticsDto();
         if (_indexNowService is not null)

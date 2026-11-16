@@ -165,6 +165,13 @@ public class ArticlesSeoEndpointTests
         var contentProp = typeof(ArticleDetailDto).GetProperty("Content");
         Assert.Null(contentProp);
 
+        // Verification of SEO thin-content protection: GetBySlug must always synthesize/return Enrichment
+        Assert.NotNull(detail.Enrichment);
+        Assert.NotNull(detail.Enrichment.FullSummary);
+        Assert.False(string.IsNullOrWhiteSpace(detail.Enrichment.FullSummary.ExecutiveOverview));
+        Assert.NotEmpty(detail.Enrichment.KeyTakeaways);
+        Assert.NotEmpty(detail.Enrichment.Faqs);
+
         // Header assertions
         var httpContext = controller.HttpContext;
         Assert.True(httpContext.Response.Headers.ContainsKey("ETag"));
