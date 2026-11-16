@@ -1,7 +1,12 @@
+using Google.Apis.Auth.OAuth2;
 using Microsoft.EntityFrameworkCore;
 using NewsApi.Data;
 using NewsApi.Models;
+using System.Globalization;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace NewsApi.Services;
@@ -768,10 +773,269 @@ public partial class SearchConsoleService(
         int limit,
         CancellationToken ct)
     {
-        // Optional production Google Search Console REST API client logic
-        // If file exists and contains valid JSON, parse site configuration
-        _logger.LogInformation("Checking GSC API configuration at {Path}", credentialsPath);
-        await Task.CompletedTask;
-        return null;
+        const string webmastersReadonlyScope = "https://www.googleapis.com/auth/webmasters.readonly";
+
+        var siteUrl = _config["SearchConsole:SiteUrl"]
+            ?? Environment.GetEnvironmentVariable("GSC_SITE_URL")
+            ?? DefaultSiteUrl;
+
+        await using var stream = File.OpenRead(credentialsPath);
+        var credential = GoogleCredential.FromStream(stream).CreateScoped(webmastersReadonlyScope);
+        var accessToken = await ((ITokenAccess)credential).GetAccessTokenForRequestAsync(cancellationToken: ct);
+
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            _logger.LogWarning("Google Search Console OAuth access token was empty for credentials at {Path}.", credentialsPath);
+            return null;
+        }
+
+        var endDate = DateTime.UtcNow.Date;
+        var startDate = endDate.AddDays(-days);
+        var prevEndDate = startDate.AddDays(-1);
+        var prevStartDate = prevEndDate.AddDays(-days);
+
+        var startStr = startDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var endStr = endDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var prevStartStr = prevStartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var prevEndStr = prevEndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        var endpoint = $"https://www.googleapis.com/webmasters/v3/sites/{Uri.EscapeDataString(siteUrl)}/searchAnalytics/query";
+        var client = _httpClientFactory.CreateClient();
+
+        var dailyTask = QueryGscAsync(client, endpoint, accessToken, startStr, endStr, ["date"], days + 5, ct);
+        var queriesTask = QueryGscAsync(client, endpoint, accessToken, startStr, endStr, ["query"], limit, ct);
+        var pagesTask = QueryGscAsync(client, endpoint, accessToken, startStr, endStr, ["page"], limit, ct);
+        var devicesTask = QueryGscAsync(client, endpoint, accessToken, startStr, endStr, ["device"], 10, ct);
+        var prevTotalsTask = QueryGscAsync(client, endpoint, accessToken, prevStartStr, prevEndStr, [], 1, ct);
+
+        await Task.WhenAll(dailyTask, queriesTask, pagesTask, devicesTask, prevTotalsTask);
+
+        var dailyRes = dailyTask.Result;
+        var queriesRes = queriesTask.Result;
+        var pagesRes = pagesTask.Result;
+        var devicesRes = devicesTask.Result;
+        var prevTotalsRes = prevTotalsTask.Result;
+
+        if (dailyRes is null || queriesRes is null || pagesRes is null || devicesRes is null)
+        {
+            return null;
+        }
+
+        var dailyTrends = (dailyRes.Rows ?? [])
+            .Select(r =>
+            {
+                var dateStr = r.Keys?.FirstOrDefault();
+                _ = DateTime.TryParseExact(dateStr, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsedDate);
+                return new SearchAnalyticsDailyPointDto
+                {
+                    Date = parsedDate,
+                    Clicks = (long)Math.Round(r.Clicks),
+                    Impressions = (long)Math.Round(r.Impressions),
+                    Ctr = Math.Round(r.Ctr * 100.0, 2),
+                    Position = Math.Round(r.Position, 1)
+                };
+            })
+            .Where(d => d.Date != default)
+            .OrderBy(d => d.Date)
+            .ToList();
+
+        var topQueries = (queriesRes.Rows ?? [])
+            .Select(r => new SearchQueryPerformanceDto
+            {
+                Query = r.Keys?.FirstOrDefault() ?? string.Empty,
+                Clicks = (long)Math.Round(r.Clicks),
+                Impressions = (long)Math.Round(r.Impressions),
+                Ctr = Math.Round(r.Ctr * 100.0, 2),
+                Position = Math.Round(r.Position, 1)
+            })
+            .OrderByDescending(q => q.Clicks)
+            .ThenByDescending(q => q.Impressions)
+            .Take(limit)
+            .ToList();
+
+        var topPages = (pagesRes.Rows ?? [])
+            .Select(r =>
+            {
+                var pageUrl = r.Keys?.FirstOrDefault() ?? string.Empty;
+                return new SearchPagePerformanceDto
+                {
+                    Page = pageUrl,
+                    PageType = ClassifyPageType(pageUrl),
+                    Clicks = (long)Math.Round(r.Clicks),
+                    Impressions = (long)Math.Round(r.Impressions),
+                    Ctr = Math.Round(r.Ctr * 100.0, 2),
+                    Position = Math.Round(r.Position, 1)
+                };
+            })
+            .OrderByDescending(p => p.Clicks)
+            .ThenByDescending(p => p.Impressions)
+            .Take(limit)
+            .ToList();
+
+        var totalDeviceImpressions = devicesRes.Rows?.Sum(r => r.Impressions) ?? 0.0;
+        var deviceBreakdown = (devicesRes.Rows ?? [])
+            .Select(r =>
+            {
+                var share = totalDeviceImpressions > 0
+                    ? Math.Round(r.Impressions / totalDeviceImpressions * 100.0, 1)
+                    : 0.0;
+                return new SearchDevicePerformanceDto
+                {
+                    Device = (r.Keys?.FirstOrDefault() ?? "UNKNOWN").ToUpperInvariant(),
+                    Clicks = (long)Math.Round(r.Clicks),
+                    Impressions = (long)Math.Round(r.Impressions),
+                    Ctr = Math.Round(r.Ctr * 100.0, 2),
+                    PercentageShare = share
+                };
+            })
+            .OrderByDescending(d => d.Impressions)
+            .ToList();
+
+        var totalClicks = dailyTrends.Sum(d => d.Clicks);
+        var totalImpressions = dailyTrends.Sum(d => d.Impressions);
+        var averageCtr = totalImpressions > 0
+            ? Math.Round((double)totalClicks / totalImpressions * 100.0, 2)
+            : 0.0;
+        var averagePosition = totalImpressions > 0
+            ? Math.Round(dailyTrends.Sum(d => d.Position * d.Impressions) / totalImpressions, 1)
+            : 0.0;
+
+        var prevRow = prevTotalsRes?.Rows?.FirstOrDefault();
+        var prevClicks = prevRow?.Clicks ?? 0.0;
+        var prevImpressions = prevRow?.Impressions ?? 0.0;
+
+        var clicksDeltaPercent = prevClicks > 0
+            ? Math.Round((totalClicks - prevClicks) / prevClicks * 100.0, 1)
+            : 0.0;
+        var impressionsDeltaPercent = prevImpressions > 0
+            ? Math.Round((totalImpressions - prevImpressions) / prevImpressions * 100.0, 1)
+            : 0.0;
+
+        _logger.LogInformation(
+            "Fetched live Google Search Console analytics for {SiteUrl} ({Days}d, dimension={Dimension}): {Clicks} clicks, {Impressions} impressions.",
+            siteUrl, days, dimension, totalClicks, totalImpressions);
+
+        return new SearchPerformanceSummaryDto
+        {
+            Days = days,
+            StartDate = startDate,
+            EndDate = endDate,
+            TotalClicks = totalClicks,
+            TotalImpressions = totalImpressions,
+            AverageCtr = averageCtr,
+            AveragePosition = averagePosition,
+            ClicksDeltaPercent = clicksDeltaPercent,
+            ImpressionsDeltaPercent = impressionsDeltaPercent,
+            SiteUrl = siteUrl,
+            DataEngine = "GoogleSearchConsoleApi (Live)",
+            DailyTrends = dailyTrends,
+            TopQueries = topQueries,
+            TopPages = topPages,
+            DeviceBreakdown = deviceBreakdown
+        };
+    }
+
+    private async Task<GscQueryResponse?> QueryGscAsync(
+        HttpClient client,
+        string endpoint,
+        string accessToken,
+        string startDate,
+        string endDate,
+        string[] dimensions,
+        int rowLimit,
+        CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = JsonContent.Create(new GscQueryRequest
+        {
+            StartDate = startDate,
+            EndDate = endDate,
+            Dimensions = dimensions,
+            RowLimit = rowLimit
+        });
+
+        using var response = await client.SendAsync(request, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogWarning(
+                "Google Search Console API returned HTTP {StatusCode} for dimensions [{Dimensions}]: {Body}",
+                (int)response.StatusCode,
+                string.Join(",", dimensions),
+                body);
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<GscQueryResponse>(cancellationToken: ct);
+    }
+
+    private static string ClassifyPageType(string pageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(pageUrl)) return "NewsArticle";
+
+        var path = Uri.TryCreate(pageUrl, UriKind.Absolute, out var uri)
+            ? uri.AbsolutePath
+            : pageUrl;
+
+        if (EvergreenDataTrackers.Any(t => path.StartsWith(t, StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith("/pcm" + t, StringComparison.OrdinalIgnoreCase)))
+            return "DataTracker";
+
+        if (path.StartsWith("/state/", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/pcm/state/", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("/states", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("/pcm/states", StringComparison.OrdinalIgnoreCase))
+            return "StateHub";
+
+        if (path.StartsWith("/topic/", StringComparison.OrdinalIgnoreCase))
+            return "TopicHub";
+
+        if (path.StartsWith("/story/", StringComparison.OrdinalIgnoreCase))
+            return "StoryCluster";
+
+        if (path.StartsWith("/category/", StringComparison.OrdinalIgnoreCase))
+            return "Category";
+
+        return "NewsArticle";
+    }
+
+    private sealed class GscQueryRequest
+    {
+        [JsonPropertyName("startDate")]
+        public string StartDate { get; set; } = string.Empty;
+
+        [JsonPropertyName("endDate")]
+        public string EndDate { get; set; } = string.Empty;
+
+        [JsonPropertyName("dimensions")]
+        public string[] Dimensions { get; set; } = [];
+
+        [JsonPropertyName("rowLimit")]
+        public int RowLimit { get; set; }
+    }
+
+    private sealed class GscQueryResponse
+    {
+        [JsonPropertyName("rows")]
+        public List<GscRow>? Rows { get; set; }
+    }
+
+    private sealed class GscRow
+    {
+        [JsonPropertyName("keys")]
+        public List<string>? Keys { get; set; }
+
+        [JsonPropertyName("clicks")]
+        public double Clicks { get; set; }
+
+        [JsonPropertyName("impressions")]
+        public double Impressions { get; set; }
+
+        [JsonPropertyName("ctr")]
+        public double Ctr { get; set; }
+
+        [JsonPropertyName("position")]
+        public double Position { get; set; }
     }
 }
