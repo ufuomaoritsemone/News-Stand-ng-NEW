@@ -3,7 +3,7 @@ import { useLoaderData, Link } from 'react-router';
 import { api, getOptimizedImageUrl } from '../../src/services/api';
 import { formatTimeAgo } from '../../src/services/timeUtils';
 import { getHreflangTags } from '../../src/services/localization';
-import { INEC_PARTIES, getAllCandidates } from '../../src/data/inecPartiesRegistry';
+import { INEC_PARTIES, getAllCandidates, getFrontRunnerParties, getPresidentialTicketCount } from '../../src/data/inecPartiesRegistry';
 import Footer from '../../src/components/Footer';
 import {
   Vote,
@@ -23,17 +23,18 @@ import {
   ChevronRight,
   Filter,
   Building2,
-  FileText
+  FileText,
+  Award
 } from 'lucide-react';
 
 export function meta({ data, location }) {
   const isPidgin = location?.pathname?.startsWith('/pcm');
   const title = isPidgin
-    ? 'Nigeria Election Tracker: 22 INEC Parties, Candidates & Live Tori | News Stand NG'
-    : 'Nigeria Election Tracker 2026/2027: 22 INEC Parties, Candidates & Live News | News Stand NG';
+    ? 'Nigeria Election Tracker: Verified Front Runners, 22 INEC Parties & Live Tori | News Stand NG'
+    : 'Nigeria Election Tracker 2026/2027: Verified Front Runners & 22 INEC Parties | News Stand NG';
   const description = isPidgin
-    ? 'Track all 22 INEC-registered political parties (APC, PDP, LP, NNPP, etc.), candidate profiles, and live verified political stories.'
-    : 'Official statutory directory of all 22 INEC-recognized political parties, presidential & gubernatorial flagbearers, and live verified election news stories.';
+    ? 'Track verified presidential front runners (APC, ADC, NDC, PDP), all 22 INEC-registered political parties, running mates, and live political stories.'
+    : 'Track Nigeria\'s verified presidential front runners (APC, ADC, NDC, PDP), 18 presidential & vice-presidential tickets across 22 INEC-recognized parties, and live campaign coverage.';
   const canonicalUrl = `https://newsstand.ng${location?.pathname || '/elections'}`;
   const hreflangs = getHreflangTags('/elections');
 
@@ -353,7 +354,7 @@ export default function ElectionsPage() {
           <div className="tracker-hero-header">
             <div className="tracker-badge-pill">
               <span className="live-indicator-dot" />
-              <span>{isPidgin ? 'INEC Statutory Monitor' : 'INEC 22 Registered Parties & Candidates'}</span>
+              <span>{isPidgin ? 'Verified Front Runners & INEC Monitor' : 'Verified Front Runners & 22 INEC Parties'}</span>
             </div>
             {metric.lastUpdated && (
               <div className="tracker-timestamp">
@@ -364,24 +365,24 @@ export default function ElectionsPage() {
           </div>
 
           <h1 id="election-tracker-title" className="tracker-hero-title">
-            {isPidgin ? 'Nigeria Election & Political Parties Tracker' : 'Nigeria Election & Political Parties Tracker'}
+            {isPidgin ? 'Nigeria Election & Front Runners Tracker' : 'Nigeria Election & Front Runners Tracker'}
           </h1>
 
           <p className="tracker-hero-lead">
             {isPidgin
-              ? 'Complete list of all 22 statutory political parties recognize by INEC, dia flagbearers, and real-time news stories about each party.'
-              : 'Official statutory directory of Nigeria\'s 22 recognized political parties, presidential and gubernatorial candidates, and aggregated real-time campaign coverage.'}
+              ? 'Track di verified presidential front runners, all 22 INEC political parties, dia running mates, and live news stories about each ticket.'
+              : 'Live coverage of Nigeria\'s verified presidential front runners, 18 INEC-cleared presidential & vice-presidential tickets across 22 statutory parties, and real-time campaign reporting.'}
           </p>
 
           {/* Quick Metrics Bar */}
           <div className="rate-cards-grid">
             <div className="rate-card parallel-rate-card">
               <div className="rate-card-label">
-                <span>Recognized Parties</span>
-                <span className="rate-pill-change">Statutory Register</span>
+                <span>Verified Presidential Tickets</span>
+                <span className="rate-pill-change">INEC Roll</span>
               </div>
-              <div className="rate-card-value">22 Political Parties</div>
-              <div className="rate-card-sub">Accredited by INEC under the 1999 Constitution & Electoral Act</div>
+              <div className="rate-card-value">{getPresidentialTicketCount()} Tickets · {INEC_PARTIES.length} Parties</div>
+              <div className="rate-card-sub">Presidential &amp; Vice-Presidential flagbearers across 22 INEC-recognized parties</div>
             </div>
 
             <div className="rate-card official-rate-card">
@@ -390,7 +391,7 @@ export default function ElectionsPage() {
                 <span className="rate-pill-official">Election Cycle</span>
               </div>
               <div className="rate-card-value">{metric.secondaryValue || 'General Polls: Feb 2027'}</div>
-              <div className="rate-card-sub">Off-cycle governorships + presidential & legislative countdown</div>
+              <div className="rate-card-sub">Verified front-runner tracking + presidential &amp; legislative countdown</div>
             </div>
           </div>
 
@@ -413,7 +414,7 @@ export default function ElectionsPage() {
             onClick={() => setActiveTab('parties')}
           >
             <Users size={16} />
-            <span>Parties & Candidates ({INEC_PARTIES.length})</span>
+            <span>Front Runners &amp; Parties ({INEC_PARTIES.length})</span>
           </button>
 
           <button
@@ -424,7 +425,7 @@ export default function ElectionsPage() {
             onClick={() => setActiveTab('schedule')}
           >
             <Calendar size={16} />
-            <span>Electoral Calendar & Timetable</span>
+            <span>Electoral Calendar &amp; Timetable</span>
           </button>
 
           <button
@@ -435,13 +436,105 @@ export default function ElectionsPage() {
             onClick={() => setActiveTab('voter-guide')}
           >
             <Vote size={16} />
-            <span>BVAS, IReV & FAQs</span>
+            <span>BVAS, IReV &amp; FAQs</span>
           </button>
         </div>
 
-        {/* TAB 1: PARTIES & CANDIDATES EXPLORER */}
+        {/* TAB 1: VERIFIED FRONT RUNNERS, PARTIES & CANDIDATES EXPLORER */}
         {activeTab === 'parties' && (
-          <section aria-label="Political Parties and Candidates Hub">
+          <section aria-label="Verified Front Runners, Political Parties and Candidates Hub">
+            {/* Verified Presidential Front Runners Spotlight */}
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>
+                  <Award size={20} style={{ color: '#10b981' }} />
+                  <span>Verified Presidential Front Runners</span>
+                </h2>
+                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  Click any ticket or candidate to filter live campaign stories below
+                </span>
+              </div>
+
+              <div className="election-parties-grid" style={{ marginBottom: 12 }}>
+                {getFrontRunnerParties().map((party) => {
+                  const pres = party.candidates.find((c) => c.office === 'Presidential');
+                  const vp = party.candidates.find((c) => c.office === 'Vice-Presidential');
+                  const isPartySelected = selectedParty?.id === party.id && !selectedCandidate;
+
+                  return (
+                    <div
+                      key={`frontrunner-${party.id}`}
+                      className={`election-party-card ${isPartySelected ? 'selected' : ''}`}
+                      style={{ '--party-color': party.color }}
+                      onClick={() => handleSelectParty(party)}
+                    >
+                      <div>
+                        <div className="party-card-top">
+                          <span
+                            className="party-badge-acronym"
+                            style={{ backgroundColor: party.color }}
+                          >
+                            {party.acronym}
+                          </span>
+                          <span className="party-status-tag">{party.frontRunnerNote || party.status}</span>
+                        </div>
+
+                        <h3 className="party-card-title" style={{ marginBottom: 10 }}>{party.name}</h3>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {pres && (
+                            <button
+                              type="button"
+                              className="candidate-mini-chip"
+                              style={{ justifyContent: 'space-between', width: '100%', padding: '8px 10px' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectCandidate(pres, party);
+                              }}
+                              title={`View stories for ${pres.name}`}
+                            >
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+                                <User size={13} />
+                                {pres.name}
+                              </span>
+                              <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', opacity: 0.75, fontWeight: 700 }}>
+                                Presidential
+                              </span>
+                            </button>
+                          )}
+                          {vp && (
+                            <button
+                              type="button"
+                              className="candidate-mini-chip"
+                              style={{ justifyContent: 'space-between', width: '100%', padding: '7px 10px' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectCandidate(vp, party);
+                              }}
+                              title={`View stories for ${vp.name}`}
+                            >
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                <User size={12} />
+                                {vp.name}
+                              </span>
+                              <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', opacity: 0.7, fontWeight: 600 }}>
+                                Vice-Presidential
+                              </span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="party-card-footer">
+                        <span>{isPartySelected ? 'Viewing ticket stories below' : 'View ticket coverage'}</span>
+                        <ChevronRight size={15} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Search and Filter Controls */}
             <div className="election-controls-bar">
               <div className="election-search-input-wrap">
@@ -450,7 +543,7 @@ export default function ElectionsPage() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search party by name, acronym (e.g. APC, PDP, LP), chairman, or candidate..."
+                  placeholder="Search party by name, acronym (e.g. APC, ADC, NDC, PDP), chairman, or candidate..."
                   className="election-search-input"
                 />
                 {searchQuery && (
@@ -471,14 +564,14 @@ export default function ElectionsPage() {
                   className={`election-filter-pill ${raceFilter === 'all' ? 'active' : ''}`}
                   onClick={() => setRaceFilter('all')}
                 >
-                  All 22 Recognized Parties
+                  All {INEC_PARTIES.length} Recognized Parties
                 </button>
                 <button
                   type="button"
                   className={`election-filter-pill ${raceFilter === 'presidential' ? 'active' : ''}`}
                   onClick={() => setRaceFilter('presidential')}
                 >
-                  Presidential Flagbearers
+                  Presidential Tickets ({getPresidentialTicketCount()})
                 </button>
                 <button
                   type="button"
@@ -550,10 +643,10 @@ export default function ElectionsPage() {
                       </div>
                     </div>
 
-                    {/* Candidates Shelf if party has prominent candidates */}
+                    {/* Candidates Shelf if party has verified candidates */}
                     {party.candidates.length > 0 && (
                       <div className="party-candidates-shelf">
-                        <span className="party-candidates-shelf-label">Flagbearers / Candidates:</span>
+                        <span className="party-candidates-shelf-label">Verified Ticket / Candidates:</span>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                           {party.candidates.map((cand) => (
                             <button
@@ -564,10 +657,13 @@ export default function ElectionsPage() {
                                 e.stopPropagation();
                                 handleSelectCandidate(cand, party);
                               }}
-                              title={`View stories for ${cand.name}`}
+                              title={`View stories for ${cand.name} (${cand.office})`}
                             >
                               <User size={12} />
                               <span>{cand.name}</span>
+                              <span style={{ fontSize: '0.65rem', opacity: 0.7, fontWeight: 700 }}>
+                                {cand.office === 'Presidential' ? 'PRES' : cand.office === 'Vice-Presidential' ? 'VP' : 'GOV'}
+                              </span>
                             </button>
                           ))}
                         </div>
